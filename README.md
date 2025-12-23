@@ -42,6 +42,29 @@ This project explores limited, opt-in AI augmentation within live improvisationa
 - Feedback from performers, collaborators, and audiences is considered essential.
 - The project may be revised, paused, or discontinued if these principles are compromised.
 
+### Performer Consent
+- All performers are informed in advance when AI augmentation is used.
+- Participation is voluntary; performers may opt out of scenes or performances involving AI without penalty.
+- No performer is required to interact with, respond to, or incorporate AI output.
+
+### Audience Transparency
+- The presence of AI augmentation is disclosed to audiences before or at the start of a performance.
+- The project does not conceal AI involvement or present AI-generated output as human-generated.
+
+### Attribution and Authorship
+- AI output is not credited as authorship, performance, or creative ownership.
+- Creative credit remains solely with the human performers and creators.
+- The system does not claim originality, intent, or authorship.
+
+### Content Boundaries
+- The system includes constraints intended to prevent hateful, harassing, or unsafe output.
+- Human operators actively monitor AI output during performances.
+- The kill switch serves as an immediate safeguard against inappropriate or unintended content.
+
+### Accountability
+- Human operators are fully responsible for all AI output during a performance.
+- Responsibility for content, timing, and usage rests with the project operators, not the system itself.
+
 See ETHICS_FAQ.md for more info
 
 ## Development Standards
