@@ -122,3 +122,4 @@ This project is licensed under the LGPLV3 License - see the LICENSE.md file for 
 
 * [improbotics](https://improbotics.org/)
 * [DomPizzie (README template)](https://gist.github.com/DomPizzie/7a5ff55ffa9081f2de27c315f5018afc)
+* [Deepak Prasad](https://www.golinuxcloud.com/openssl-create-certificate-chain-linux/)

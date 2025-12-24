@@ -1,6 +1,10 @@
 {
     "cSpell.words": [
-        "Improv"
+        "alsa",
+        "evtest",
+        "Improv",
+        "timedatectl",
+        "timeshift"
     ],
     "files.eol": "\n",
     "editor.insertSpaces": true
