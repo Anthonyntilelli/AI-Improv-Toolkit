@@ -4,7 +4,7 @@
 #: Author       : Anthony Tilelli
 #: Description  : Basic PKI management for the project using openssl, it can:
 #:              : - Generate root, intermediate, Server and Client CA
-#:              : - Generate new client and Server CA, while revoking old ones (TODO)
+#:              : - Generate new client and Server CA, while revoking old ones
 #: WARNING      :
 #:              : This script makes use of env variable but a script cannot clear them.
 #:              : Be sure to clear env variables when done.
@@ -15,9 +15,10 @@
 #:              : mktemp
 #:              : tr
 #:              : head
+#:              : find
 #: Options      :
 #:              : init - Generate root, intermediate, Server and Client CA
-#:              : rotate - Generate new client and Server CA, while revoking old ones (TODO)
+#:              : rotate - Generate new client and Server CA, while revoking old ones
 #: ENV Variables:
 #:              : ROOT_CA_PASSWORD <- Password For Root CA
 #:              : INTERMEDIATE_CA_PASSWORD <- Password For intermediate CA
@@ -34,6 +35,8 @@
 #:              : 7 Command Line argument missing.
 #:              : 8 <option> is not a valid option (init | rotate).
 #:              : 9 Invalid mode in main: <mode>.
+#:              : 10 Invalid Folder or missing PKI items  (varied message).
+#:              : 11 Invalid INTERMEDIATE_CA_PASSWORD or missing INTERMEDIATE Key  (varied message).
 ################ Script metadata ###############################################
 
 # strict mode
@@ -53,13 +56,15 @@ fi
 readonly SERVER_DOMAIN="tilelli.me"
 declare -rA CLIENTS=(
   [setting]="setting@improvShow.local"
-  [nats_debug]="nats_debug@improvShow.local"
+  [debug]="debug@improvShow.local"
   [ingest]="ingest@improvShow.local"
   [vision]="vision@improvShow.local"
   [hearing]="hearing@improvShow.local"
   [brain]="brain@improvShow.local"
   [output]="output@improvShow.local"
 )
+readonly  SERVERS=(nats vision hearing)
+
 # Cert Subjects
 readonly COUNTRY="US"
 readonly STATE="Pennsylvania"
@@ -69,6 +74,7 @@ readonly ORGUNIT="Improv Show"
 
 # Global
 declare mode="unset"
+declare ARCHIVE_DIR="unset"
 
 # Functions
 function die() {
@@ -100,8 +106,8 @@ function usage() {
   #@ REQUIREMENTS: NONE
 
   printf "pki_management (init | rotate)\\n"
-  printf "init Generate root, intermediate, Server and Client CA\\n"
-  printf "Generate new client and Server CA, while revoking old ones\\n"
+  printf "    init        Generate root, intermediate, Server and Client CA\\n"
+  printf "    rotate      Generate new client and Server CA, while revoking old ones\\n"
   return 0
 }
 
@@ -111,27 +117,12 @@ function cli_check() {
   #@ USAGE:  cli_check
   #@ REQUIREMENTS: NONE
 
-  if ! command -v openssl &> /dev/null
-  then
-    die 4 "openssl is missing, Install it please, and then run this tool again."
-  fi
-  if ! command -v mktemp &> /dev/null
-  then
-    die 4 "mktemp is missing, Install it please, and then run this tool again."
-  fi
-  if ! command -v tar &> /dev/null
-  then
-    die 4 "tar is missing, Install it please, and then run this tool again."
-  fi
-  if ! command -v tr &> /dev/null
-  then
-    die 4 "tr is missing, Install it please, and then run this tool again."
-  fi
-    if ! command -v head &> /dev/null
-  then
-    die 4 "head is missing, Install it please, and then run this tool again."
-  fi
-
+  command -v openssl &>/dev/null || die 4 "openssl is missing, Install it please, and then run this tool again."
+  command -v mktemp  &>/dev/null || die 4 "mktemp is missing, Install it please, and then run this tool again."
+  command -v tar     &>/dev/null || die 4 "tar is missing, Install it please, and then run this tool again."
+  command -v tr      &>/dev/null || die 4 "tr is missing, Install it please, and then run this tool again."
+  command -v head    &>/dev/null || die 4 "head is missing, Install it please, and then run this tool again."
+  command -v find    &>/dev/null || die 4 "find is missing, Install it please, and then run this tool again."
   return 0
 }
 
@@ -330,7 +321,7 @@ function gen_client_config(){
   #@ REQUIREMENTS: NONE
 
   for key in "${!CLIENTS[@]}"; do
-    cat << 'EOF' > client_cert_ext_${key}.cnf
+    cat << 'EOF' > "client_cert_ext_${key}.cnf"
 [ ca ]                           # The default CA section
 default_ca = CA_default          # The default CA name
 
@@ -389,11 +380,12 @@ keyUsage = critical, digitalSignature, keyEncipherment
 extendedKeyUsage = clientAuth
 subjectAltName = @alt_names
 EOF
-cat << EOF >> client_cert_ext_${key}.cnf
+cat << EOF >> "client_cert_ext_${key}.cnf"
 [ alt_names ]
 email = ${CLIENTS[$key]}
 EOF
   done
+  return 0
 }
 
 
@@ -469,18 +461,16 @@ function gen_server_ca() {
   #@ USAGE: gen_server_ca
   #@ REQUIREMENTS: openssl
 
-  local servers=(nats vision hearing)
-
-  for server in "${servers[@]}" ; do
-    openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:4096 -out intermediateCA/private/${server}.${SERVER_DOMAIN}.key.pem  2>/dev/null
-    chmod 400 intermediateCA/private/${server}.${SERVER_DOMAIN}.key.pem
+  for server in "${SERVERS[@]}" ; do
+    openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:4096 -out "intermediateCA/private/${server}.${SERVER_DOMAIN}.key.pem"  2>/dev/null
+    chmod 400 "intermediateCA/private/${server}.${SERVER_DOMAIN}.key.pem"
 
     openssl req -config openssl_intermediate.cnf \
-      -key intermediateCA/private/${server}.${SERVER_DOMAIN}.key.pem \
-      -new -sha256 -out intermediateCA/csr/${server}.${SERVER_DOMAIN}.csr.pem \
+      -key "intermediateCA/private/${server}.${SERVER_DOMAIN}.key.pem" \
+      -new -sha256 -out "intermediateCA/csr/${server}.${SERVER_DOMAIN}.csr.pem" \
       -subj "/C=${COUNTRY}/ST=${STATE}/L=${LOCAL}/O=${ORG}/OU=${ORGUNIT}/CN=${server}.${SERVER_DOMAIN}" \
       -addext "subjectAltName=DNS:${server}.${SERVER_DOMAIN},DNS:${SERVER_DOMAIN}"
-    chmod 444 intermediateCA/csr/${server}.${SERVER_DOMAIN}.csr.pem
+    chmod 444 "intermediateCA/csr/${server}.${SERVER_DOMAIN}.csr.pem"
 
     openssl ca -config <(cat openssl_intermediate.cnf; cat <<EOF
 [ server_cert ]
@@ -492,11 +482,17 @@ DNS.2 = ${SERVER_DOMAIN}
 EOF
 ) \
       -extensions server_cert -days 375 -notext -md sha256  -batch \
-      -in intermediateCA/csr/${server}.${SERVER_DOMAIN}.csr.pem \
+      -in "intermediateCA/csr/${server}.${SERVER_DOMAIN}.csr.pem" \
       -passin env:INTERMEDIATE_CA_PASSWORD \
-      -out intermediateCA/certs/${server}.${SERVER_DOMAIN}.cert.pem >/dev/null 2>&1
+      -out "intermediateCA/certs/${server}.${SERVER_DOMAIN}.cert.pem" >/dev/null 2>&1
 
-    chmod 444 intermediateCA/certs/${server}.${SERVER_DOMAIN}.cert.pem
+    chmod 444 "intermediateCA/certs/${server}.${SERVER_DOMAIN}.cert.pem"
+    verify_leaf_cert "intermediateCA/certs/${server}.${SERVER_DOMAIN}.cert.pem" "sslserver"
+
+    # SAN sanity check
+    openssl x509 -in "intermediateCA/certs/${server}.${SERVER_DOMAIN}.cert.pem" -noout -text | \
+      grep -q "DNS:${server}.${SERVER_DOMAIN}" \
+      || die 1 "Missing expected SAN on ${server}.${SERVER_DOMAIN}"
   done
   return 0
 }
@@ -511,24 +507,30 @@ function gen_client_ca() {
   gen_client_config
 
   for key in "${!CLIENTS[@]}"; do
-    openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:4096 -out intermediateCA/private/${key}.client.key.pem  2>/dev/null
-    chmod 400 intermediateCA/private/${key}.client.key.pem
+    openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:4096 -out "intermediateCA/private/${key}.client.key.pem"  2>/dev/null
+    chmod 400 "intermediateCA/private/${key}.client.key.pem"
 
-    openssl req -config client_cert_ext_${key}.cnf  \
-    -key intermediateCA/private/${key}.client.key.pem \
-    -new -sha256 -out intermediateCA/csr/${key}.client.csr.pem \
+    openssl req -config "client_cert_ext_${key}.cnf"  \
+    -key "intermediateCA/private/${key}.client.key.pem" \
+    -new -sha256 -out "intermediateCA/csr/${key}.client.csr.pem" \
     -subj "/C=${COUNTRY}/ST=${STATE}/L=${LOCAL}/O=${ORG}/OU=${ORGUNIT}/CN=${key}.client" \
     -addext "subjectAltName=email:${CLIENTS[$key]}"
-    chmod 444 intermediateCA/csr/${key}.client.csr.pem
+    chmod 444 "intermediateCA/csr/${key}.client.csr.pem"
 
     openssl ca \
-    -config client_cert_ext_${key}.cnf \
+    -config "client_cert_ext_${key}.cnf" \
     -days 375 -notext -md sha256  -batch \
     -extensions client_cert \
-    -in intermediateCA/csr/${key}.client.csr.pem \
+    -in "intermediateCA/csr/${key}.client.csr.pem" \
     -passin env:INTERMEDIATE_CA_PASSWORD \
-    -out intermediateCA/certs/${key}.client.cert.pem >/dev/null 2>&1
-    chmod 444 intermediateCA/certs/${key}.client.cert.pem
+    -out "intermediateCA/certs/${key}.client.cert.pem" >/dev/null 2>&1
+    chmod 444 "intermediateCA/certs/${key}.client.cert.pem"
+
+    verify_leaf_cert "intermediateCA/certs/${key}.client.cert.pem" sslclient
+    # Email SAN check
+    openssl x509 -in "intermediateCA/certs/${key}.client.cert.pem" -noout -text | \
+      grep -q "email:${CLIENTS[$key]}" \
+      || die 1 "Missing expected email SAN on ${key}.client"
   done
   return 0
 }
@@ -557,12 +559,162 @@ function gen_crls_intermediate() {
   return 0
 }
 
+function require_existing_pki() {
+  #@ DESCRIPTION: Ensure we are in an extracted PKI directory
+  #@ USAGE: require_existing_pki
+  #@ REQUIREMENTS: NONE
 
+  # [[ -d rootCA ]] || die 10 "rootCA/ not found. Run rotate inside an extracted PKI directory."
+  [[ -d intermediateCA ]] || die 10 "intermediateCA/ not found. Run rotate inside an extracted PKI directory."
+  # [[ -f openssl_root.cnf ]] || die 10 "openssl_root.cnf not found."
+  [[ -f openssl_intermediate.cnf ]] || die 10 "openssl_intermediate.cnf not found."
+  [[ -f intermediateCA/private/intermediate.key.pem ]] || die 10 "Intermediate key missing at intermediateCA/private/intermediate.key.pem"
+  [[ -f intermediateCA/certs/intermediate.cert.pem ]] || die 10 "Intermediate cert missing at intermediateCA/certs/intermediate.cert.pem"
+  # [[ -f rootCA/certs/ca.cert.pem ]] || die 10 "Root cert missing at rootCA/certs/ca.cert.pem"
+  return 0
+}
 
-# function revoke_leaf_ca() {
-#   true
-#   return 0
-# }
+function list_leaf_certs_to_rotate() {
+  #@ DESCRIPTION: Print leaf cert paths to stdout (server + client), excluding CA/chain files
+  # Server leaf certs:
+  find intermediateCA/certs -maxdepth 1 -type f -name "*.${SERVER_DOMAIN}.cert.pem" -print 2>/dev/null || true
+  # Client leaf certs:
+  find intermediateCA/certs -maxdepth 1 -type f -name "*.client.cert.pem" -print 2>/dev/null || true
+  return 0
+}
+
+function archive_leaf_material() {
+  #@ DESCRIPTION: Move existing leaf keys/csrs/certs into an archive directory
+  #@ USAGE: archive_leaf_material
+  #@ REQUIREMENTS: NONE
+  #@ OUTPUTS: sets global ARCHIVE_DIR
+  local -r TS="$(date +%Y%m%d-%H%M%S)"
+  ARCHIVE_DIR="intermediateCA/old/${TS}"
+  mkdir -p "${ARCHIVE_DIR}"/{certs,csr,private}
+  chmod 700 "${ARCHIVE_DIR}" "${ARCHIVE_DIR}/private"
+
+  # Move leaf certs
+  while IFS= read -r cert; do
+    [[ -n "$cert" ]] || continue
+    mv -f "$cert" "${ARCHIVE_DIR}/certs/" || die 1 "Failed to archive cert: ${cert}"
+  done < <(list_leaf_certs_to_rotate)
+
+  # Move matching CSRs and keys for known patterns
+  for server in "${SERVERS[@]}"; do
+    if [[ -f "intermediateCA/csr/${server}.${SERVER_DOMAIN}.csr.pem" ]]; then
+      mv -f "intermediateCA/csr/${server}.${SERVER_DOMAIN}.csr.pem" "${ARCHIVE_DIR}/csr/"
+    fi
+    if [[ -f "intermediateCA/private/${server}.${SERVER_DOMAIN}.key.pem" ]]; then
+      mv -f "intermediateCA/private/${server}.${SERVER_DOMAIN}.key.pem" "${ARCHIVE_DIR}/private/"
+    fi
+  done
+
+  # Clients: keys/csrs by CLIENTS map keys
+  for key in "${!CLIENTS[@]}"; do
+    if [[ -f "intermediateCA/csr/${key}.client.csr.pem" ]]; then
+      mv -f "intermediateCA/csr/${key}.client.csr.pem" "${ARCHIVE_DIR}/csr/"
+    fi
+    if [[ -f "intermediateCA/private/${key}.client.key.pem" ]]; then
+      mv -f "intermediateCA/private/${key}.client.key.pem" "${ARCHIVE_DIR}/private/"
+    fi
+  done
+
+  return 0
+}
+
+function revoke_archived_leaf_certs() {
+  #@ DESCRIPTION: Revoke all archived leaf certs with reason superseded
+  #@ USAGE: revoke_archived_leaf_certs
+  #@ REQUIREMENTS: openssl
+
+  local -r cert_dir="${ARCHIVE_DIR}/certs"
+  [[ -d "$cert_dir" ]] || die 1 "Archive cert directory missing: ${cert_dir}"
+
+  shopt -s nullglob
+  local certs=( "${cert_dir}"/*.pem )
+  shopt -u nullglob
+
+  if (( ${#certs[@]} == 0 )); then
+    output "No existing leaf certs found to revoke."
+    return 0
+  fi
+
+  for cert in "${certs[@]}"; do
+    # Skip any unexpected CA/chain files if they end up here
+    case "$(basename "$cert")" in
+      "intermediate.cert.pem"|"ca-chain.cert.pem") continue ;;
+    esac
+
+    # Revoke
+    openssl ca \
+      -config openssl_intermediate.cnf \
+      -revoke "$cert" \
+      -crl_reason superseded \
+      -passin env:INTERMEDIATE_CA_PASSWORD \
+      -batch >/dev/null 2>&1 || die 1 "Failed to revoke cert: ${cert}"
+  done
+
+  return 0
+}
+
+function verify_leaf_cert() {
+  #@ DESCRIPTION: Verify the leaf certs
+  #@ USAGE:  verify_leaf_cert <certPath> <purpose (sslserver | sslclient)>
+  #@ REQUIREMENTS: openssl
+
+  local -r CERT="$1"
+  local -r PURPOSE="$2"
+  local -r CHAIN="intermediateCA/certs/ca-chain.cert.pem"
+
+  [[ -f "$CERT" ]] || die 1 "Missing cert: $CERT"
+  [[ -f "$CHAIN" ]] || die 1 "Missing CA chain: $CHAIN"
+
+  # Chain + purpose verification
+  openssl verify \
+    -CAfile "$CHAIN" \
+    -purpose "$PURPOSE" \
+    "$CERT" >/dev/null 2>&1 \
+    || die 1 "Verification failed ($PURPOSE): $CERT"
+}
+
+function Verify_INTERMEDIATE_CA_PASSWORD() {
+  #@ DESCRIPTION: Verifies INTERMEDIATE_CA_PASSWORD can decrypt the intermediate CA private key.
+  #@ USAGE: Verify_INTERMEDIATE_CA_PASSWORD
+  #@ REQUIREMENTS: openssl
+
+  local -r KEY="intermediateCA/private/intermediate.key.pem"
+  [[ -f "$KEY" ]] || die 11 "Intermediate key missing at ${KEY}"
+
+  # Try to read key with provided password; fails fast if wrong.
+  openssl pkey \
+    -in "$KEY" \
+    -passin env:INTERMEDIATE_CA_PASSWORD \
+    -noout >/dev/null 2>&1 \
+    || die 11 "INTERMEDIATE_CA_PASSWORD is invalid for ${KEY}"
+}
+
+function create_bundle(){
+  #@ DESCRIPTION: Create PKI Encrypted tar.gz bundle and place in CWD
+  #@ USAGE: create_bundle <PKI path>
+  #@ REQUIREMENTS: openssl tar
+
+  local -r CWD="$(pwd)"
+  local -r PASSFILE="PKIBundle.pass"
+  local -r BUNDLEPASSWORD="$(LC_ALL=C tr -dc 'A-Za-z0-9@%^&*()-_=+[]{}:,.?' </dev/urandom | head -c 24)"
+  local -r PKIPATH=${1}
+
+  [[ "${CWD}" == "${PKIPATH}" ]] &&  die 1 "CWD cannot be same as TarBall destination."
+  ( umask 077 && printf "%s\n" "$BUNDLEPASSWORD" > "$PASSFILE" ) || die 1 "Failed to write bundle password file"
+  tar -C "$PKIPATH" --owner=0 --group=0 --numeric-owner -czf - . | \
+    openssl enc -aes-256-cbc -pbkdf2 -iter 200000 -md sha256 -pass file:"$PASSFILE" > PKI.tar.gz.enc
+
+  output "The file PKI.tar.gz.enc contains the PKI bundle."
+  output "Bundle password written to ${PASSFILE} (mode 600), store it securely."
+  output "Decryption can be done with below:"
+  printf "%s\\n" "openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -md sha256 -pass file:${PASSFILE} -in PKI.tar.gz.enc -out PKI.tar.gz"
+  printf "%s\\n" "mkdir PKI && tar -xzf PKI.tar.gz -C PKI"
+  return 0
+}
 
 function main() {
   #@ DESCRIPTION:  main program loop
@@ -570,27 +722,19 @@ function main() {
 
   if (( $# != 1 )) ; then
     usage
+    echo ""
     die 7 "Command Line argument missing."
   else
 
   case "${1}" in
-    init)
-      mode=init
-      ;;
-    rotate)
-      mode=rotate
-      ;;
-    *)
-      die 8 "${1} is not a valid option (init | rotate)."
-      ;;
+    init) mode=init ;;
+    rotate) mode=rotate ;;
+    *) die 8 "${1} is not a valid option (init | rotate)." ;;
   esac
-
   fi
 
   cli_check
   env_check
-
-  local -r BUNDLEPASSWORD="$(LC_ALL=C tr -dc 'A-Za-z0-9@%^&*()-_=+[]{}:,.?' </dev/urandom | head -c 24)"
 
   if [[ "$mode" == "init" ]]; then
     local -r CWD="$(pwd)"
@@ -615,20 +759,28 @@ function main() {
 
     output "Bundling PKI files into an encrypted tarball."
     cd "$CWD" || die 6 "Could not cd to directory ${CWD}."
-    # tar -czf PKI.tar.gz -C "$WORKING_DIRECTORY" .
-    tar -C "$WORKING_DIRECTORY" --owner=0 --group=0 --numeric-owner -czf - . | \
-      openssl enc -aes-256-cbc -pbkdf2 -iter 200000 -md sha256 -pass "pass:${BUNDLEPASSWORD}" > PKI.tar.gz.enc
-
+    create_bundle "$WORKING_DIRECTORY"
     rm -rf "$WORKING_DIRECTORY"
 
-    output "The file PKI.tar.gz.enc contains the PKI bundle."
-    output "The bundle is encrypted with the password ${BUNDLEPASSWORD}"
-    output "Be sure to record the password, as it will only be shared after this."
-    output "Decryption can be done with below:"
-    printf "%s\\n" "openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -md sha256 -pass \"pass:${BUNDLEPASSWORD}\" -in PKI.tar.gz.enc -out PKI.tar.gz"
-
   elif [[ "$mode" == "rotate" ]]; then
-    die 99  "TODO"
+    require_existing_pki
+    Verify_INTERMEDIATE_CA_PASSWORD
+
+    output "Starting rotate process in $(pwd)"
+    output "Archiving existing leaf material"
+    archive_leaf_material
+
+    output "Revoking archived leaf certificates (reason: superseded)"
+    revoke_archived_leaf_certs
+
+    output "Generating new Server certs/keys (keys are not encrypted)"
+    gen_server_ca
+
+    output "Generating new Client certs/keys (keys are not encrypted)"
+    gen_client_ca
+
+    output "Generating Intermediate CRL"
+    gen_crls_intermediate
   else
     die 9 "Invalid mode in main: ${mode}."
   fi

@@ -19,8 +19,8 @@ apt update && apt full-upgrade -y
 apt install -y timeshift jq rsync
 
 timedatectl set-timezone America/New_York
-  
-reboot 
+
+reboot
 ```
 
 ### timeshift
@@ -43,7 +43,7 @@ reboot
 
   "/mnt/**",
   "/media/**",
-  
+
   "/opt/show/**",
   "/tmp/**"
 ]
@@ -63,7 +63,7 @@ timeshift --create --comments "preConfig" --yes --scripted
 
 ###  Extra Packages
 ```
-apt install -y evtest vim alsa-utils openssl pciutils usbutils htop netcat-openbsd dnsutils
+apt install -y evtest vim alsa-utils openssl pciutils usbutils htop netcat-openbsd dnsutils tr head
 ```
 
 ### Backports: Kernel + Firmware
@@ -154,7 +154,7 @@ su - dev -c "docker run --rm hello-world"
 
 ### SSH Hardening
 ```
-# SSH is now on port 8022  
+# SSH is now on port 8022
 cat >/etc/ssh/sshd_config.d/10-show-ingest.conf <<'EOF'
 Port 8022
 PubkeyAuthentication yes
