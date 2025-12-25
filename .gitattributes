@@ -21,5 +21,4 @@
 *.flac binary
 *.ogg  binary
 *.aiff binary
-*.gz   binary
-*.tar  binary
+*.enc  binary

@@ -16,3 +16,4 @@ crash.log
 
 # Binary
 *.tar.*
+*.enc

@@ -10,6 +10,8 @@
 #:              : openssl
 #:              : tar
 #:              : mktemp
+#:              : tr
+#:              : head
 #: Options      :
 #:              : init - Generate root, intermediate, Server and Client CA
 #:              : rotate - Generate new client and Server CA, while revoking old ones (TODO)
@@ -36,8 +38,6 @@
 # https://disconnected.systems/blog/another-bash-strict-mode/
 set -euo pipefail
 IFS=$'\n\t'
-# shellcheck disable=SC2154
-trap 's=$?; echo "$0: Error on line "$LINENO": $BASH_COMMAND"; exit $s' ERR
 
 # Version Check
 if ((BASH_VERSINFO < 5))
@@ -47,7 +47,6 @@ then
 fi
 
 # Constants
-readonly GL_LOG="/dev/null"
 readonly SERVER_DOMAIN="tilelli.me"
 
 # Global
@@ -64,7 +63,6 @@ function die() {
   local -r ERROR_MESSAGE="${2:-"No \"ERROR_MESSAGE\" provided"}"
   local -r TIMESTAMP="$(date)"
   printf "FATAL %d: %s: %s\\n" "$ERRORCODE" "$TIMESTAMP" "$ERROR_MESSAGE" >&2
-  printf "FATAL %d: %s: %s\\n" "$ERRORCODE" "$TIMESTAMP" "$ERROR_MESSAGE" >> "$GL_LOG"
   exit "$ERRORCODE"
 }
 
@@ -76,41 +74,7 @@ function output() {
   local -r MESSAGE="${1:-"No \"MESSAGE\" provided"}"
   local -r TIMESTAMP="$(date)"
   printf "%s: (%s)\\n" "$MESSAGE" "$TIMESTAMP"
-  printf "%s: (%s)\\n" "$MESSAGE" "$TIMESTAMP"  >> "$GL_LOG"
   return 0
-}
-
-function warn() {
-  #@ DESCRIPTION:  prints message to stderr
-  #@ USAGE:  warn <MESSAGE>
-  #@ REQUIREMENTS: NONE
-
-  local -r MESSAGE="${1:-"No \"MESSAGE\" provided"}"
-  local -r TIMESTAMP="$(date)"
-  printf "WARNING: %s (%s)\\n" "$MESSAGE" "$TIMESTAMP" >&2
-  printf "WARNING: %s (%s)\\n" "$MESSAGE" "$TIMESTAMP" >> "$GL_LOG"
-  return 0
-
-}
-
-function trim() {
-  #@ SOURCE: https://stackoverflow.com/questions/369758/how-to-trim-whitespace-from-a-bash-variable
-  #@ DESCRIPTION:  Removes leading and trailing spaces
-  #@ USAGE:  trim <string>
-  #@ REQUIREMENTS: NONE
-
-  local trimmed="$1"
-
-  # Strip leading spaces.
-  while [[ $trimmed == ' '* ]]; do
-      trimmed="${trimmed## }"
-  done
-  # Strip trailing spaces.
-  while [[ $trimmed == *' ' ]]; do
-      trimmed="${trimmed%% }"
-  done
-
-  echo "$trimmed"
 }
 
 function usage() {
@@ -142,6 +106,14 @@ function cli_check() {
   then
     die 4 "tar is missing, Install it please, and then run this tool again."
   fi
+  if ! command -v tr &> /dev/null
+  then
+    die 4 "tr is missing, Install it please, and then run this tool again."
+  fi
+    if ! command -v head &> /dev/null
+  then
+    die 4 "head is missing, Install it please, and then run this tool again."
+  fi
 
   return 0
 }
@@ -159,6 +131,8 @@ function env_check() {
   if ! [[ -v INTERMEDIATE_CA_PASSWORD ]]; then
     die 5 "INTERMEDIATE_CA_PASSWORD is missing, please set it then run this tool again."
   fi
+
+  return 0
 }
 
 function gen_folders() {
@@ -175,6 +149,7 @@ function gen_folders() {
   echo 0100 > intermediateCA/crlnumber
   touch rootCA/index.txt
   touch intermediateCA/index.txt
+  return 0
 }
 
 
@@ -250,6 +225,7 @@ keyUsage = critical, digitalSignature, cRLSign, keyCertSign
 EOF
 
 chmod 400 openssl_root.cnf
+return 0
 }
 
 function gen_intermediary_config() {
@@ -325,6 +301,7 @@ authorityKeyIdentifier = keyid,issuer                       # Authority key iden
 EOF
 
   chmod 400 openssl_intermediate.cnf
+  return 0
 }
 
 function gen_root_ca() {
@@ -351,6 +328,7 @@ function gen_root_ca() {
   -subj "/C=US/ST=Pennsylvania/L=Mechanicsburg/O=Anthony/OU=Improv Show/CN=Root CA"
 
   chmod 444 rootCA/certs/ca.cert.pem
+  return 0
 }
 
 function gen_intermediary_ca() {
@@ -389,6 +367,7 @@ function gen_intermediary_ca() {
   openssl verify -CAfile intermediateCA/certs/ca-chain.cert.pem \
   intermediateCA/certs/intermediate.cert.pem \
   >/dev/null 2>&1
+  return 0
 }
 
 function gen_server_ca() {
@@ -426,6 +405,7 @@ EOF
 
     chmod 444 intermediateCA/certs/${server}.${SERVER_DOMAIN}.cert.pem
   done
+  return 0
 }
 
 function gen_client_ca() {
@@ -471,7 +451,12 @@ EOF
     -out intermediateCA/certs/${key}.client.cert.pem >/dev/null 2>&1
     chmod 444 intermediateCA/certs/${key}.client.cert.pem
   done
+  return 0
+}
 
+function revoke_leaf_ca() {
+  true
+  return 0
 }
 
 function main() {
@@ -500,30 +485,48 @@ function main() {
   cli_check
   env_check
 
+  local -r BUNDLEPASSWORD="$(LC_ALL=C tr -dc 'A-Za-z0-9!@#$%^&*()-_=+[]{}:,.?' </dev/urandom | head -c 24)"
+
   if [[ "$mode" == "init" ]]; then
     local -r CWD="$(pwd)"
     local -r WORKING_DIRECTORY="$(mktemp -d)"
     chmod 700 "$WORKING_DIRECTORY"
 
     cd "$WORKING_DIRECTORY" || die 6 "Could not cd to directory ${WORKING_DIRECTORY}."
+    output "Starting init process; working directory is ${WORKING_DIRECTORY}"
     gen_folders
+    output "Generating root CA/Key"
     gen_root_ca
+    output "Generating intermediary CA/Key"
     gen_intermediary_ca
+    output "Generating Server CA/KEY (keys are not encrypted)"
     gen_server_ca
+    output "Generating Client CA/KEY (keys are not encrypted)"
     gen_client_ca
 
+    output "Bundling PKI files into an encrypted tarball."
     cd "$CWD" || die 6 "Could not cd to directory ${CWD}."
-    tar -czf PKI.tar.gz -C "$WORKING_DIRECTORY" .
+    # tar -czf PKI.tar.gz -C "$WORKING_DIRECTORY" .
+    tar -C "$WORKING_DIRECTORY" --owner=0 --group=0 --numeric-owner -czf - . | \
+      openssl enc -aes-256-cbc -pbkdf2 -iter 200000 -md sha256 -pass "pass:${BUNDLEPASSWORD}" > PKI.tar.gz.enc
+
     rm -rf "$WORKING_DIRECTORY"
 
     unset ROOT_CA_PASSWORD
     unset INTERMEDIATE_CA_PASSWORD
+
+    output "The file /"PKI.tar.gz.enc/" will contain the PKI bundle."
+    output "The bundle is encrypted with the password ${BUNDLEPASSWORD}"
+    output "Be sure to record the password, as I will only be shared this once."
+    output "Decryption can be done with below:"
+    output "openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -md sha256 -pass \"pass:${BUNDLEPASSWORD}\" -in PKI.tar.gz.enc -out PKI.tar.gz "
+
   elif [[ "$mode" == "rotate" ]]; then
-    die 99 "TODO"
+    die 99  "TODO"
   else
     die 9 "Invalid mode in main: ${mode}."
   fi
-
+  return 0
 }
 
 main "$@"
