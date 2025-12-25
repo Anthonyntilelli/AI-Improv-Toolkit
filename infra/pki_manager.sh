@@ -5,6 +5,7 @@
 #: Description  : Basic PKI management for the project using openssl, it can:
 #:              : - Generate root, intermediate, Server and Client CA
 #:              : - Generate new client and Server CA, while revoking old ones
+#:              : - Verify chain, CRLs, and all leaf certs\n"
 #: WARNING      :
 #:              : This script makes use of env variable but a script cannot clear them.
 #:              : Be sure to clear env variables when done.
@@ -16,14 +17,18 @@
 #:              : tr
 #:              : head
 #:              : find
+#:              : grep
+#:              : awk
+#:              : sed
 #: Options      :
-#:              : init - Generate root, intermediate, Server and Client CA
+#:              : init   - Generate root, intermediate, Server and Client CA
 #:              : rotate - Generate new client and Server CA, while revoking old ones
+#:              : verify -  Verify chain, CRLs, and all leaf certs\n"
 #: ENV Variables:
 #:              : ROOT_CA_PASSWORD <- Password For Root CA
 #:              : INTERMEDIATE_CA_PASSWORD <- Password For intermediate CA
 #: Version      :
-#:              : Major.minor.patch (https://semver.org/)
+#:              : 0.0.1 (https://semver.org/)
 #: ExitCodes    :
 #:              : (reserved https://www.tldp.org/LDP/abs/html/exitcodes.html)
 #:              : 0 "Success"
@@ -37,6 +42,7 @@
 #:              : 9 Invalid mode in main: <mode>.
 #:              : 10 Invalid Folder or missing PKI items  (varied message).
 #:              : 11 Invalid INTERMEDIATE_CA_PASSWORD or missing INTERMEDIATE Key  (varied message).
+#:              : 12 Verify failed (varied message)
 ################ Script metadata ###############################################
 
 # strict mode
@@ -44,6 +50,7 @@
 # https://disconnected.systems/blog/another-bash-strict-mode/
 set -euo pipefail
 IFS=$'\n\t'
+umask 077
 
 # Version Check
 if ((BASH_VERSINFO < 5))
@@ -52,8 +59,16 @@ then
   exit 3
 fi
 
-# Constants
+
+# Modify the below constants to match your domain and information
+readonly COUNTRY="US"
+readonly STATE="Pennsylvania"
+readonly LOCAL="Mechanicsburg"
+readonly ORG="Anthony"
+readonly ORGUNIT="Improv Show"
 readonly SERVER_DOMAIN="tilelli.me"
+
+# Constants
 declare -rA CLIENTS=(
   [setting]="setting@improvShow.local"
   [debug]="debug@improvShow.local"
@@ -63,14 +78,7 @@ declare -rA CLIENTS=(
   [brain]="brain@improvShow.local"
   [output]="output@improvShow.local"
 )
-readonly  SERVERS=(nats vision hearing)
-
-# Cert Subjects
-readonly COUNTRY="US"
-readonly STATE="Pennsylvania"
-readonly LOCAL="Mechanicsburg"
-readonly ORG="Anthony"
-readonly ORGUNIT="Improv Show"
+readonly -a SERVERS=(nats vision hearing)
 
 # Global
 declare mode="unset"
@@ -108,6 +116,7 @@ function usage() {
   printf "pki_management (init | rotate)\\n"
   printf "    init        Generate root, intermediate, Server and Client CA\\n"
   printf "    rotate      Generate new client and Server CA, while revoking old ones\\n"
+  printf "    verify      Verify chain, CRLs, and all leaf certs\n"
   return 0
 }
 
@@ -123,6 +132,9 @@ function cli_check() {
   command -v tr      &>/dev/null || die 4 "tr is missing, Install it please, and then run this tool again."
   command -v head    &>/dev/null || die 4 "head is missing, Install it please, and then run this tool again."
   command -v find    &>/dev/null || die 4 "find is missing, Install it please, and then run this tool again."
+  command -v grep    &>/dev/null || die 4 "grep is missing, Install it please, and then run this tool again."
+  command -v awk     &>/dev/null || die 4 "awk is missing, Install it please, and then run this tool again."
+  command -v sed     &>/dev/null || die 4 "sed is missing, Install it please, and then run this tool again."
   return 0
 }
 
@@ -305,10 +317,10 @@ authorityKeyIdentifier=keyid:always                         # Authority key iden
 
 [ server_cert ]                                             # Server certificate extensions
 basicConstraints = CA:FALSE                                 # Not a CA certificate
-nsCertType = server                                         # Server certificate type
 keyUsage = critical, digitalSignature, keyEncipherment      # Key usage for a server cert
 extendedKeyUsage = serverAuth                               # Extended key usage for server authentication purposes (e.g., TLS/SSL servers).
-authorityKeyIdentifier = keyid,issuer                       # Authority key identifier linking the certificate to the issuer's public key.                               # Sets the SAN
+authorityKeyIdentifier = keyid,issuer                       # Authority key identifier linking the certificate to the issuer's public key.
+subjectKeyIdentifier = hash
 EOF
 
   chmod 400 openssl_intermediate.cnf
@@ -372,7 +384,6 @@ emailAddress                    = Email Address
 
 [ client_cert ]
 basicConstraints = CA:FALSE
-nsCertType = client, email
 nsComment = "Client Certificate used for Improv Show"
 subjectKeyIdentifier = hash
 authorityKeyIdentifier = keyid,issuer
@@ -468,8 +479,7 @@ function gen_server_ca() {
     openssl req -config openssl_intermediate.cnf \
       -key "intermediateCA/private/${server}.${SERVER_DOMAIN}.key.pem" \
       -new -sha256 -out "intermediateCA/csr/${server}.${SERVER_DOMAIN}.csr.pem" \
-      -subj "/C=${COUNTRY}/ST=${STATE}/L=${LOCAL}/O=${ORG}/OU=${ORGUNIT}/CN=${server}.${SERVER_DOMAIN}" \
-      -addext "subjectAltName=DNS:${server}.${SERVER_DOMAIN},DNS:${SERVER_DOMAIN}"
+      -subj "/C=${COUNTRY}/ST=${STATE}/L=${LOCAL}/O=${ORG}/OU=${ORGUNIT}/CN=${server}.${SERVER_DOMAIN}"
     chmod 444 "intermediateCA/csr/${server}.${SERVER_DOMAIN}.csr.pem"
 
     openssl ca -config <(cat openssl_intermediate.cnf; cat <<EOF
@@ -513,8 +523,7 @@ function gen_client_ca() {
     openssl req -config "client_cert_ext_${key}.cnf"  \
     -key "intermediateCA/private/${key}.client.key.pem" \
     -new -sha256 -out "intermediateCA/csr/${key}.client.csr.pem" \
-    -subj "/C=${COUNTRY}/ST=${STATE}/L=${LOCAL}/O=${ORG}/OU=${ORGUNIT}/CN=${key}.client" \
-    -addext "subjectAltName=email:${CLIENTS[$key]}"
+    -subj "/C=${COUNTRY}/ST=${STATE}/L=${LOCAL}/O=${ORG}/OU=${ORGUNIT}/CN=${key}.client"
     chmod 444 "intermediateCA/csr/${key}.client.csr.pem"
 
     openssl ca \
@@ -701,8 +710,9 @@ function create_bundle(){
   local -r CWD="$(pwd)"
   local -r PASSFILE="PKIBundle.pass"
   local -r BUNDLEPASSWORD="$(LC_ALL=C tr -dc 'A-Za-z0-9@%^&*()-_=+[]{}:,.?' </dev/urandom | head -c 24)"
-  local -r PKIPATH=${1}
+  local -r PKIPATH="${1:?PKI path required}"
 
+  [[ -d "$PKIPATH" ]] || die 1 "PKI path not a directory: $PKIPATH"
   [[ "${CWD}" == "${PKIPATH}" ]] &&  die 1 "CWD cannot be same as TarBall destination."
   ( umask 077 && printf "%s\n" "$BUNDLEPASSWORD" > "$PASSFILE" ) || die 1 "Failed to write bundle password file"
   tar -C "$PKIPATH" --owner=0 --group=0 --numeric-owner -czf - . | \
@@ -715,6 +725,79 @@ function create_bundle(){
   printf "%s\\n" "mkdir PKI && tar -xzf PKI.tar.gz -C PKI"
   return 0
 }
+
+function verify_all() {
+  #@ DESCRIPTION: Verify CA chain, CRLs, and all leaf certs (server + client)
+  #@ USAGE: verify_all
+  #@ REQUIREMENTS: openssl find grep awk sed grep
+
+  local -r CHAIN="intermediateCA/certs/ca-chain.cert.pem"
+  local -r INT_CERT="intermediateCA/certs/intermediate.cert.pem"
+  local -r INT_CRL="intermediateCA/crl/intermediate.crl.pem"
+  local -r ROOT_CERT="rootCA/certs/ca.cert.pem"
+  local -r ROOT_CRL="rootCA/crl/ca.crl.pem"
+
+  [[ -f "$CHAIN" ]]     || die 1 "Missing CA chain: $CHAIN"
+  [[ -f "$INT_CERT" ]]  || die 1 "Missing intermediate cert: $INT_CERT"
+  [[ -f "$INT_CRL" ]]   || die 1 "Missing intermediate CRL: $INT_CRL"
+
+  # Root assets are only present in init bundles (rotate bundles may omit rootCA)
+  if [[ -f "$ROOT_CERT" ]]; then
+    output "Root cert present: $ROOT_CERT"
+    [[ -f "$ROOT_CRL" ]] && output "Root CRL present: $ROOT_CRL"
+  else
+    output "Root cert not present (ok if this is a rotate bundle)."
+  fi
+
+  output "Verifying intermediate cert against chain"
+  openssl verify -CAfile "$CHAIN" "$INT_CERT" >/dev/null 2>&1 \
+    || die 12 "Intermediate cert verification failed: $INT_CERT"
+
+  output "Checking CRL nextUpdate (intermediate)"
+  openssl crl -in "$INT_CRL" -noout -lastupdate -nextupdate \
+    || die 12 "Failed reading intermediate CRL: $INT_CRL"
+
+  # Verify leaf certs with purpose + CRL checking
+  output "Verifying leaf certs (purpose + CRL)"
+  local failed=0
+
+  # Servers
+  for server in "${SERVERS[@]}"; do
+    local cert="intermediateCA/certs/${server}.${SERVER_DOMAIN}.cert.pem"
+    [[ -f "$cert" ]] || die 12 "Missing server cert: $cert"
+
+    # Chain + purpose + CRL
+    openssl verify -CAfile "$CHAIN" -purpose sslserver -crl_check -CRLfile "$INT_CRL" "$cert" >/dev/null 2>&1 \
+      || { printf "FAIL sslserver: %s\n" "$cert" >&2; failed=1; }
+
+    # SAN check (more stable than -text)
+    openssl x509 -in "$cert" -noout -ext subjectAltName 2>/dev/null | grep -q "DNS:${server}.${SERVER_DOMAIN}" \
+      || { printf "FAIL SAN missing DNS:%s.%s\n" "$server" "$SERVER_DOMAIN" >&2; failed=1; }
+
+    # Expiry
+    openssl x509 -in "$cert" -noout -subject -enddate
+  done
+
+  # Clients
+  for key in "${!CLIENTS[@]}"; do
+    local cert="intermediateCA/certs/${key}.client.cert.pem"
+    [[ -f "$cert" ]] || die 12 "Missing client cert: $cert"
+
+    openssl verify -CAfile "$CHAIN" -purpose sslclient -crl_check -CRLfile "$INT_CRL" "$cert" >/dev/null 2>&1 \
+      || { printf "FAIL sslclient: %s\n" "$cert" >&2; failed=1; }
+
+    # Email SAN check
+    openssl x509 -in "$cert" -noout -ext subjectAltName 2>/dev/null | grep -qi "email:${CLIENTS[$key]}" \
+      || { printf "FAIL SAN missing email:%s (%s)\n" "${CLIENTS[$key]}" "$cert" >&2; failed=1; }
+
+    openssl x509 -in "$cert" -noout -subject -enddate
+  done
+
+  (( failed == 0 )) || die 12 "One or more verifications failed."
+  output "All verifications passed."
+  return 0
+}
+
 
 function main() {
   #@ DESCRIPTION:  main program loop
@@ -729,6 +812,7 @@ function main() {
   case "${1}" in
     init) mode=init ;;
     rotate) mode=rotate ;;
+    verify) mode=verify ;;
     *) die 8 "${1} is not a valid option (init | rotate)." ;;
   esac
   fi
@@ -781,6 +865,9 @@ function main() {
 
     output "Generating Intermediate CRL"
     gen_crls_intermediate
+  elif [[ "$mode" == "verify" ]]; then
+    require_existing_pki
+    verify_all
   else
     die 9 "Invalid mode in main: ${mode}."
   fi

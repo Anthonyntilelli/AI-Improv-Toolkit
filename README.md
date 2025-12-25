@@ -78,7 +78,15 @@ See ETHICS_FAQ.md for more info
 
 ### TODO
 
+## Directory
+
+* infra - contains programs and systems to set up the underlying infrastructure for the program
+
 ## Getting Started
+
+1. Set up the Ingest PC using the ./infra/show-ingest-config.md
+2. Modify `./infra/pki_manager.sh` to conform to you infrastructure.
+3. Run `./infra/pki_manager.sh init` to generate the needed PKI files and certs
 
 ### Dependencies
 

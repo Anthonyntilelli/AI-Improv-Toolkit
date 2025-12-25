@@ -63,7 +63,11 @@ timeshift --create --comments "preConfig" --yes --scripted
 
 ###  Extra Packages
 ```
-apt install -y evtest vim alsa-utils openssl pciutils usbutils htop netcat-openbsd dnsutils tr head
+apt install -y evtest vim alsa-utils \
+openssl pciutils usbutils \
+htop netcat-openbsd dnsutils \
+tr head awk grep \
+sed
 ```
 
 ### Backports: Kernel + Firmware
