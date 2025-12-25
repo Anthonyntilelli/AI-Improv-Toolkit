@@ -121,7 +121,7 @@ function cli_check() {
   return 0
 }
 
-function env_check(){
+function env_check() {
   #@ DESCRIPTION:  Check if needed ENV Variable are in place.
   #@ USAGE:  env_check
   #@ REQUIREMENTS: NONE
@@ -134,7 +134,7 @@ function env_check(){
   fi
 }
 
-function gen_folders(){
+function gen_folders() {
   #@ DESCRIPTION:  generated folder structure for PKI solution in CWD
   #@ USAGE: gen_folders
   #@ REQUIREMENTS:
@@ -300,7 +300,7 @@ EOF
   chmod 400 openssl_intermediate.cnf
 }
 
-function gen_root_ca(){
+function gen_root_ca() {
   #@ DESCRIPTION:  generated ROOT config and certifications in cwd assuming standard structure.
   #@ Config FILE: openssl_root.cnf
   #@ Cert FILE: rootCA/certs/ca.cert.pem
@@ -370,80 +370,35 @@ function gen_server_ca() {
   #@ USAGE: gen_server_ca
   #@ REQUIREMENTS: openssl
 
-  openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:4096 -out intermediateCA/private/vision.${SERVER_DOMAIN}.key.pem  2>/dev/null
-  openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:4096 -out intermediateCA/private/nats.${SERVER_DOMAIN}.key.pem  2>/dev/null
-  openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:4096 -out intermediateCA/private/hearing.${SERVER_DOMAIN}.key.pem  2>/dev/null
-  chmod 400 intermediateCA/private/*.${SERVER_DOMAIN}.key.pem
+  local servers=(nats vision hearing)
 
-  openssl req -config openssl_intermediate.cnf \
-    -key intermediateCA/private/vision.${SERVER_DOMAIN}.key.pem \
-    -new -sha256 -out intermediateCA/csr/vision.${SERVER_DOMAIN}.csr.pem \
-    -subj "/C=US/ST=Pennsylvania/L=Mechanicsburg/O=Anthony/OU=Improv Show/CN=vision.${SERVER_DOMAIN}" \
-    -addext "subjectAltName=DNS:vision.${SERVER_DOMAIN},DNS:${SERVER_DOMAIN}"
+  for server in "${servers[@]}" ; do
+    openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:4096 -out intermediateCA/private/${server}.${SERVER_DOMAIN}.key.pem  2>/dev/null
+    chmod 400 intermediateCA/private/${server}.${SERVER_DOMAIN}.key.pem
 
-  openssl req -config openssl_intermediate.cnf \
-    -key intermediateCA/private/nats.${SERVER_DOMAIN}.key.pem \
-    -new -sha256 -out intermediateCA/csr/nats.${SERVER_DOMAIN}.csr.pem \
-    -subj "/C=US/ST=Pennsylvania/L=Mechanicsburg/O=Anthony/OU=Improv Show/CN=nats.${SERVER_DOMAIN}" \
-    -addext "subjectAltName=DNS:nats.${SERVER_DOMAIN},DNS:${SERVER_DOMAIN}"
+    openssl req -config openssl_intermediate.cnf \
+      -key intermediateCA/private/${server}.${SERVER_DOMAIN}.key.pem \
+      -new -sha256 -out intermediateCA/csr/${server}.${SERVER_DOMAIN}.csr.pem \
+      -subj "/C=US/ST=Pennsylvania/L=Mechanicsburg/O=Anthony/OU=Improv Show/CN=${server}.${SERVER_DOMAIN}" \
+      -addext "subjectAltName=DNS:${server}.${SERVER_DOMAIN},DNS:${SERVER_DOMAIN}"
+    chmod 444 intermediateCA/csr/${server}.${SERVER_DOMAIN}.csr.pem
 
-  openssl req -config openssl_intermediate.cnf \
-    -key intermediateCA/private/hearing.${SERVER_DOMAIN}.key.pem \
-    -new -sha256 -out intermediateCA/csr/hearing.${SERVER_DOMAIN}.csr.pem \
-    -subj "/C=US/ST=Pennsylvania/L=Mechanicsburg/O=Anthony/OU=Improv Show/CN=hearing.${SERVER_DOMAIN}" \
-    -addext "subjectAltName=DNS:hearing.${SERVER_DOMAIN},DNS:${SERVER_DOMAIN}"
-
-  chmod 444 intermediateCA/csr/*.${SERVER_DOMAIN}.csr.pem
-
-  openssl ca \
-  -config <(cat openssl_intermediate.cnf; cat <<EOF
+    openssl ca -config <(cat openssl_intermediate.cnf; cat <<EOF
 [ server_cert ]
 subjectAltName = @alt_names
 
 [ alt_names ]
-DNS.1 = vision.${SERVER_DOMAIN}
+DNS.1 = ${server}.${SERVER_DOMAIN}
 DNS.2 = ${SERVER_DOMAIN}
 EOF
 ) \
-  -extensions server_cert \
-  -days 375 -notext -md sha256  -batch \
-  -in intermediateCA/csr/vision.${SERVER_DOMAIN}.csr.pem \
-  -passin env:INTERMEDIATE_CA_PASSWORD \
-  -out intermediateCA/certs/vision.${SERVER_DOMAIN}.cert.pem >/dev/null 2>&1
+      -extensions server_cert -days 375 -notext -md sha256  -batch \
+      -in intermediateCA/csr/${server}.${SERVER_DOMAIN}.csr.pem \
+      -passin env:INTERMEDIATE_CA_PASSWORD \
+      -out intermediateCA/certs/${server}.${SERVER_DOMAIN}.cert.pem >/dev/null 2>&1
 
-  openssl ca \
-  -config <(cat openssl_intermediate.cnf; cat <<EOF
-[ server_cert ]
-subjectAltName = @alt_names
-
-[ alt_names ]
-DNS.1 = nats.${SERVER_DOMAIN}
-DNS.2 = ${SERVER_DOMAIN}
-EOF
-) \
-  -extensions server_cert \
-  -days 375 -notext -md sha256  -batch \
-  -in intermediateCA/csr/nats.${SERVER_DOMAIN}.csr.pem \
-  -passin env:INTERMEDIATE_CA_PASSWORD \
-  -out intermediateCA/certs/nats.${SERVER_DOMAIN}.cert.pem >/dev/null 2>&1
-
-  openssl ca \
-  -config <(cat openssl_intermediate.cnf; cat <<EOF
-[ server_cert ]
-subjectAltName = @alt_names
-
-[ alt_names ]
-DNS.1 = hearing.${SERVER_DOMAIN}
-DNS.2 = ${SERVER_DOMAIN}
-EOF
-) \
-  -extensions server_cert \
-  -days 375 -notext -md sha256 -batch \
-  -in intermediateCA/csr/hearing.${SERVER_DOMAIN}.csr.pem \
-  -passin env:INTERMEDIATE_CA_PASSWORD \
-  -out intermediateCA/certs/hearing.${SERVER_DOMAIN}.cert.pem >/dev/null 2>&1
-
-  chmod 444 intermediateCA/certs/*.${SERVER_DOMAIN}.cert.pem
+    chmod 444 intermediateCA/certs/${server}.${SERVER_DOMAIN}.cert.pem
+  done
 }
 
 function gen_client_ca() {
@@ -511,10 +466,11 @@ function main() {
   gen_client_ca
 
   cd "$CWD" || die 6 "Could not cd to directory ${CWD}."
-  tar -czvf PKI.tar.gz -C "$WORKING_DIRECTORY" .
+  tar -czf PKI.tar.gz -C "$WORKING_DIRECTORY" .
   rm -rf ${WORKING_DIRECTORY}
 
-  # TODO UNSET ENV Variables
+  unset ROOT_CA_PASSWORD
+  unset INTERMEDIATE_CA_PASSWORD
 }
 
 main "$@"
