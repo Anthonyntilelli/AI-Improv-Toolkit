@@ -1,24 +1,34 @@
 #!/usr/bin/env bash
 ################ Script metadata ###############################################
-#: Title        : PKI GEN
+#: Title        : PKI Manager
 #: Author       : Anthony Tilelli
-#: Description  : Generate the PKI certs and root certificate needed for the project
-#: Requirements : BASH 5.0+
+#: Description  : Basic PKI management for the project using openssl, it can:
+#:              : - Generate root, intermediate, Server and Client CA
+#:              : - Generate new client and Server CA, while revoking old ones (TODO)
+#: Requirements :
+#:              : BASH 5.0+
 #:              : openssl
 #:              : tar
 #:              : mktemp
 #: Options      :
+#:              : init - Generate root, intermediate, Server and Client CA
+#:              : rotate - Generate new client and Server CA, while revoking old ones (TODO)
 #: ENV Variables:
 #:              : ROOT_CA_PASSWORD <- Password For Root CA
 #:              : INTERMEDIATE_CA_PASSWORD <- Password For intermediate CA
-#: Version      : Major.minor.patch (https://semver.org/)
-#: ExitCodes    : (reserved https://www.tldp.org/LDP/abs/html/exitcodes.html)
+#: Version      :
+#:              : Major.minor.patch (https://semver.org/)
+#: ExitCodes    :
+#:              : (reserved https://www.tldp.org/LDP/abs/html/exitcodes.html)
 #:              : 0 "Success"
 #:              : 1 General Failure (varied message)
 #:              : 3 Bash-5.0+ is required to run this script
 #:              : 4 <command> is missing, Install it please, and then run this tool again.
 #:              : 5 <ENV Variable> is missing, please set it then run this tool again.
 #:              : 6 Could not cd to directory <DIRECTORY>.
+#:              : 7 Command Line argument missing.
+#:              : 8 <option> is not a valid option (init | rotate).
+#:              : 9 Invalid mode in main: <mode>.
 ################ Script metadata ###############################################
 
 # strict mode
@@ -40,11 +50,14 @@ fi
 readonly GL_LOG="/dev/null"
 readonly SERVER_DOMAIN="tilelli.me"
 
+# Global
+declare mode="unset"
+
 
 #Function
 function die() {
-  #@ DESCRIPTION:  prints error-message and exits script
-  #@ USAGE:  die ERRORCODE ERROR_MESSAGE or die
+  #@ DESCRIPTION: prints error-message and exits script
+  #@ USAGE: die ERRORCODE ERROR_MESSAGE or die
   #@ REQUIREMENTS: NONE
 
   local -r ERRORCODE="${1:-1}"
@@ -100,6 +113,18 @@ function trim() {
   echo "$trimmed"
 }
 
+function usage() {
+  #@ DESCRIPTION: Print usage information
+  #@ USAGE:  usage
+  #@ REQUIREMENTS: NONE
+
+  printf "pki_management (init | rotate)\\n"
+  printf "init Generate root, intermediate, Server and Client CA\\n"
+  printf "Generate new client and Server CA, while revoking old ones\\n"
+  return 0
+}
+
+
 function cli_check() {
   #@ DESCRIPTION:  Check if needed CLI commands are in place.
   #@ USAGE:  cli_check
@@ -126,8 +151,10 @@ function env_check() {
   #@ USAGE:  env_check
   #@ REQUIREMENTS: NONE
 
-  if ! [[ -v ROOT_CA_PASSWORD ]]; then
-    die 5 "ROOT_CA_PASSWORD is missing, please set it then run this tool again."
+  if [[ "$mode" == "init" ]]; then
+    if ! [[ -v ROOT_CA_PASSWORD ]]; then
+      die 5 "ROOT_CA_PASSWORD is missing, please set it then run this tool again."
+    fi
   fi
   if ! [[ -v INTERMEDIATE_CA_PASSWORD ]]; then
     die 5 "INTERMEDIATE_CA_PASSWORD is missing, please set it then run this tool again."
@@ -451,26 +478,52 @@ function main() {
   #@ DESCRIPTION:  main program loop
   #@ USAGE:  main "$@"
 
+  if (( $# != 1 )) ; then
+    usage
+    die 7 "Command Line argument missing."
+  else
+
+  case "${1}" in
+    init)
+      mode=init
+      ;;
+    rotate)
+      mode=rotate
+      ;;
+    *)
+      die 8 "${1} is not a valid option (init | rotate)."
+      ;;
+  esac
+
+  fi
+
   cli_check
   env_check
 
-  local -r CWD="$(pwd)"
-  local -r WORKING_DIRECTORY="$(mktemp -d)"
-  chmod 700 "$WORKING_DIRECTORY"
+  if [[ "$mode" == "init" ]]; then
+    local -r CWD="$(pwd)"
+    local -r WORKING_DIRECTORY="$(mktemp -d)"
+    chmod 700 "$WORKING_DIRECTORY"
 
-  cd "$WORKING_DIRECTORY" || die 6 "Could not cd to directory ${WORKING_DIRECTORY}."
-  gen_folders
-  gen_root_ca
-  gen_intermediary_ca
-  gen_server_ca
-  gen_client_ca
+    cd "$WORKING_DIRECTORY" || die 6 "Could not cd to directory ${WORKING_DIRECTORY}."
+    gen_folders
+    gen_root_ca
+    gen_intermediary_ca
+    gen_server_ca
+    gen_client_ca
 
-  cd "$CWD" || die 6 "Could not cd to directory ${CWD}."
-  tar -czf PKI.tar.gz -C "$WORKING_DIRECTORY" .
-  rm -rf ${WORKING_DIRECTORY}
+    cd "$CWD" || die 6 "Could not cd to directory ${CWD}."
+    tar -czf PKI.tar.gz -C "$WORKING_DIRECTORY" .
+    rm -rf "$WORKING_DIRECTORY"
 
-  unset ROOT_CA_PASSWORD
-  unset INTERMEDIATE_CA_PASSWORD
+    unset ROOT_CA_PASSWORD
+    unset INTERMEDIATE_CA_PASSWORD
+  elif [[ "$mode" == "rotate" ]]; then
+    die 99 "TODO"
+  else
+    die 9 "Invalid mode in main: ${mode}."
+  fi
+
 }
 
 main "$@"
