@@ -38,6 +38,7 @@ fi
 
 # Constants
 readonly GL_LOG="/dev/null"
+readonly SERVER_DOMAIN="tilelli.me"
 
 
 #Function
@@ -143,7 +144,7 @@ function gen_folders(){
   chmod 700 {rootCA,intermediateCA}/private
   echo 1000 > rootCA/serial
   echo 1000 > intermediateCA/serial
-  echo 0100 > rootCA/crlnumber 
+  echo 0100 > rootCA/crlnumber
   echo 0100 > intermediateCA/crlnumber
   touch rootCA/index.txt
   touch intermediateCA/index.txt
@@ -293,14 +294,14 @@ basicConstraints = CA:FALSE                                 # Not a CA certifica
 nsCertType = server                                         # Server certificate type
 keyUsage = critical, digitalSignature, keyEncipherment      # Key usage for a server cert
 extendedKeyUsage = serverAuth                               # Extended key usage for server authentication purposes (e.g., TLS/SSL servers).
-authorityKeyIdentifier = keyid,issuer                       # Authority key identifier linking the certificate to the issuer's public key.
+authorityKeyIdentifier = keyid,issuer                       # Authority key identifier linking the certificate to the issuer's public key.                               # Sets the SAN
 EOF
 
   chmod 400 openssl_intermediate.cnf
 }
 
 function gen_root_ca(){
-  #@ DESCRIPTION:  generated ROOT config and Certifications in cwd assuming standard structure.
+  #@ DESCRIPTION:  generated ROOT config and certifications in cwd assuming standard structure.
   #@ Config FILE: openssl_root.cnf
   #@ Cert FILE: rootCA/certs/ca.cert.pem
   #@ Key FILE: rootCA/private/ca.key.pem
@@ -310,7 +311,7 @@ function gen_root_ca(){
   gen_root_config
   openssl genrsa -out rootCA/private/ca.key.pem -aes256 -passout env:ROOT_CA_PASSWORD 4096
   chmod 400 rootCA/private/ca.key.pem
-  
+
   openssl req \
   -config openssl_root.cnf \
   -key rootCA/private/ca.key.pem \
@@ -325,8 +326,8 @@ function gen_root_ca(){
   chmod 444 rootCA/certs/ca.cert.pem
 }
 
-function gen_intermediary_ca(){
-  #@ DESCRIPTION:  generated ROOT config and Certifications in cwd assuming standard structure.
+function gen_intermediary_ca() {
+  #@ DESCRIPTION: generated ROOT config and certifications in cwd assuming standard structure.
   #@ requires existence of ROOT CA/KEY and root password
   #@ Config FILE: openssl_root.cnf
   #@ Cert FILE: rootCA/certs/intermediate.cert.pem
@@ -337,22 +338,22 @@ function gen_intermediary_ca(){
   gen_intermediary_config
   openssl genrsa -out intermediateCA/private/intermediate.key.pem -aes256 -passout env:INTERMEDIATE_CA_PASSWORD 4096
   chmod 400 intermediateCA/private/intermediate.key.pem
-  
+
   openssl req \
   -config openssl_intermediate.cnf \
   -key intermediateCA/private/intermediate.key.pem \
   -new -sha256 \
-  -out intermediateCA/certs/intermediate.csr.pem \
+  -out intermediateCA/csr/intermediate.csr.pem \
   -passin env:INTERMEDIATE_CA_PASSWORD \
   -subj "/C=US/ST=Pennsylvania/L=Mechanicsburg/O=Anthony/OU=Improv Show/CN=Intermediate CA"
 
   openssl ca \
   -config openssl_root.cnf \
   -extensions v3_intermediate_ca \
-  -days 3650 -notext -md sha256 \
-  -in intermediateCA/certs/intermediate.csr.pem \
+  -days 3650 -notext -md sha256 -quiet\
+  -in intermediateCA/csr/intermediate.csr.pem \
   -passin env:ROOT_CA_PASSWORD -batch \
-  -out intermediateCA/certs/intermediate.cert.pem
+  -out intermediateCA/certs/intermediate.cert.pem >/dev/null 2>&1
 
   chmod 444 intermediateCA/certs/intermediate.cert.pem
 
@@ -363,11 +364,138 @@ function gen_intermediary_ca(){
   >/dev/null 2>&1
 }
 
+function gen_server_ca() {
+  #@ DESCRIPTION: generated nats, hearing and vision server certifications in cwd assuming standard structure.
+  #@ Warning: These certs are not password protected
+  #@ USAGE: gen_server_ca
+  #@ REQUIREMENTS: openssl
 
-function main(){
+  openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:4096 -out intermediateCA/private/vision.${SERVER_DOMAIN}.key.pem  2>/dev/null
+  openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:4096 -out intermediateCA/private/nats.${SERVER_DOMAIN}.key.pem  2>/dev/null
+  openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:4096 -out intermediateCA/private/hearing.${SERVER_DOMAIN}.key.pem  2>/dev/null
+  chmod 400 intermediateCA/private/*.${SERVER_DOMAIN}.key.pem
+
+  openssl req -config openssl_intermediate.cnf \
+    -key intermediateCA/private/vision.${SERVER_DOMAIN}.key.pem \
+    -new -sha256 -out intermediateCA/csr/vision.${SERVER_DOMAIN}.csr.pem \
+    -subj "/C=US/ST=Pennsylvania/L=Mechanicsburg/O=Anthony/OU=Improv Show/CN=vision.${SERVER_DOMAIN}" \
+    -addext "subjectAltName=DNS:vision.${SERVER_DOMAIN},DNS:${SERVER_DOMAIN}"
+
+  openssl req -config openssl_intermediate.cnf \
+    -key intermediateCA/private/nats.${SERVER_DOMAIN}.key.pem \
+    -new -sha256 -out intermediateCA/csr/nats.${SERVER_DOMAIN}.csr.pem \
+    -subj "/C=US/ST=Pennsylvania/L=Mechanicsburg/O=Anthony/OU=Improv Show/CN=nats.${SERVER_DOMAIN}" \
+    -addext "subjectAltName=DNS:nats.${SERVER_DOMAIN},DNS:${SERVER_DOMAIN}"
+
+  openssl req -config openssl_intermediate.cnf \
+    -key intermediateCA/private/hearing.${SERVER_DOMAIN}.key.pem \
+    -new -sha256 -out intermediateCA/csr/hearing.${SERVER_DOMAIN}.csr.pem \
+    -subj "/C=US/ST=Pennsylvania/L=Mechanicsburg/O=Anthony/OU=Improv Show/CN=hearing.${SERVER_DOMAIN}" \
+    -addext "subjectAltName=DNS:hearing.${SERVER_DOMAIN},DNS:${SERVER_DOMAIN}"
+
+  chmod 444 intermediateCA/csr/*.${SERVER_DOMAIN}.csr.pem
+
+  openssl ca \
+  -config <(cat openssl_intermediate.cnf; cat <<EOF
+[ server_cert ]
+subjectAltName = @alt_names
+
+[ alt_names ]
+DNS.1 = vision.${SERVER_DOMAIN}
+DNS.2 = ${SERVER_DOMAIN}
+EOF
+) \
+  -extensions server_cert \
+  -days 375 -notext -md sha256  -batch \
+  -in intermediateCA/csr/vision.${SERVER_DOMAIN}.csr.pem \
+  -passin env:INTERMEDIATE_CA_PASSWORD \
+  -out intermediateCA/certs/vision.${SERVER_DOMAIN}.cert.pem >/dev/null 2>&1
+
+  openssl ca \
+  -config <(cat openssl_intermediate.cnf; cat <<EOF
+[ server_cert ]
+subjectAltName = @alt_names
+
+[ alt_names ]
+DNS.1 = nats.${SERVER_DOMAIN}
+DNS.2 = ${SERVER_DOMAIN}
+EOF
+) \
+  -extensions server_cert \
+  -days 375 -notext -md sha256  -batch \
+  -in intermediateCA/csr/nats.${SERVER_DOMAIN}.csr.pem \
+  -passin env:INTERMEDIATE_CA_PASSWORD \
+  -out intermediateCA/certs/nats.${SERVER_DOMAIN}.cert.pem >/dev/null 2>&1
+
+  openssl ca \
+  -config <(cat openssl_intermediate.cnf; cat <<EOF
+[ server_cert ]
+subjectAltName = @alt_names
+
+[ alt_names ]
+DNS.1 = hearing.${SERVER_DOMAIN}
+DNS.2 = ${SERVER_DOMAIN}
+EOF
+) \
+  -extensions server_cert \
+  -days 375 -notext -md sha256 -batch \
+  -in intermediateCA/csr/hearing.${SERVER_DOMAIN}.csr.pem \
+  -passin env:INTERMEDIATE_CA_PASSWORD \
+  -out intermediateCA/certs/hearing.${SERVER_DOMAIN}.cert.pem >/dev/null 2>&1
+
+  chmod 444 intermediateCA/certs/*.${SERVER_DOMAIN}.cert.pem
+}
+
+function gen_client_ca() {
+  #@ DESCRIPTION: generated setting, nats_debug, ingest, vision, hearing, brain, output
+  #@ client certifications in cwd assuming standard structure.
+  #@ Warning: These certs are not password protected
+  #@ USAGE: gen_client_ca
+  #@ REQUIREMENTS: openssl
+
+  local -A clients
+  clients[setting]="setting@improvShow.local"
+  clients[nats_debug]="nats_debug@improvShow.local"
+  clients[ingest]="ingest@improvShow.local"
+  clients[vision]="vision@improvShow.local"
+  clients[hearing]="hearing@improvShow.local"
+  clients[brain]="brain@improvShow.local"
+  clients[output]="output@improvShow.local"
+
+  for key in "${!clients[@]}"; do
+    openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:4096 -out intermediateCA/private/${key}.client.key.pem  2>/dev/null
+    chmod 400 intermediateCA/private/${key}.client.key.pem
+
+    openssl req -config openssl_intermediate.cnf \
+    -key intermediateCA/private/${key}.client.key.pem \
+    -new -sha256 -out intermediateCA/csr/${key}.client.csr.pem \
+    -subj "/C=US/ST=Pennsylvania/L=Mechanicsburg/O=Anthony/OU=Improv Show/CN=${key}.client" \
+    -addext "subjectAltName=email:${clients[$key]}"
+    chmod 444 intermediateCA/csr/${key}.client.csr.pem
+
+    openssl ca \
+    -config <(cat openssl_intermediate.cnf; cat <<EOF
+[ server_cert ]
+subjectAltName = @alt_names
+
+[ alt_names ]
+email = ${clients[$key]}
+EOF
+) \
+    -extensions server_cert \
+    -days 375 -notext -md sha256  -batch \
+    -in intermediateCA/csr/${key}.client.csr.pem \
+    -passin env:INTERMEDIATE_CA_PASSWORD \
+    -out intermediateCA/certs/${key}.client.cert.pem >/dev/null 2>&1
+    chmod 444 intermediateCA/certs/${key}.client.cert.pem
+  done
+
+}
+
+function main() {
   #@ DESCRIPTION:  main program loop
   #@ USAGE:  main "$@"
-  #@ REQUIREMENTS: openssl
+
   cli_check
   env_check
 
@@ -379,12 +507,14 @@ function main(){
   gen_folders
   gen_root_ca
   gen_intermediary_ca
+  gen_server_ca
+  gen_client_ca
 
-  # TODO Make server certs
-  # TODO Make client certs
-  # TODO TARBALL and delete original
+  cd "$CWD" || die 6 "Could not cd to directory ${CWD}."
+  tar -czvf PKI.tar.gz -C "$WORKING_DIRECTORY" .
+  rm -rf ${WORKING_DIRECTORY}
+
   # TODO UNSET ENV Variables
-
 }
 
 main "$@"
