@@ -5,6 +5,9 @@
 #: Description  : Basic PKI management for the project using openssl, it can:
 #:              : - Generate root, intermediate, Server and Client CA
 #:              : - Generate new client and Server CA, while revoking old ones (TODO)
+#: WARNING      :
+#:              : This script makes use of env variable but a script cannot clear them.
+#:              : Be sure to clear env variables when done.
 #: Requirements :
 #:              : BASH 5.0+
 #:              : openssl
@@ -48,12 +51,26 @@ fi
 
 # Constants
 readonly SERVER_DOMAIN="tilelli.me"
+declare -rA CLIENTS=(
+  [setting]="setting@improvShow.local"
+  [nats_debug]="nats_debug@improvShow.local"
+  [ingest]="ingest@improvShow.local"
+  [vision]="vision@improvShow.local"
+  [hearing]="hearing@improvShow.local"
+  [brain]="brain@improvShow.local"
+  [output]="output@improvShow.local"
+)
+# Cert Subjects
+readonly COUNTRY="US"
+readonly STATE="Pennsylvania"
+readonly LOCAL="Mechanicsburg"
+readonly ORG="Anthony"
+readonly ORGUNIT="Improv Show"
 
 # Global
 declare mode="unset"
 
-
-#Function
+# Functions
 function die() {
   #@ DESCRIPTION: prints error-message and exits script
   #@ USAGE: die ERRORCODE ERROR_MESSAGE or die
@@ -147,6 +164,9 @@ function gen_folders() {
   echo 1000 > intermediateCA/serial
   echo 0100 > rootCA/crlnumber
   echo 0100 > intermediateCA/crlnumber
+  : > rootCA/private/.rand
+  : > intermediateCA/private/.rand
+  chmod 600 rootCA/private/.rand intermediateCA/private/.rand
   touch rootCA/index.txt
   touch intermediateCA/index.txt
   return 0
@@ -304,6 +324,79 @@ EOF
   return 0
 }
 
+function gen_client_config(){
+  #@ DESCRIPTION:  generated intermediate config in CWD (FILE: client_cert_ext.cnf).
+  #@ USAGE: gen_intermediary_config
+  #@ REQUIREMENTS: NONE
+
+  for key in "${!CLIENTS[@]}"; do
+    cat << 'EOF' > client_cert_ext_${key}.cnf
+[ ca ]                           # The default CA section
+default_ca = CA_default          # The default CA name
+
+[ CA_default ]                                           # Default settings for the intermediate CA
+dir               = ./intermediateCA                     # Intermediate CA directory
+certs             = $dir/certs                           # Certificates directory
+crl_dir           = $dir/crl                             # CRL directory
+new_certs_dir     = $dir/newcerts                        # New certificates directory
+database          = $dir/index.txt                       # Certificate index file
+serial            = $dir/serial                          # Serial number file
+RANDFILE          = $dir/private/.rand                   # Random number file
+private_key       = $dir/private/intermediate.key.pem    # Intermediate CA private key
+certificate       = $dir/certs/intermediate.cert.pem     # Intermediate CA certificate
+crl               = $dir/crl/intermediate.crl.pem        # Intermediate CA CRL
+crlnumber         = $dir/crlnumber                       # Intermediate CA CRL number
+crl_extensions    = crl_ext                              # CRL extensions
+default_crl_days  = 30                                   # Default CRL validity days
+default_md        = sha256                               # Default message digest
+preserve          = no                                   # Preserve existing extensions
+email_in_dn       = no                                   # Exclude email from the DN
+name_opt          = ca_default                           # Formatting options for names
+cert_opt          = ca_default                           # Certificate output options
+policy            = policy_loose                         # Certificate policy
+
+[ policy_loose ]                                         # Policy for less strict validation
+countryName             = optional                       # Country is optional
+stateOrProvinceName     = optional                       # State or province is optional
+localityName            = optional                       # Locality is optional
+organizationName        = optional                       # Organization is optional
+organizationalUnitName  = optional                       # Organizational unit is optional
+commonName              = supplied                       # Must provide a common name
+emailAddress            = optional                       # Email address is optional
+
+[ req ]                                                  # Request settings
+default_bits        = 4096                               # Default key size
+distinguished_name  = req_distinguished_name             # Default DN template
+string_mask         = utf8only                           # UTF-8 encoding
+default_md          = sha256                             # Default message digest
+
+[ req_distinguished_name ]                               # Template for the DN in the CSR
+countryName                     = Country Name (2 letter code)
+stateOrProvinceName             = State or Province Name
+localityName                    = Locality Name
+0.organizationName              = Organization Name
+organizationalUnitName          = Organizational Unit Name
+commonName                      = Common Name
+emailAddress                    = Email Address
+
+[ client_cert ]
+basicConstraints = CA:FALSE
+nsCertType = client, email
+nsComment = "Client Certificate used for Improv Show"
+subjectKeyIdentifier = hash
+authorityKeyIdentifier = keyid,issuer
+keyUsage = critical, digitalSignature, keyEncipherment
+extendedKeyUsage = clientAuth
+subjectAltName = @alt_names
+EOF
+cat << EOF >> client_cert_ext_${key}.cnf
+[ alt_names ]
+email = ${CLIENTS[$key]}
+EOF
+  done
+}
+
+
 function gen_root_ca() {
   #@ DESCRIPTION:  generated ROOT config and certifications in cwd assuming standard structure.
   #@ Config FILE: openssl_root.cnf
@@ -325,7 +418,7 @@ function gen_root_ca() {
   -sha256 \
   -extensions v3_ca \
   -out rootCA/certs/ca.cert.pem \
-  -subj "/C=US/ST=Pennsylvania/L=Mechanicsburg/O=Anthony/OU=Improv Show/CN=Root CA"
+  -subj "/C=${COUNTRY}/ST=${STATE}/L=${LOCAL}/O=${ORG}/OU=${ORGUNIT}/CN=Root CA"
 
   chmod 444 rootCA/certs/ca.cert.pem
   return 0
@@ -350,7 +443,7 @@ function gen_intermediary_ca() {
   -new -sha256 \
   -out intermediateCA/csr/intermediate.csr.pem \
   -passin env:INTERMEDIATE_CA_PASSWORD \
-  -subj "/C=US/ST=Pennsylvania/L=Mechanicsburg/O=Anthony/OU=Improv Show/CN=Intermediate CA"
+  -subj "/C=${COUNTRY}/ST=${STATE}/L=${LOCAL}/O=${ORG}/OU=${ORGUNIT}/CN=Intermediate CA"
 
   openssl ca \
   -config openssl_root.cnf \
@@ -385,7 +478,7 @@ function gen_server_ca() {
     openssl req -config openssl_intermediate.cnf \
       -key intermediateCA/private/${server}.${SERVER_DOMAIN}.key.pem \
       -new -sha256 -out intermediateCA/csr/${server}.${SERVER_DOMAIN}.csr.pem \
-      -subj "/C=US/ST=Pennsylvania/L=Mechanicsburg/O=Anthony/OU=Improv Show/CN=${server}.${SERVER_DOMAIN}" \
+      -subj "/C=${COUNTRY}/ST=${STATE}/L=${LOCAL}/O=${ORG}/OU=${ORGUNIT}/CN=${server}.${SERVER_DOMAIN}" \
       -addext "subjectAltName=DNS:${server}.${SERVER_DOMAIN},DNS:${SERVER_DOMAIN}"
     chmod 444 intermediateCA/csr/${server}.${SERVER_DOMAIN}.csr.pem
 
@@ -415,37 +508,23 @@ function gen_client_ca() {
   #@ USAGE: gen_client_ca
   #@ REQUIREMENTS: openssl
 
-  local -A clients
-  clients[setting]="setting@improvShow.local"
-  clients[nats_debug]="nats_debug@improvShow.local"
-  clients[ingest]="ingest@improvShow.local"
-  clients[vision]="vision@improvShow.local"
-  clients[hearing]="hearing@improvShow.local"
-  clients[brain]="brain@improvShow.local"
-  clients[output]="output@improvShow.local"
+  gen_client_config
 
-  for key in "${!clients[@]}"; do
+  for key in "${!CLIENTS[@]}"; do
     openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:4096 -out intermediateCA/private/${key}.client.key.pem  2>/dev/null
     chmod 400 intermediateCA/private/${key}.client.key.pem
 
-    openssl req -config openssl_intermediate.cnf \
+    openssl req -config client_cert_ext_${key}.cnf  \
     -key intermediateCA/private/${key}.client.key.pem \
     -new -sha256 -out intermediateCA/csr/${key}.client.csr.pem \
-    -subj "/C=US/ST=Pennsylvania/L=Mechanicsburg/O=Anthony/OU=Improv Show/CN=${key}.client" \
-    -addext "subjectAltName=email:${clients[$key]}"
+    -subj "/C=${COUNTRY}/ST=${STATE}/L=${LOCAL}/O=${ORG}/OU=${ORGUNIT}/CN=${key}.client" \
+    -addext "subjectAltName=email:${CLIENTS[$key]}"
     chmod 444 intermediateCA/csr/${key}.client.csr.pem
 
     openssl ca \
-    -config <(cat openssl_intermediate.cnf; cat <<EOF
-[ server_cert ]
-subjectAltName = @alt_names
-
-[ alt_names ]
-email = ${clients[$key]}
-EOF
-) \
-    -extensions server_cert \
+    -config client_cert_ext_${key}.cnf \
     -days 375 -notext -md sha256  -batch \
+    -extensions client_cert \
     -in intermediateCA/csr/${key}.client.csr.pem \
     -passin env:INTERMEDIATE_CA_PASSWORD \
     -out intermediateCA/certs/${key}.client.cert.pem >/dev/null 2>&1
@@ -454,10 +533,36 @@ EOF
   return 0
 }
 
-function revoke_leaf_ca() {
-  true
+function gen_crls_root() {
+  #@ DESCRIPTION: generated crl in CWD
+  #@ USAGE: gen_crls_root
+  #@ REQUIREMENTS: openssl
+
+  openssl ca -config openssl_root.cnf -gencrl \
+    -passin env:ROOT_CA_PASSWORD \
+    -out rootCA/crl/ca.crl.pem >/dev/null 2>&1
+  chmod 444 rootCA/crl/ca.crl.pem
   return 0
 }
+
+function gen_crls_intermediate() {
+  #@ DESCRIPTION: generated crl in CWD
+  #@ USAGE: gen_crls_intermediate
+  #@ REQUIREMENTS: openssl
+
+  openssl ca -config openssl_intermediate.cnf -gencrl \
+    -passin env:INTERMEDIATE_CA_PASSWORD \
+    -out intermediateCA/crl/intermediate.crl.pem >/dev/null 2>&1
+  chmod 444 intermediateCA/crl/intermediate.crl.pem
+  return 0
+}
+
+
+
+# function revoke_leaf_ca() {
+#   true
+#   return 0
+# }
 
 function main() {
   #@ DESCRIPTION:  main program loop
@@ -485,7 +590,7 @@ function main() {
   cli_check
   env_check
 
-  local -r BUNDLEPASSWORD="$(LC_ALL=C tr -dc 'A-Za-z0-9!@#$%^&*()-_=+[]{}:,.?' </dev/urandom | head -c 24)"
+  local -r BUNDLEPASSWORD="$(LC_ALL=C tr -dc 'A-Za-z0-9@%^&*()-_=+[]{}:,.?' </dev/urandom | head -c 24)"
 
   if [[ "$mode" == "init" ]]; then
     local -r CWD="$(pwd)"
@@ -503,6 +608,10 @@ function main() {
     gen_server_ca
     output "Generating Client CA/KEY (keys are not encrypted)"
     gen_client_ca
+    output "Generating Root CRL"
+    gen_crls_root
+    output "Generating Intermediate CRL"
+    gen_crls_intermediate
 
     output "Bundling PKI files into an encrypted tarball."
     cd "$CWD" || die 6 "Could not cd to directory ${CWD}."
@@ -512,14 +621,11 @@ function main() {
 
     rm -rf "$WORKING_DIRECTORY"
 
-    unset ROOT_CA_PASSWORD
-    unset INTERMEDIATE_CA_PASSWORD
-
-    output "The file /"PKI.tar.gz.enc/" will contain the PKI bundle."
+    output "The file PKI.tar.gz.enc contains the PKI bundle."
     output "The bundle is encrypted with the password ${BUNDLEPASSWORD}"
-    output "Be sure to record the password, as I will only be shared this once."
+    output "Be sure to record the password, as it will only be shared after this."
     output "Decryption can be done with below:"
-    output "openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -md sha256 -pass \"pass:${BUNDLEPASSWORD}\" -in PKI.tar.gz.enc -out PKI.tar.gz "
+    printf "%s\\n" "openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -md sha256 -pass \"pass:${BUNDLEPASSWORD}\" -in PKI.tar.gz.enc -out PKI.tar.gz"
 
   elif [[ "$mode" == "rotate" ]]; then
     die 99  "TODO"
