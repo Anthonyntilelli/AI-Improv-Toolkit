@@ -276,6 +276,32 @@ udevadm trigger
 ls -l /dev/show/
 ```
 
+### Encrypt /home directory of admin and dev
+```
+apt install -y fscrypt libpam-fscrypt
+fscrypt status / # NOTE: MUST be yes
+fscrypt setup /
+```
+#### Log in as dev (become root)
+```
+loginctl terminate-user admin
+fscrypt encrypt /home/admin --user=admin
+# You will be prompted to set a recovery passphrase → store it offline (password manager / vault).
+```
+
+#### Log in as Admin (become root)
+```
+loginctl terminate-user dev
+fscrypt encrypt /home/dev --user=dev
+# You will be prompted to set a recovery passphrase → store it offline (password manager / vault).
+```
+
+#### Verify
+```
+fscrypt status /home/admin
+fscrypt status /home/dev
+````
+
 ### Timeshift final
 ```
 # Delete all intermediate snapshots (not preConfig)
