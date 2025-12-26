@@ -1,2 +1,40 @@
 ssh_key_name = "Laptop ssh key"
 absolute_path_to_ssh_key = "/home/<user>/.ssh/id_ed25519.pub"
+firewall_ingress_list = [
+  {
+    service = "ICMP",
+    ips_ciders = ["0.0.0.0/0", "::/0"]
+    local_ip = false,
+    protocol = "icmp",
+    port = null
+  },
+  {
+    service = "SSHD",
+    ips_ciders = ["0.0.0.0/0", "::/0"]
+    local_ip = false,
+    protocol = "tcp",
+    port = "8022"
+  },
+  {
+    service = "Nats Clients",
+    ips_ciders = ["0.0.0.0/0", "::/0"]
+    local_ip = false,
+    protocol = "tcp",
+    port = "4222"
+  },
+  {
+    service = "Nat HTTP management",
+    ips_ciders = []
+    local_ip = true,
+    protocol = "tcp",
+    port = "8222"
+  },
+  {
+    service = "Hearing",
+    ips_ciders = ["0.0.0.0/0", "::/0"]
+    local_ip = false,
+    protocol = "tcp",
+    port = "8100"
+  }
+
+]

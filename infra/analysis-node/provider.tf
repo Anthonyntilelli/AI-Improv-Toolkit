@@ -8,6 +8,10 @@ terraform {
       source = "cloudflare/cloudflare"
       version = "5.15.0"
     }
+    http = {
+      source = "hashicorp/http"
+      version = "3.5.0"
+    }
     required_version = ">= 1.14.3"
   }
   backend "local" {
@@ -17,5 +21,5 @@ terraform {
 
 provider "digitalocean" {}
 provider "cloudflare" {}
-
+provider "http" {}
 

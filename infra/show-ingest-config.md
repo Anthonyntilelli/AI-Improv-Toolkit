@@ -108,6 +108,7 @@ reboot
 mkdir -p -m 0750 /opt/show
 
 getent group show >/dev/null || addgroup --system --gid 495 show
+getent group ssh-users >/dev/null || addgroup ssh-users
 
 id -u show >/dev/null 2>&1 || adduser --system \
   --home /opt/show \
@@ -120,6 +121,8 @@ id -u show >/dev/null 2>&1 || adduser --system \
 id -u dev >/dev/null 2>&1 || adduser dev
 usermod -aG show dev
 usermod -aG sudo dev
+usermod -aG ssh-users dev
+usermod -aG ssh-users admin
 ```
 
 ### Connect wifi
@@ -156,27 +159,33 @@ usermod -aG docker dev
 su - dev -c "docker run --rm hello-world"
 ```
 
+## dev user ssh access
+```
+sudo mkdir -p --mode 755 /etc/ssh/authorized_keys
+install -m 0600 -o dev -g dev /home/admin/.ssh/authorized_keys /etc/ssh/dev
+install -m 0600 -o admin -g admin /home/admin/.ssh/authorized_keys /etc/ssh/admin
+rm /home/admin/.ssh/authorized_keys
+```
+
 ### SSH Hardening
 ```
 # SSH is now on port 8022
 cat >/etc/ssh/sshd_config.d/10-show-ingest.conf <<'EOF'
 Port 8022
+AuthenticationMethods publickey
 PubkeyAuthentication yes
 PasswordAuthentication no
 KbdInteractiveAuthentication no
 PermitRootLogin no
-AllowUsers dev admin
+AllowGroups ssh-users
 MaxAuthTries 3
 X11Forwarding no
+UsePAM yes
+# Put authorized_keys outside encrypted homes (fscrypt-friendly)
+AuthorizedKeysFile /etc/ssh/authorized_keys/%u
 EOF
 
 sshd -t && systemctl reload ssh
-```
-
-## dev user ssh access
-```
-install -d -m 0700 -o dev -g dev /home/dev/.ssh
-install -m 0600 -o dev -g dev /home/admin/.ssh/authorized_keys /home/dev/.ssh/authorized_keys
 ```
 
 ### Firewall and sshguard
