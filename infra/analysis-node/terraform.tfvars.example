@@ -1,0 +1,2 @@
+ssh_key_name = "Laptop ssh key"
+absolute_path_to_ssh_key = "/home/<user>/.ssh/id_ed25519.pub"
