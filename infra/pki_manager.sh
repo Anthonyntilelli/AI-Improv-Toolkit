@@ -63,7 +63,7 @@ fi
 # Modify the below constants to match your domain and information
 readonly COUNTRY="US"
 readonly STATE="Pennsylvania"
-readonly LOCAL="Mechanicsburg"
+readonly LOCAL="Harrisburg"
 readonly ORG="Anthony"
 readonly ORGUNIT="Improv Show"
 readonly SERVER_DOMAIN="tilelli.me"
