@@ -12,6 +12,8 @@ crash.log
 
 # Sensitive
 *.pass
+credentials/
+.env
 
 # Editors
 .vscode/*
