@@ -39,3 +39,9 @@ firewall_ingress_list = [
 ]
 zone_id = "1234567890ABCDEFGHIJKLMNOPQRSTUV"
 dns_record = ["analysis", "nats", "hearing"]
+
+gpu_droplet = {
+  image   = string
+  region  = "NYC2"
+  size    = "gpu-h200x1-141gb"
+}

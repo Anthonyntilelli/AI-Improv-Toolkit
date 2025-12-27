@@ -44,7 +44,17 @@ variable "zone_id" {
 }
 
 variable "dns_record" {
-  description = "Map of the DNS entries, key is the service name. Designed to create A records for analysis server"
+  description = "list of servers dns records to create, currently all map to the one droplet"
   nullable = false
   type = list(string)
+}
+
+variable "gpu_droplet" {
+  description = "GPU droplet configuration"
+  type = object({
+    image   = string
+    region  = string
+    size    = string
+  })
+  nullable = false
 }

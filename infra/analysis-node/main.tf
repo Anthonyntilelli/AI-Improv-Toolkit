@@ -11,14 +11,14 @@ resource "digitalocean_ssh_key" "default" {
   public_key = file(var.absolute_path_to_ssh_key)
 }
 
-# TODO Create GPU droplet and run cloud-init
+# TODO  cloud-init
 resource "digitalocean_droplet" "analysis" {
-  image   = "ubuntu-20-04-x64"
+  image   = var.gpu_droplet.image
   name    = "analysis"
-  region  = "nyc2"
-  size    = "s-1vcpu-1gb"
+  region  = var.gpu_droplet.region
+  size    = var.gpu_droplet.size
   backups = false
-  user_data = file("${path.module}/cloud-init.yaml")
+  # user_data = file("${path.module}/cloud-init.yaml") # <-- TODO
 }
 
 resource "digitalocean_firewall" "analysis" {
@@ -47,4 +47,8 @@ resource "cloudflare_dns_record" "example_dns_record" {
   settings = {
     ipv4_only = true
   }
+}
+
+output "path_module" {
+  value = path.module
 }
