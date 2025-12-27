@@ -36,5 +36,6 @@ firewall_ingress_list = [
     protocol = "tcp",
     port = "8100"
   }
-
 ]
+zone_id = "1234567890ABCDEFGHIJKLMNOPQRSTUV"
+dns_record = ["analysis", "nats", "hearing"]

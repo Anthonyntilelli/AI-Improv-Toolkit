@@ -1,7 +1,3 @@
-/*
-Create GPU droplet and run cloud-init
-Take ip address and create dns entries for nats, vision, hearing
-*/
 locals {
   my_ip = "${chomp(data.http.my_ip.response_body)}/32"
 }
@@ -15,7 +11,7 @@ resource "digitalocean_ssh_key" "default" {
   public_key = file(var.absolute_path_to_ssh_key)
 }
 
-# TODO
+# TODO Create GPU droplet and run cloud-init
 resource "digitalocean_droplet" "analysis" {
   image   = "ubuntu-20-04-x64"
   name    = "analysis"
@@ -25,7 +21,7 @@ resource "digitalocean_droplet" "analysis" {
   user_data = file("${path.module}/cloud-init.yaml")
 }
 
-resource "digitalocean_firewall" "web" {
+resource "digitalocean_firewall" "analysis" {
   name = "Show_firewall"
 
   droplet_ids = [digitalocean_droplet.analysis.id]
@@ -36,5 +32,19 @@ resource "digitalocean_firewall" "web" {
       port_range       =  inbound_rule.value[port]
       source_addresses = inbound_rule.value[local_ip] ? concat(inbound_rule.value[ips_ciders], [local.my_ip]) : local.my_ip
     }
+  }
+}
+
+resource "cloudflare_dns_record" "example_dns_record" {
+  count = length(var.dns_record)
+  zone_id = var.zone_id
+  name = var.dns_record[count.index]
+  ttl = 3600
+  type = "A"
+  comment = "Service for ${var.dns_record[count.index]}"
+  content = digitalocean_droplet.analysis.ipv4_address
+  proxied = false
+  settings = {
+    ipv4_only = true
   }
 }

@@ -35,3 +35,16 @@ variable "firewall_ingress_list" {
     error_message = "Each entry 'protocol' must be one of: tcp, udp, icmp."
   }
 }
+
+variable "zone_id" {
+  description = "Cloudflare DNS Zone ID"
+  nullable = false
+  type = string
+  sensitive = true
+}
+
+variable "dns_record" {
+  description = "Map of the DNS entries, key is the service name. Designed to create A records for analysis server"
+  nullable = false
+  type = list(string)
+}
