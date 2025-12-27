@@ -3,17 +3,20 @@
 ## Prerequisite
 
 ### Base install
-- user:  `admin` created
+
+- user: `admin` created
 - Debian 13
 - tasksel (laptop and ssh-server)
 
 ### Note from host pc
+
 `ssh-copy-id -i ~/.ssh/id_ed25519.pub admin@show-ingest`
 
 ## Post Install (all steps as root)
 
 ### Base Update (MIN)
-```
+
+```bash
 apt update && apt full-upgrade -y
 
 apt install -y timeshift jq rsync
@@ -24,7 +27,8 @@ reboot
 ```
 
 ### timeshift
-```
+
+```bash
 # RSYNC Exclude in file "/etc/timeshift/timeshift.json"
 : <<'COMMENT'
 "exclude": [
@@ -62,7 +66,8 @@ timeshift --create --comments "preConfig" --yes --scripted
 ```
 
 ###  Extra Packages
-```
+
+```bash
 apt install -y evtest vim alsa-utils \
 openssl pciutils usbutils \
 htop netcat-openbsd dnsutils \
@@ -71,7 +76,8 @@ sed
 ```
 
 ### Backports: Kernel + Firmware
-```
+
+```bash
 touch /etc/apt/sources.list.d/debian-backports.sources
 chmod 644 /etc/apt/sources.list.d/debian-backports.sources
 chown root:root /etc/apt/sources.list.d/debian-backports.sources
@@ -104,7 +110,8 @@ reboot
 ```
 
 ### Service user and directory
-```
+
+```bash
 mkdir -p -m 0750 /opt/show
 
 getent group show >/dev/null || addgroup --system --gid 495 show
@@ -126,7 +133,8 @@ usermod -aG ssh-users admin
 ```
 
 ### Connect wifi
-```
+
+```bash
 nmcli radio wifi on
 nmcli device status
 nmcli device wifi list
@@ -135,7 +143,8 @@ nmcli connection modify "SSID" connection.autoconnect yes
 ```
 
 ### install docker
-```
+
+```bash
 apt install -y ca-certificates curl
 # Add Docker's official GPG key:
 install -m 0755 -d /etc/apt/keyrings
@@ -160,7 +169,8 @@ su - dev -c "docker run --rm hello-world"
 ```
 
 ## dev user ssh access
-```
+
+```bash
 sudo mkdir -p --mode 755 /etc/ssh/authorized_keys
 install -m 0600 -o dev -g dev /home/admin/.ssh/authorized_keys /etc/ssh/dev
 install -m 0600 -o admin -g admin /home/admin/.ssh/authorized_keys /etc/ssh/admin
@@ -168,7 +178,8 @@ rm /home/admin/.ssh/authorized_keys
 ```
 
 ### SSH Hardening
-```
+
+```bash
 # SSH is now on port 8022
 cat >/etc/ssh/sshd_config.d/10-show-ingest.conf <<'EOF'
 Port 8022
@@ -189,7 +200,8 @@ sshd -t && systemctl reload ssh
 ```
 
 ### Firewall and sshguard
-```
+
+```bash
 apt install -y firewalld sshguard
 
 firewall-cmd --set-default-zone=public
@@ -210,7 +222,8 @@ systemctl status sshguard --no-pager
 ```
 
 ### Show folder
-```
+
+```bash
 mkdir -p /opt/show/{setting,nats,pki,ingest,vision,hearing,brain,output}
 
 chown root:show /opt/show
@@ -224,7 +237,8 @@ chmod 0750 /opt/show/{setting,nats,ingest,vision,hearing,brain,output}
 ```
 
 ### Bluetooth
-```
+
+```bash
 apt install -y bluez
 systemctl enable --now bluetooth
 
@@ -253,8 +267,10 @@ EOF
 ```
 
 ### HID
+
 #### TODO REAL VIP/UID
-```
+
+``` bash
 cat <<'EOF' > /etc/tmpfiles.d/dev-show.conf
 d /dev/show 0755 root root -
 EOF
@@ -286,33 +302,39 @@ ls -l /dev/show/
 ```
 
 ### Encrypt /home directory of admin and dev
-```
+
+```bash
 apt install -y fscrypt libpam-fscrypt
 fscrypt status / # NOTE: MUST be yes
 fscrypt setup /
 ```
+
 #### Log in as dev (become root)
-```
+
+```bash
 loginctl terminate-user admin
 fscrypt encrypt /home/admin --user=admin
 # You will be prompted to set a recovery passphrase → store it offline (password manager / vault).
 ```
 
 #### Log in as Admin (become root)
-```
+
+```bash
 loginctl terminate-user dev
 fscrypt encrypt /home/dev --user=dev
 # You will be prompted to set a recovery passphrase → store it offline (password manager / vault).
 ```
 
 #### Verify
-```
+
+```bash
 fscrypt status /home/admin
 fscrypt status /home/dev
 ````
 
 ### Timeshift final
-```
+
+```bash
 # Delete all intermediate snapshots (not preConfig)
 timeshift --delete --tags D --yes
 systemctl stop docker
