@@ -1,0 +1,76 @@
+#cloud-config
+package_update: true
+package_upgrade: true
+timezone: America/New_York
+
+groups:
+- show: [495]
+- ssh-users
+
+users:
+  - name: sysadmin
+    shell: /bin/bash
+    ssh_authorized_keys: ["ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBCcfggs34IhxJqYySriOtgsbeKRekUUeWIRuKe2Nxi4"]
+    groups: [show, ssh-users, sudo]
+    append: true
+    passwd: "${sysadmin_and_dev_password_hash}"
+    lock_passwd: true
+  - name: dev
+    shell: /bin/bash
+    ssh_authorized_keys: ["ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBCcfggs34IhxJqYySriOtgsbeKRekUUeWIRuKe2Nxi4"]
+    groups: [show, ssh-users, sudo]
+    append: true
+    passwd: "${sysadmin_and_dev_password_hash}"
+    lock_passwd: true
+  - name: show
+    shell: /bin/nologin
+    homedir: /opt/show
+    system: true
+    no_create_home: true
+    uid: 495
+    no_user_group: true
+
+packages:
+  - ca-certificates
+  - curl
+  - gnupg
+
+runcmd:
+  - mkdir -p /opt/show
+  - [ bash, -c, "mkdir -p /opt/show/{setting,nats,pki,ingest,vision,hearing,brain,output}" ]
+  - install -m 0755 -d /etc/apt/keyrings
+  - curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+  - chmod a+r /etc/apt/keyrings/docker.asc
+  - |
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] \
+    https://download.docker.com/linux/ubuntu \
+    $(. /etc/os-release && echo $VERSION_CODENAME) stable" \
+    > /etc/apt/sources.list.d/docker.list
+  - apt-get update
+  - apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+  - systemctl enable --now docker
+  - usermod -aG docker dev
+  - chown root:show /opt/show
+  - chmod 0750 /opt/show
+  - chown root:root /opt/show/pki
+  - chmod 0700 /opt/show/pki
+  - [ bash, -c, "chown show:show /opt/show/{setting,nats,pki,ingest,vision,hearing,brain,output}" ]
+  - [ bash, -c, "chmod 0750 /opt/show/{setting,nats,pki,ingest,vision,hearing,brain,output}" ]
+  - |
+    cat > /etc/ssh/sshd_config.d/99-cloud-init-hardening.conf <<'EOF'
+    Port 8022
+    AuthenticationMethods publickey
+    PubkeyAuthentication yes
+    PasswordAuthentication no
+    KbdInteractiveAuthentication no
+    PermitRootLogin no
+    AllowGroups ssh-users
+    MaxAuthTries 3
+    EOF
+  - chmod 0644 /etc/ssh/sshd_config.d/99-cloud-init-hardening.conf
+  - sshd -t
+  - systemctl restart ssh || systemctl restart sshd
+power_state:
+  mode: reboot
+  timeout: 30
+  condition: test -f /var/run/reboot-required

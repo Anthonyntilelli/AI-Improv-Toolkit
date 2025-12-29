@@ -45,3 +45,5 @@ gpu_droplet = {
   region  = "NYC2"
   size    = "gpu-h200x1-141gb"
 }
+
+# "sysadmin_and_dev_password_hash" should no be set here use TF_sysadmin_and_dev_password_hash environmental variable instead.

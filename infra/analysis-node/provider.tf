@@ -1,18 +1,18 @@
 terraform {
+  required_version = ">= 1.14.3"
   required_providers {
     digitalocean = {
-      source = "digitalocean/digitalocean"
+      source  = "digitalocean/digitalocean"
       version = "2.72.0"
     }
     cloudflare = {
-      source = "cloudflare/cloudflare"
+      source  = "cloudflare/cloudflare"
       version = "5.15.0"
     }
     http = {
-      source = "hashicorp/http"
+      source  = "hashicorp/http"
       version = "3.5.0"
     }
-    required_version = ">= 1.14.3"
   }
   backend "local" {
     path = "./infra/analysis-pc/terraform.tfstate"

@@ -1,5 +1,8 @@
 locals {
   my_ip = "${chomp(data.http.my_ip.response_body)}/32"
+  user_data = templatefile("${path.module}/cloud-init.yaml.tftpl", {
+    sysadmin_and_dev_password_hash = var.sysadmin_and_dev_password_hash
+  })
 }
 
 data "http" "my_ip" {
@@ -11,14 +14,14 @@ resource "digitalocean_ssh_key" "default" {
   public_key = file(var.absolute_path_to_ssh_key)
 }
 
-# TODO  cloud-init
 resource "digitalocean_droplet" "analysis" {
-  image   = var.gpu_droplet.image
-  name    = "analysis"
-  region  = var.gpu_droplet.region
-  size    = var.gpu_droplet.size
-  backups = false
-  # user_data = file("${path.module}/cloud-init.yaml") # <-- TODO
+  image     = var.gpu_droplet.image
+  name      = "analysis"
+  region    = var.gpu_droplet.region
+  size      = var.gpu_droplet.size
+  backups   = false
+  user_data = local.user_data
+  ssh_keys  = [digitalocean_ssh_key.default.fingerprint]
 }
 
 resource "digitalocean_firewall" "analysis" {
@@ -28,19 +31,19 @@ resource "digitalocean_firewall" "analysis" {
   dynamic "inbound_rule" {
     for_each = var.firewall_ingress_list
     content {
-      protocol         = inbound_rule.value[protocol]
-      port_range       =  inbound_rule.value[port]
-      source_addresses = inbound_rule.value[local_ip] ? concat(inbound_rule.value[ips_ciders], [local.my_ip]) : local.my_ip
+      protocol         = inbound_rule.value.protocol
+      port_range       = try(inbound_rule.value.port, null)
+      source_addresses = inbound_rule.value.local_ip ? concat(inbound_rule.value.ips_ciders, [local.my_ip]) : inbound_rule.value.ips_ciders
     }
   }
 }
 
 resource "cloudflare_dns_record" "example_dns_record" {
-  count = length(var.dns_record)
+  count   = length(var.dns_record)
   zone_id = var.zone_id
-  name = var.dns_record[count.index]
-  ttl = 3600
-  type = "A"
+  name    = var.dns_record[count.index]
+  ttl     = 3600
+  type    = "A"
   comment = "Service for ${var.dns_record[count.index]}"
   content = digitalocean_droplet.analysis.ipv4_address
   proxied = false

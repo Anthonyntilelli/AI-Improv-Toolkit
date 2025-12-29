@@ -4,13 +4,13 @@
 
 ### Base install
 
-- user: `admin` created
+- user: `sysadmin` created
 - Debian 13
 - tasksel (laptop and ssh-server)
 
 ### Note from host pc
 
-`ssh-copy-id -i ~/.ssh/id_ed25519.pub admin@show-ingest`
+`ssh-copy-id -i ~/.ssh/id_ed25519.pub sysadmin@show-ingest`
 
 ## Post Install (all steps as root)
 
@@ -61,8 +61,6 @@ DPkg::Pre-Invoke {
   "timeshift --create --comments 'Before APT transaction' --tags D";
 };
 EOF
-
-timeshift --create --comments "preConfig" --yes --scripted
 ```
 
 ###  Extra Packages
@@ -115,7 +113,7 @@ reboot
 mkdir -p -m 0750 /opt/show
 
 getent group show >/dev/null || addgroup --system --gid 495 show
-getent group ssh-users >/dev/null || addgroup ssh-users
+getent group  >/dev/null || addgroup ssh-users
 
 id -u show >/dev/null 2>&1 || adduser --system \
   --home /opt/show \
@@ -129,7 +127,7 @@ id -u dev >/dev/null 2>&1 || adduser dev
 usermod -aG show dev
 usermod -aG sudo dev
 usermod -aG ssh-users dev
-usermod -aG ssh-users admin
+usermod -aG ssh-users sysadmin
 ```
 
 ### Connect wifi
@@ -172,9 +170,9 @@ su - dev -c "docker run --rm hello-world"
 
 ```bash
 sudo mkdir -p --mode 755 /etc/ssh/authorized_keys
-install -m 0600 -o dev -g dev /home/admin/.ssh/authorized_keys /etc/ssh/dev
-install -m 0600 -o admin -g admin /home/admin/.ssh/authorized_keys /etc/ssh/admin
-rm /home/admin/.ssh/authorized_keys
+install -m 0600 -o dev -g dev /home/sysadmin/.ssh/authorized_keys /etc/ssh/dev
+install -m 0600 -o sysadmin -g sysadmin /home/sysadmin/.ssh/authorized_keys /etc/ssh/sysadmin
+rm /home/sysadmin/.ssh/authorized_keys
 ```
 
 ### SSH Hardening
@@ -301,7 +299,7 @@ udevadm trigger
 ls -l /dev/show/
 ```
 
-### Encrypt /home directory of admin and dev
+### Encrypt /home directory of sysadmin and dev
 
 ```bash
 apt install -y fscrypt libpam-fscrypt
@@ -312,12 +310,12 @@ fscrypt setup /
 #### Log in as dev (become root)
 
 ```bash
-loginctl terminate-user admin
-fscrypt encrypt /home/admin --user=admin
+loginctl terminate-user sysadmin
+fscrypt encrypt /home/sysadmin --user=sysadmin
 # You will be prompted to set a recovery passphrase → store it offline (password manager / vault).
 ```
 
-#### Log in as Admin (become root)
+#### Log in as sysadmin (become root)
 
 ```bash
 loginctl terminate-user dev
@@ -328,7 +326,7 @@ fscrypt encrypt /home/dev --user=dev
 #### Verify
 
 ```bash
-fscrypt status /home/admin
+fscrypt status /home/sysadmin
 fscrypt status /home/dev
 ````
 
@@ -336,7 +334,7 @@ fscrypt status /home/dev
 
 ```bash
 # Delete all intermediate snapshots (not preConfig)
-timeshift --delete --tags D --yes
+timeshift --delete-all
 systemctl stop docker
 timeshift --create --comments "baseConfig" --yes --scripted
 systemctl start docker
