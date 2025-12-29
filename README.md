@@ -107,7 +107,8 @@ Store sensitive value in the `credential` folder, `.env` file or end a file with
     - `echo 'eval "$(uvx --generate-shell-completion bash)"' >> ~/.bashrc`
 
 2) Install terraform
-3) Install and configure pre-commit
+3) Install shellcheck
+4) Install and configure pre-commit
     - `uv tool install pre-commit`
     - `pre-commit install`
 

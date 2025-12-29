@@ -13,3 +13,10 @@ repos:
       language: system
       pass_filenames: false
       files: ^infra/analysis-node/.*\.tf$
+- repo: local
+  hooks:
+    - id: shellcheck
+      name: shellcheck (local)
+      entry: shellcheck
+      language: system
+      files: \.(sh|bash)$
