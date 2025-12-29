@@ -85,9 +85,10 @@ Store sensitive value in the `credential` folder, `.env` file or end a file with
 ## Development Standards
 
 - LF line endings enforced via .gitattributes
-- Python formatted with (TODO)
-- Terraform formatted with terraform fmt
-- pre-commit hooks required (TODO)
+- pre-commit hooks are used to enforce style and check for errors
+  - Terraform with terraform fmt and validate
+  - Script is through shell check
+  - Python (TODO)
 
 ## Description
 
@@ -99,6 +100,18 @@ Store sensitive value in the `credential` folder, `.env` file or end a file with
 
 ## Getting Started
 
+### Development
+
+1) Install uv via `curl -LsSf https://astral.sh/uv/install.sh | sh`
+    - `echo 'eval "$(uv generate-shell-completion bash)"' >> ~/.bashrc`
+    - `echo 'eval "$(uvx --generate-shell-completion bash)"' >> ~/.bashrc`
+
+2) Install terraform
+3) Install and configure pre-commit
+    - `uv tool install pre-commit`
+    - `pre-commit install`
+
+### Deploy
 1. Set up the Ingest PC using the ./infra/show-ingest-config.md
 2. Modify `./infra/pki_manager.sh` to conform to you infrastructure.
 3. Run `./infra/pki_manager.sh init` to generate the needed PKI files and certs

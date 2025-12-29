@@ -1,0 +1,15 @@
+repos:
+-   repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+    -   id: check-yaml
+    -   id: end-of-file-fixer
+    -   id: trailing-whitespace
+- repo: local
+  hooks:
+    - id: terraform-validate-infra-analysis-node
+      name: terraform init + validate (infra/analysis-node)
+      entry: bash -euo pipefail -c 'cd infra/analysis-node && terraform init -backend=false && terraform validate'
+      language: system
+      pass_filenames: false
+      files: ^infra/analysis-node/.*\.tf$
