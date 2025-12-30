@@ -9,6 +9,7 @@ __pycache__/
 *.tfstate
 *.tfstate.*
 crash.log
+terraform.tfvars
 
 # Sensitive
 *.pass
@@ -18,6 +19,7 @@ credentials/
 # Editors
 .vscode/*
 !.vscode/settings.json
+!.vscode/extensions.json
 
 # Binary
 *.tar.*

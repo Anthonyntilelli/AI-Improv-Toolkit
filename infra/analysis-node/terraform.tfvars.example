@@ -41,9 +41,9 @@ zone_id = "1234567890ABCDEFGHIJKLMNOPQRSTUV"
 dns_record = ["analysis", "nats", "hearing"]
 
 gpu_droplet = {
-  image   = string
+  image   = "gpu-h100x1-base"
   region  = "NYC2"
   size    = "gpu-h200x1-141gb"
 }
 
-# "sysadmin_and_dev_password_hash" should no be set here use TF_sysadmin_and_dev_password_hash environmental variable instead.
+# "sysadmin_and_dev_password_hash" should no be set here use TF_VAR_sysadmin_and_dev_password_hash environmental variable instead.

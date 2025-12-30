@@ -15,6 +15,14 @@ repos:
       files: ^infra/analysis-node/.*\.tf$
 - repo: local
   hooks:
+    - id: terraform-fmt-infra-analysis-node
+      name: terraform init + fmt (infra/analysis-node)
+      entry: bash -euo pipefail -c 'terraform fmt -check'
+      language: system
+      pass_filenames: false
+      files: ^infra/analysis-node/.*\.tf$
+- repo: local
+  hooks:
     - id: shellcheck
       name: shellcheck (local)
       entry: shellcheck

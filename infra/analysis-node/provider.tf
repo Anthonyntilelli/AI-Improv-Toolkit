@@ -15,11 +15,10 @@ terraform {
     }
   }
   backend "local" {
-    path = "./infra/analysis-pc/terraform.tfstate"
+    path = "terraform.tfstate"
   }
 }
 
 provider "digitalocean" {}
 provider "cloudflare" {}
 provider "http" {}
-

@@ -6,7 +6,7 @@ Terraform build script for the analysis node. This config uses digital ocean and
 
 - Create a `terraform.tfvars` from example file `terraform.tfvars.example`.
 - Set and export the environmental variable `DIGITALOCEAN_TOKEN` with a digital ocean api key.
-  - Scope needed are droplet, firewall, ssh_key, tag
+  - Scope needed are droplet, firewall, ssh_key, tag (additional scopes may be added.)
 - Set and export the environmental variable `CLOUDFLARE_API_TOKEN` with a cloudflare api Token.
   - API token only needs to "edit zone DNS".
 

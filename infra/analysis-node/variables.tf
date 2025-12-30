@@ -23,7 +23,7 @@ variable "firewall_ingress_list" {
   type = list(object({
     service    = string,
     ips_ciders = list(string), # Can be ipv4 and IPv6
-    local_ip   = bool,
+    local_ip     = bool,
     protocol   = string,
     port       = optional(string)
   }))
@@ -57,10 +57,4 @@ variable "gpu_droplet" {
     size   = string
   })
   nullable = false
-}
-
-variable "sysadmin_and_dev_password_hash" {
-  description = "password for the dev and sysadmin user accounts use: `mkpasswd --method=SHA-512 --rounds=500000`"
-  type        = string
-  sensitive   = true
 }

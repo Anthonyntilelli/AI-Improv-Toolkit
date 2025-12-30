@@ -1,8 +1,5 @@
 locals {
   my_ip = "${chomp(data.http.my_ip.response_body)}/32"
-  user_data = templatefile("${path.module}/cloud-init.yaml.tftpl", {
-    sysadmin_and_dev_password_hash = var.sysadmin_and_dev_password_hash
-  })
 }
 
 data "http" "my_ip" {
@@ -15,17 +12,16 @@ resource "digitalocean_ssh_key" "default" {
 }
 
 resource "digitalocean_droplet" "analysis" {
-  image     = var.gpu_droplet.image
-  name      = "analysis"
-  region    = var.gpu_droplet.region
-  size      = var.gpu_droplet.size
-  backups   = false
-  user_data = local.user_data
-  ssh_keys  = [digitalocean_ssh_key.default.fingerprint]
+  image    = var.gpu_droplet.image
+  name     = "analysis"
+  region   = var.gpu_droplet.region
+  size     = var.gpu_droplet.size
+  backups  = false
+  ssh_keys = [digitalocean_ssh_key.default.fingerprint]
 }
 
 resource "digitalocean_firewall" "analysis" {
-  name = "Show_firewall"
+  name = "Show-firewall"
 
   droplet_ids = [digitalocean_droplet.analysis.id]
   dynamic "inbound_rule" {
@@ -47,11 +43,4 @@ resource "cloudflare_dns_record" "example_dns_record" {
   comment = "Service for ${var.dns_record[count.index]}"
   content = digitalocean_droplet.analysis.ipv4_address
   proxied = false
-  settings = {
-    ipv4_only = true
-  }
-}
-
-output "path_module" {
-  value = path.module
 }
