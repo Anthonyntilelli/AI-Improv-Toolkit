@@ -53,6 +53,7 @@
       "RANDFILE",
       "realtek",
       "runcmd",
+      "shellcheck",
       "sshguard",
       "sslclient",
       "sslserver",

@@ -107,14 +107,16 @@ All development and testing was done on Debian 13 servers.
 1) Install uv
     - `echo 'eval "$(uv generate-shell-completion bash)"' >> ~/.bashrc`
     - `echo 'eval "$(uvx --generate-shell-completion bash)"' >> ~/.bashrc`
-
 2) Install terraform
 3) Install shellcheck
 4) Install and configure pre-commit
     - `uv tool install pre-commit`
     - `pre-commit install`
+5) Install ansible
+    - `uv tool install --with-executables-from ansible-core ansible`
 
 ### Deploy
+
 1. Set up the Ingest PC using the ./infra/show-ingest-config.md
 2. Modify `./infra/pki_manager.sh` to conform to you infrastructure.
 3. Run `./infra/pki_manager.sh init` to generate the needed PKI files and certs

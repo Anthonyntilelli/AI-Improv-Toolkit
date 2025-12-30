@@ -15,6 +15,10 @@ terraform.tfvars
 *.pass
 credentials/
 .env
+*.no-git.*
+
+# Ansible
+*.retry
 
 # Editors
 .vscode/*
