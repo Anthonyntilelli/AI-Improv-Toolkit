@@ -23,7 +23,7 @@ variable "firewall_ingress_list" {
   type = list(object({
     service    = string,
     ips_ciders = list(string), # Can be ipv4 and IPv6
-    local_ip     = bool,
+    local_ip   = bool,
     protocol   = string,
     port       = optional(string)
   }))
