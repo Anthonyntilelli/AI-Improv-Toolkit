@@ -13,7 +13,8 @@ terraform.tfvars
 
 # Sensitive
 *.pass
-credentials/
+credentials/*
+!credentials/.gitkeep
 .env
 *.no-git.*
 

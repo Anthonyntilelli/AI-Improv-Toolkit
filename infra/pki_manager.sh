@@ -71,7 +71,7 @@ readonly SERVER_DOMAIN="tilelli.me"
 # Constants
 declare -rA CLIENTS=(
   [setting]="setting@improvShow.local"
-  [debug]="debug@improvShow.local"
+  [admin]="admin@improvShow.local"
   [ingest]="ingest@improvShow.local"
   [vision]="vision@improvShow.local"
   [hearing]="hearing@improvShow.local"
