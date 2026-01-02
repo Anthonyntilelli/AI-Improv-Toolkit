@@ -16,6 +16,13 @@ firewall_ingress_list = [
     port = "8022"
   },
   {
+    service = "Original SSHD",
+    ips_ciders = []
+    local_ip = true,
+    protocol = "tcp",
+    port = "22"
+  },
+  {
     service = "Nats Clients",
     ips_ciders = ["0.0.0.0/0", "::/0"]
     local_ip = false,
@@ -45,3 +52,6 @@ gpu_droplet = {
   region  = "NYC2"
   size    = "gpu-h200x1-141gb"
 }
+
+
+# "sysadmin_and_dev_password_hash" should no be set here use TF_VAR_sysadmin_and_dev_password_hash environmental variable instead.

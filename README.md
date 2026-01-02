@@ -103,12 +103,13 @@ Store sensitive value in the `credential` folder, `.env` file or end a file with
 
 ### Development
 
-All development and testing was done on Debian 13 servers.
+All development and testing was done on Debian/Ubuntu servers.
 
 1) Install uv
     - `echo 'eval "$(uv generate-shell-completion bash)"' >> ~/.bashrc`
     - `echo 'eval "$(uvx --generate-shell-completion bash)"' >> ~/.bashrc`
 2) Install terraform
+    - install `whois` package for `mkpasswd`
 3) Install shellcheck
 4) Install detect-secrets
     - `uv tool install detect-secrets`
@@ -153,6 +154,10 @@ command to run if program contains helper info
 ## Version History
 
 - TODO
+
+## Security
+
+Warning the "detect-secrets" tool is not guaranteed to detect all secrets.
 
 ## License
 

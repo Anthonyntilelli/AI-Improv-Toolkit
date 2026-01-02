@@ -69,7 +69,8 @@
       "urandom",
       "usermod",
       "VCPUs",
-      "venv"
+      "venv",
+      "whois"
     ],
     "files.eol": "\n",
     "editor.insertSpaces": true

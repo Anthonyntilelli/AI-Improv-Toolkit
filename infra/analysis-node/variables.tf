@@ -58,3 +58,10 @@ variable "gpu_droplet" {
   })
   nullable = false
 }
+
+variable "sysadmin_and_dev_password_hash" {
+  description = "password for the dev and sysadmin user accounts use: `mkpasswd --method=SHA-512 --rounds=500000`"
+  type        = string
+  sensitive   = true
+  nullable    = false
+}

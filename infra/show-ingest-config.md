@@ -63,7 +63,7 @@ DPkg::Pre-Invoke {
 EOF
 ```
 
-###  Extra Packages
+### Extra Packages
 
 ```bash
 apt install -y evtest vim alsa-utils \
