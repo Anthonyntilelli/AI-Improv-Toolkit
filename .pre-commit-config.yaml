@@ -1,3 +1,4 @@
+minimum_pre_commit_version: 4.5.1
 repos:
 -   repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
@@ -13,6 +14,7 @@ repos:
       language: system
       pass_filenames: false
       files: ^infra/analysis-node/.*\.tf$
+      stages: [pre-push]
 - repo: local
   hooks:
     - id: terraform-fmt-infra-analysis-node
@@ -21,6 +23,7 @@ repos:
       language: system
       pass_filenames: false
       files: ^infra/analysis-node/.*\.tf$
+      stages: [pre-push]
 - repo: local
   hooks:
     - id: shellcheck
@@ -28,3 +31,10 @@ repos:
       entry: shellcheck
       language: system
       files: \.(sh|bash)$
+      stages: [pre-push]
+-   repo: https://github.com/Yelp/detect-secrets
+    rev: v1.5.0
+    hooks:
+    -   id: detect-secrets
+        args: ['--baseline', '.secrets.baseline']
+        exclude: package.lock.json

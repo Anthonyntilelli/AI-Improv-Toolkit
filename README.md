@@ -88,6 +88,7 @@ Store sensitive value in the `credential` folder, `.env` file or end a file with
 - pre-commit hooks are used to enforce style and check for errors
   - Terraform with terraform fmt and validate
   - Script is through shell check
+  - Secrets are detected with detect-secrets
   - Python (TODO)
 
 ## Description
@@ -109,10 +110,12 @@ All development and testing was done on Debian 13 servers.
     - `echo 'eval "$(uvx --generate-shell-completion bash)"' >> ~/.bashrc`
 2) Install terraform
 3) Install shellcheck
-4) Install and configure pre-commit
+4) Install detect-secrets
+    - `uv tool install detect-secrets`
+5) Install and configure pre-commit
     - `uv tool install pre-commit`
     - `pre-commit install`
-5) Install ansible
+6) Install ansible
     - `uv tool install --with-executables-from ansible-core ansible`
 
 ### Deploy
