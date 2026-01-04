@@ -1,4 +1,5 @@
 # SPDX-License-Identifier: LGPL-3.0-only
+---
 galaxy_info:
   author: Anthony Tilelli
   description: Install base Configuration for the AI Improv Toolkit

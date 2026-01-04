@@ -17,6 +17,7 @@ credentials/*
 !credentials/.gitkeep
 .env
 *.no-git.*
+.venv/
 
 # Ansible
 *.retry

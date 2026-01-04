@@ -1,3 +1,4 @@
+---
 - name: Fail on Non tested machines
   hosts: all
   become: true
@@ -9,6 +10,13 @@
         - ansible_os_family != "Debian"
         - ansible_architecture != "x86_64"
       tags: always
+
+- name: Managing PKI (local)
+  hosts: localhost
+  gather_facts: false
+  become: false
+  roles:
+    - pki
 
 - name: Setup Base Configuration
   hosts: all

@@ -89,6 +89,7 @@ Store sensitive value in the `credential` folder, `.env` file or end a file with
   - Terraform with terraform fmt and validate
   - Script is through shell check
   - Secrets are detected with detect-secrets
+  - Ansible linting with ansible-lint
   - Python (TODO)
 
 ## Description
