@@ -1,9 +1,9 @@
 # --- Base ---
-# apt update and upgrade
-# timedatectl set-timezone America/New_York
-# mkdir -p -m 0750 /opt/show
-# getent group show >/dev/null || addgroup --system --gid 495 show
-# getent group  >/dev/null || addgroup ssh-users
+# apt update and upgrade {{DONE}}
+# timedatectl set-timezone America/New_York {{DONE}}
+# mkdir -p -m 0750 /opt/show {{DONE}}
+# getent group show >/dev/null || addgroup --system --gid 495 show {{DONE}}
+# getent group  >/dev/null || addgroup ssh-users {{DONE}}
 # id -u show >/dev/null 2>&1 || adduser --system \
 #   --home /opt/show \
 #   --no-create-home \
@@ -11,18 +11,19 @@
 #   --uid 495 --gid 495 \
 #   --comment "Show runner account" \
 #   show
-# usermod -aG ssh-users sysadmin
-# install docker
-# mkdir -p /opt/show/{setting,nats,pki,ingest,vision,hearing,brain,output}
+^^ {{DONE}}
+# usermod -aG ssh-users sysadmin {{DONE}}
+# mkdir -p /opt/show/{setting,nats,pki,ingest,vision,hearing,brain,output} {{DONE}}
 
-# chown root:show /opt/show
-# chmod 0750 /opt/show
+# chown root:show /opt/show {{DONE}}
+# chmod 0750 /opt/show {{DONE}}
 
-# chown root:root /opt/show/pki
-# chmod 0700 /opt/show/pki
+# chown root:root /opt/show/pki {{DONE}}
+# chmod 0700 /opt/show/pki {{DONE}}
 
-# chown show:show /opt/show/{setting,nats,ingest,vision,hearing,brain,output}
-# chmod 0750 /opt/show/{setting,nats,ingest,vision,hearing,brain,output}
+# chown show:show /opt/show/{setting,nats,ingest,vision,hearing,brain,output} {{DONE}}
+# chmod 0750 /opt/show/{setting,nats,ingest,vision,hearing,brain,output} {{DONE}}
+# install docker {{DONE}}
 
 # # SSH is now on port 8022
 # cat >/etc/ssh/sshd_config.d/10-harden-ssh.conf <<'EOF'
@@ -37,11 +38,16 @@
 # X11Forwarding no
 # UsePAM yes
 # EOF
-# sshd -t && systemctl reload ssh
-# mkdir -p -m 0750 /opt/show
-# chown root:show /opt/show
-# chmod 0750 /opt/show
-# Remove authorized_keys on root
+# sshd -t && systemctl reload ssh {{DONE}}
+# Remove authorized_keys on root {{DONE}}
+
+# --- PKI Role ---
+# investigate if pki folders are created with correct permissions
+# If not run these commands:
+  - infra/scripts/pki_manager.sh init and unzip tarball with certs/keys
+  - check if certs are expired and renew if needed:
+    - infra/scripts/pki_manager.sh rotate
+
 
 # --- Physical Role ---
 # Ensure laptop tasksel is active

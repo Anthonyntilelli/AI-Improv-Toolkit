@@ -1,0 +1,14 @@
+# SPDX-License-Identifier: LGPL-3.0-only
+
+---
+# defaults file for base
+
+# Show directory path (do not include pki)
+base_show_sub_dirs:
+  - setting
+  - nats
+  - ingest
+  - vision
+  - hearing
+  - brain
+  - output

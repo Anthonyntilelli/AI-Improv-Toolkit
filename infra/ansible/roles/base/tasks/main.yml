@@ -1,0 +1,135 @@
+# SPDX-License-Identifier: LGPL-3.0-only
+
+---
+- name: Ensure apt cache is up to date and safe upgrade
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+    upgrade: safe
+    autoclean: true
+    autoremove: true
+
+- name: Ensure basic packages are installed
+  ansible.builtin.apt:
+    name:
+      - sudo
+      - curl
+      - wget
+      - git
+      - vim
+      - htop
+      - unzip
+      - ca-certificates
+      - gnupg
+      - lsb-release
+    state: present
+
+- name: Set timezone to America/New_York
+  community.general.timezone:
+    name: America/New_York
+
+- name: Ensure 'show' group and /opt/show directory exist
+  block:
+    - name: Create 'show' group
+      ansible.builtin.group:
+        name: show
+        gid: 495
+        system: true
+        state: present
+    - name: Create /opt/show directory
+      ansible.builtin.file:
+        path: /opt/show
+        state: directory
+        mode: '0750'
+        owner: root
+        group: show
+
+- name: Ensure 'ssh-users' group exists and `sysadmin` is a member
+  block:
+    - name: Create 'ssh-users' group
+      ansible.builtin.group:
+        name: ssh-users
+        state: present
+    - name: Ensure 'sysadmin' user is a member of 'ssh-users' group
+      ansible.builtin.user:
+        name: sysadmin
+        groups: ssh-users
+        append: true
+
+- name: Create 'show' system user
+  ansible.builtin.user:
+    name: show
+    comment: "Show User"
+    uid: 495
+    system: true
+    home: /opt/show
+    create_home: false
+    shell: /usr/sbin/nologin
+    group: show
+    state: present
+
+- name: Create /opt/show subdirectories (except pki)
+  ansible.builtin.file:
+    state: directory
+    path: "/opt/show/{{ item }}"
+    owner: show
+    group: show
+    mode: '0750'
+  loop:
+    - "{{ base_show_sub_dirs }}"
+
+- name: Ensure /opt/show/pki directory exists with root ownership
+  ansible.builtin.file:
+    state: directory
+    path: /opt/show/pki
+    owner: root
+    group: root
+    mode: '0700'
+
+- name: Install Docker
+  block:
+    - name: Add Docker's official GPG key
+      ansible.builtin.apt_key:
+        url: https://download.docker.com/linux/$(lsb_release -is | tr '[:upper:]' '[:lower:]')/gpg
+        state: present
+    - name: Add Docker apt repository
+      ansible.builtin.apt_repository:
+        repo: deb [arch=amd64] https://download.docker.com/linux/$(lsb_release -is | tr '[:upper:]' '[:lower:]') $(lsb_release -cs) stable
+        state: present
+    - name: Install Docker packages
+      ansible.builtin.apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-buildx-plugin
+          - docker-compose-plugin
+        state: present
+      notify:
+        - Start Docker Service
+
+- name: Move sshd to port 8022
+  ansible.builtin.copy:
+    dest: /etc/ssh/sshd_config.d/10-harden-ssh.conf
+    content: |
+      # Harden SSH Configuration
+      Port 8022
+      AuthenticationMethods publickey
+      PubkeyAuthentication yes
+      PasswordAuthentication no
+      KbdInteractiveAuthentication no
+      PermitRootLogin no
+      AllowGroups ssh-users
+      MaxAuthTries 3
+      X11Forwarding no
+    mode: '0644'
+    owner: root
+    group: root
+    validate: '/usr/sbin/sshd -t -f %s'
+  notify:
+    - Restart SSH Service
+
+- name: Remove authorized_keys on root (if exists)
+  ansible.builtin.file:
+    path: /root/.ssh/authorized_keys
+    state: absent
