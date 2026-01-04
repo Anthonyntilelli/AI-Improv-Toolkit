@@ -118,12 +118,12 @@ All development and testing was done on Debian/Ubuntu servers.
     - `pre-commit install`
 6) Install ansible
     - `uv tool install --with-executables-from ansible-core ansible`
+    - `uv tool install ansible-lint`
 
 ### Deploy
 
-1. Set up the Ingest PC using the ./infra/show-ingest-config.md
-2. Modify `./infra/pki_manager.sh` to conform to you infrastructure.
-3. Run `./infra/pki_manager.sh init` to generate the needed PKI files and certs
+See infra/README.md for more info.
+Note:  This install steps for infra may change as the infra is under active development.
 
 ### Installing
 

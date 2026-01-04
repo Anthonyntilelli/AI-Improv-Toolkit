@@ -38,3 +38,7 @@ Terraform build script for the analysis node. This config uses digital ocean and
 |203838208 |   AMD AI/ML Ready                |            base |         Ubuntu       |   gpu-amd-base                 |                true  |    30       |
 |203838782 |   NVIDIA AI/ML Ready             |            base |         Ubuntu       |   gpu-h100x1-base              |                true  |    30       |
 |203839248 |   NVIDIA AI/ML Ready with NVLink |            base |         Ubuntu       |   gpu-h100x8-base              |                true  |    30       |
+
+## Notes
+
+- Make sure the selected GPU size is compatible with the selected image.

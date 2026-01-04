@@ -1,0 +1,17 @@
+- name: Fail on Non tested machines
+  hosts: all
+  become: true
+  tasks:
+    - name: Fail if OS family or architecture is unsupported
+      ansible.builtin.fail:
+        msg: This playbook is tested on Debian OS family machine that are x86_64.
+      when:
+        - ansible_os_family != "Debian"
+        - ansible_architecture != "x86_64"
+      tags: always
+
+- name: Setup Base Configuration
+  hosts: all
+  become: true
+  roles:
+    - base_config
