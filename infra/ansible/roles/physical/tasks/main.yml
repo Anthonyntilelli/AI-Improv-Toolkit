@@ -1,0 +1,72 @@
+# SPDX-License-Identifier: LGPL-3.0-only
+
+---
+# tasks file for physical
+
+- name: Installing physical packages
+  ansible.builtin.package:
+    name:
+      - evtest
+      - vim
+      - alsa-utils
+      - openssl
+      - pciutils
+      - usbutils
+      - htop
+      - netcat-openbsd
+      - dnsutils
+      - head
+      - awk
+      - grep
+      - ufw
+      - sed
+    state: present
+
+- name: Fail if physical_wifi_ssid is not set
+  ansible.builtin.fail:
+    msg: "physical_wifi_ssid is not set. Please set it to the desired Wi-Fi SSID."
+  when: physical_wifi_ssid == ""
+
+- name: Fail if physical_wifi_password is not set
+  ansible.builtin.fail:
+    msg: "physical_wifi_password is not set. Please set it to the desired Wi-Fi password."
+  when: physical_wifi_password == ""
+
+- name: Ensure Wi-Fi connection exists and is up
+  community.general.nmcli:
+    conn_name: "{{ physical_wifi_ssid }}"
+    ifname: "{{ physical_wifi_iface }}"
+    type: wifi
+    ssid: "{{ physical_wifi_ssid }}"
+    wifi_sec:
+      key-mgmt: wpa-psk
+      psk: "{{ physical_wifi_password }}"
+    state: present
+
+- name: Ensure Wi-Fi autoconnect is enabled
+  community.general.nmcli:
+    conn_name: "{{ physical_wifi_ssid }}"
+    autoconnect: "{{ physical_wifi_autoconnect }}"
+    state: present
+
+- name: Ensure UFW is installed, set up and enabled
+  block:
+    - name: Set default incoming policy to deny
+      community.general.ufw:
+        direction: incoming
+        policy: deny
+
+    - name: Set default outgoing policy to allow
+      community.general.ufw:
+        direction: outgoing
+        policy: allow
+
+    - name: Enable UFW
+      community.general.ufw:
+        state: enabled
+
+    - name: Allow SSH through UFW
+      community.general.ufw:
+        rule: allow
+        port: 8022
+        proto: tcp

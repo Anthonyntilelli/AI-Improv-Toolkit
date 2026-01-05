@@ -8,9 +8,10 @@ Requirements
 
 - Debian based system (Debian 13 preferred)
 
-
 Role Variables
 --------------
+
+- `base_sysadmin_ssh_pubkey`: The SSH public key for the `sysadmin` user to be added to their `authorized_keys` file.
 
 - `base_show_sub_dirs`: A list of subdirectories to create under `/opt/show`. Default includes `setting`, `nats`, `ingest`, `vision`, `hearing`, `brain`, and `output`.
   - Do not include `pki` as it has special permissions.
@@ -25,7 +26,7 @@ Example Playbook
 
 - hosts: servers
   roles:
-  - base
+  - { role: base, base_sysadmin_ssh_pubkey: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC..." }
 
 License
 -------

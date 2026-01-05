@@ -78,7 +78,9 @@ declare -rA CLIENTS=(
   [brain]="brain@improvShow.local"
   [output]="output@improvShow.local"
 )
+readonly CLIENT_CERT_LIFE=375  # days
 readonly -a SERVERS=(nats vision hearing)
+readonly SERVER_CERT_LIFE=375  # days
 
 # Global
 declare mode="unset"
@@ -467,7 +469,7 @@ function gen_intermediary_ca() {
 }
 
 function gen_server_ca() {
-  #@ DESCRIPTION: generated nats, hearing and vision server certifications in cwd assuming standard structure.
+  #@ DESCRIPTION:  generate server certifications in cwd assuming standard structure, relies on SERVERS and SERVER_CERT_LIFE variable.
   #@ Warning: These certs are not password protected
   #@ USAGE: gen_server_ca
   #@ REQUIREMENTS: openssl
@@ -491,7 +493,7 @@ DNS.1 = ${server}.${SERVER_DOMAIN}
 DNS.2 = ${SERVER_DOMAIN}
 EOF
 ) \
-      -extensions server_cert -days 375 -notext -md sha256  -batch \
+      -extensions server_cert -days "${SERVER_CERT_LIFE}" -notext -md sha256  -batch \
       -in "intermediateCA/csr/${server}.${SERVER_DOMAIN}.csr.pem" \
       -passin env:INTERMEDIATE_CA_PASSWORD \
       -out "intermediateCA/certs/${server}.${SERVER_DOMAIN}.cert.pem" >/dev/null 2>&1
@@ -508,7 +510,7 @@ EOF
 }
 
 function gen_client_ca() {
-  #@ DESCRIPTION: generated setting, nats_debug, ingest, vision, hearing, brain, output
+  #@ DESCRIPTION: generated client certs based on CLIENT_CERT_LIFE and CLIENTS variable.
   #@ client certifications in cwd assuming standard structure.
   #@ Warning: These certs are not password protected
   #@ USAGE: gen_client_ca
@@ -528,7 +530,7 @@ function gen_client_ca() {
 
     openssl ca \
     -config "client_cert_ext_${key}.cnf" \
-    -days 375 -notext -md sha256  -batch \
+    -days "${CLIENT_CERT_LIFE}" -notext -md sha256  -batch \
     -extensions client_cert \
     -in "intermediateCA/csr/${key}.client.csr.pem" \
     -passin env:INTERMEDIATE_CA_PASSWORD \
@@ -722,7 +724,7 @@ function create_bundle(){
   output "Bundle password written to ${PASSFILE} (mode 600), store it securely."
   output "Decryption can be done with below:"
   printf "%s\\n" "openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -md sha256 -pass file:${PASSFILE} -in PKI.tar.gz.enc -out PKI.tar.gz"
-  printf "%s\\n" "mkdir PKI && tar -xzf PKI.tar.gz -C PKI"
+  printf "%s\\n" "mkdir pki && tar -xzf PKI.tar.gz -C pki"
   return 0
 }
 

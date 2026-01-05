@@ -2,7 +2,7 @@
 ---
 galaxy_info:
   author: Anthony Tilelli
-  description: Ansible role to manage PKI for AI Improv Toolkit
+  description: Install physical Configuration for the AI Improv Toolkit. This task assumes task select "laptop" has been selected.
   company: N/A
   license: LGPL-3.0-only
   min_ansible_version: 2.20.1

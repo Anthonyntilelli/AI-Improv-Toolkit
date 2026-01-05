@@ -1,13 +1,10 @@
 # SPDX-License-Identifier: LGPL-3.0-only
 
 ---
-- name: Ensure apt cache is up to date and safe upgrade
-  ansible.builtin.apt:
-    update_cache: true
-    cache_valid_time: 3600
-    upgrade: safe
-    autoclean: true
-    autoremove: true
+- name: Fail if base_sysadmin_ssh_pubkey is not set
+  ansible.builtin.fail:
+    msg: "base_sysadmin_ssh_pubkey is not set. Please set it to the sysadmin user's SSH public key."
+  when: base_sysadmin_ssh_pubkey == ""
 
 - name: Ensure basic packages are installed
   ansible.builtin.apt:
@@ -23,6 +20,8 @@
       - gnupg
       - lsb-release
     state: present
+    update_cache: true
+    cache_valid_time: 3600
 
 - name: Set timezone to America/New_York
   community.general.timezone:
@@ -56,6 +55,12 @@
         groups: ssh-users
         append: true
 
+- name: Ensure sysadmin has ssh authorized_keys set up
+  ansible.posix.authorized_key:
+    user: sysadmin
+    state: present
+    key: "{{ base_sysadmin_ssh_pubkey }}"
+
 - name: Create 'show' system user
   ansible.builtin.user:
     name: show
@@ -88,13 +93,17 @@
 
 - name: Install Docker
   block:
+    - name: Getting OS info
+      ansible.builtin.shell: set -o pipefail && lsb_release -is | tr '[:upper:]' '[:lower:]'
+      register: base_os_name
+      changed_when: false
     - name: Add Docker's official GPG key
       ansible.builtin.apt_key:
-        url: https://download.docker.com/linux/$(lsb_release -is | tr '[:upper:]' '[:lower:]')/gpg
+        url: https://download.docker.com/linux/{{ base_os_name.stdout }}/gpg
         state: present
     - name: Add Docker apt repository
       ansible.builtin.apt_repository:
-        repo: deb [arch=amd64] https://download.docker.com/linux/$(lsb_release -is | tr '[:upper:]' '[:lower:]') $(lsb_release -cs) stable
+        repo: deb [arch=amd64] https://download.docker.com/linux/{{ base_os_name.stdout }} stable
         state: present
     - name: Install Docker packages
       ansible.builtin.apt:

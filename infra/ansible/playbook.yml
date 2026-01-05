@@ -6,20 +6,16 @@
     - name: Fail if OS family or architecture is unsupported
       ansible.builtin.fail:
         msg: This playbook is tested on Debian OS family machine that are x86_64.
-      when:
-        - ansible_os_family != "Debian"
-        - ansible_architecture != "x86_64"
-      tags: always
-
-- name: Managing PKI (local)
-  hosts: localhost
-  gather_facts: false
-  become: false
-  roles:
-    - pki
+      when: ansible_facts["os_family"] != "Debian" or ansible_facts["architecture"] != "x86_64"
 
 - name: Setup Base Configuration
   hosts: all
   become: true
   roles:
-    - base
+    - { role: base, base_sysadmin_ssh_pubkey: "{{ ssh_key_public }}" }
+
+- name: Setup Physical Machine Configuration
+  hosts: physical
+  become: true
+  roles:
+    - physical

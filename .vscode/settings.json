@@ -12,6 +12,7 @@
       "bootable",
       "buildx",
       "BUNDLEPASSWORD",
+      "chdir",
       "crlnumber",
       "crls",
       "csrs",
@@ -26,6 +27,7 @@
       "genpkey",
       "getent",
       "hidraw",
+      "ifname",
       "Improv",
       "iwlwifi",
       "keygen",
@@ -35,6 +37,7 @@
       "LGPLV",
       "libinput",
       "libpam",
+      "mgmt",
       "newcerts",
       "nextupdate",
       "nmcli",
@@ -74,7 +77,8 @@
       "usermod",
       "VCPUs",
       "venv",
-      "whois"
+      "whois",
+      "wlan"
     ],
     "files.eol": "\n",
     "editor.insertSpaces": true,

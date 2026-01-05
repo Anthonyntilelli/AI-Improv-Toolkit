@@ -13,15 +13,30 @@ terraform.tfvars
 
 # Sensitive
 *.pass
-credentials/*
-!credentials/.gitkeep
 .env
 *.no-git.*
 .venv/
 
+# secrets directories
+secrets/*
+
+## Allow Git to traverse directories
+!secrets/
+!secrets/pki/
+
+## Re-ignore everything inside pki
+secrets/pki/*
+
+## Allow only the keep file
+!secrets/.gitkeep
+!secrets/pki/.gitkeep
+
 # Ansible
 *.retry
 .ansible/
+secrets.yml
+host_vars/*/secrets.yml
+group_vars/*/secrets.yml
 
 # Editors
 .vscode/*

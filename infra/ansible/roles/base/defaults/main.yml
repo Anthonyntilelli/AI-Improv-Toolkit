@@ -3,6 +3,8 @@
 ---
 # defaults file for base
 
+base_sysadmin_ssh_pubkey: ""
+
 # Show directory path (do not include pki)
 base_show_sub_dirs:
   - setting
