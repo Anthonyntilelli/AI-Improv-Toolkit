@@ -1,4 +1,3 @@
-#BADCOMMENT
 ---
 - name: Fail on Non tested machines
   hosts: all

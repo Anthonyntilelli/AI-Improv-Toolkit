@@ -40,12 +40,10 @@ repos:
       exclude: package.lock.json
 
 - repo: https://github.com/ansible/ansible-lint.git
-  rev: v6.10.0
+  rev: v25.12.2
   hooks:
     - id: ansible-lint
       files: \.(yaml|yml)$
       name: Ansible Lint
-      description: Run configurations on .ansible-lint file
       verbose: true
-      args: [-p, infra/ansible/*]
-      stages: [pre-push]
+      args: [-p, infra/ansible/]

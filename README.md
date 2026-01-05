@@ -92,13 +92,15 @@ Store sensitive value in the `credential` folder, `.env` file or end a file with
   - Ansible linting with ansible-lint
   - Python (TODO)
 
+### Note: make sure to run `pre-commit install` after cloning the repo to enable git hooks
+
 ## Description
 
 ### TODO
 
 ## Directory
 
-- infra - contains programs and systems to set up the underlying infrastructure for the program
+- `infra/` - Infrastructure as code for deploying the system
 
 ## Getting Started
 
@@ -107,6 +109,7 @@ Store sensitive value in the `credential` folder, `.env` file or end a file with
 All development and testing was done on Debian/Ubuntu servers.
 
 1) Install uv
+    - Follow instructions at [uv site](https://docs.astral.sh/uv/getting-started/installation/)
     - `echo 'eval "$(uv generate-shell-completion bash)"' >> ~/.bashrc`
     - `echo 'eval "$(uvx --generate-shell-completion bash)"' >> ~/.bashrc`
 2) Install terraform
@@ -114,12 +117,12 @@ All development and testing was done on Debian/Ubuntu servers.
 3) Install shellcheck
 4) Install detect-secrets
     - `uv tool install detect-secrets`
-5) Install and configure pre-commit
-    - `uv tool install pre-commit`
-    - `pre-commit install`
-6) Install ansible
+5) Install ansible
     - `uv tool install --with-executables-from ansible-core ansible`
     - `uv tool install ansible-lint`
+6) Install and configure pre-commit
+    - `uv tool install pre-commit`
+    - `pre-commit install`
 
 ### Deploy
 
