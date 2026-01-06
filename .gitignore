@@ -27,9 +27,10 @@ secrets/*
 ## Re-ignore everything inside pki
 secrets/pki/*
 
-## Allow only the keep file
+## Allow only the keep/example files
 !secrets/.gitkeep
 !secrets/pki/.gitkeep
+!secrets/infra.env.sh.example
 
 # Ansible
 *.retry

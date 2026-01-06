@@ -26,11 +26,13 @@ To set up the infrastructure, you will need to have the following tools installe
 To get started with setting up the infrastructure, follow these steps:
 
 1. Follow installation instructions above.
-2. Run `scripts/pki_manager.sh` to generate necessary SSL certificates and key and place in the folder `secrets/pki/`.
-3. Follow manual setup instructions in `infra/manual_setup.md` to prepare a physical machines for ansible.
-4. Navigate to the `terraform/` directory and follow the `README.md` in that directory for instructions.
-5. After the resources are provisioned, update the Ansible inventory file with the newly created server details.
-6. Navigate to the `ansible/` directory and run the appropriate playbooks to configure the servers.
+2. (Optional) Use `../secrets/infra.env.sh.example` as a guide to populate and store environmental variables for infra.
+    - Remove the `.example` on the end to ensure its ignored by git and detect-secrets.
+3. Run `scripts/pki_manager.sh` to generate necessary SSL certificates and key and place in the folder `secrets/pki/`.
+4. Follow manual setup instructions in `infra/manual_setup.md` to prepare a physical machines for ansible.
+5. Navigate to the `terraform/` directory and follow the `README.md` in that directory for instructions.
+6. After the resources are provisioned, update the Ansible inventory file with the newly created server details.
+7. Navigate to the `ansible/` directory and run the appropriate playbooks to configure the servers.
     - You many need to run `ansible-galaxy collection install -r collections/requirements.yml`.
     - Run `ansible-playbook -i inventory.no-git.txt playbook.yml` to apply the configuration to all servers.
 

@@ -100,7 +100,9 @@ Store sensitive value in the `credential` folder, `.env` file or end a file with
 
 ## Directory
 
-- `infra/` - Infrastructure as code for deploying the system
+- `.vscode` - config and hints for the vscode editor.
+- `infra/` - Infrastructure as code for deploying the system.
+- `secrets/` - holds most secrets for the project, most file in this directory will be ignored by git.
 
 ## Getting Started
 
