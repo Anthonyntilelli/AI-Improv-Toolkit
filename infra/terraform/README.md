@@ -2,7 +2,7 @@
 
 Terraform build script for the analysis node. This config uses digital ocean and cloudflare for its set up.
 
-## Prerequisites
+## Pre-requisites
 
 - Create a `terraform.tfvars` from example file `terraform.tfvars.example`.
 - Set and export the environmental variable `DIGITALOCEAN_TOKEN` with a digital ocean api key.

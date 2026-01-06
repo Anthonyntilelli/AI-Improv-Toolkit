@@ -161,7 +161,7 @@ command to run if program contains helper info
 
 ## Security
 
-Warning the "detect-secrets" tool is not guaranteed to detect all secrets.
+**Warning** the "detect-secrets" tool is not guaranteed to detect all secrets.
 
 ## License
 
