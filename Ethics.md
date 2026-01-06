@@ -4,7 +4,7 @@
 
 This project explores limited, opt-in AI augmentation within live improvisational theater under strict ethical constraints. These constraints are foundational to the system’s design and operation.
 
-## Human Control and Agency'
+## Human Control and Agency
 
 - Human performers and operators always retain full creative and operational control.
 - AI output is **only** produced when explicitly triggered by a human-operated control.
