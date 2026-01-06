@@ -10,6 +10,7 @@ THe objective of this folder is to become as show ready as possible with minimal
 - `ansible/`: Contains ansible playbooks and roles for configuring servers.
 - `scripts/`: Contains various scripts for automating deployment and management tasks.
 - `README.md`: This file, providing an overview of the infrastructure setup.
+- `manual_setup.md`: Instructions for any manual setup steps that are required.
 
 ## Installation
 
@@ -31,6 +32,7 @@ To get started with setting up the infrastructure, follow these steps:
 6. After the resources are provisioned, update the Ansible inventory file with the newly created server details.
 7. Navigate to the `ansible/` directory and run the appropriate playbooks to configure the servers.
     - You many need to run `ansible-galaxy collection install -r collections/requirements.yml`.
+    - Run `ansible-playbook -i inventory.no-git.txt playbook.yml` to apply the configuration to all servers.
 
 ## Teardown
 

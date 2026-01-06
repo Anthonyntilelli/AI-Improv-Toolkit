@@ -22,6 +22,7 @@ resource "digitalocean_droplet" "analysis" {
   user_data = templatefile("cloud-init.yaml.tftpl", { "passwd_hash" = var.sysadmin_and_dev_password_hash, "ssh_key" = local.ssh_key })
 }
 
+# Firewall restricts inbound traffic but allows outbound traffic.
 resource "digitalocean_firewall" "analysis" {
   name = "Show-firewall"
 
@@ -33,6 +34,21 @@ resource "digitalocean_firewall" "analysis" {
       port_range       = try(inbound_rule.value.port, null)
       source_addresses = inbound_rule.value.local_ip ? concat(inbound_rule.value.ips_ciders, [local.my_ip]) : inbound_rule.value.ips_ciders
     }
+  }
+  outbound_rule {
+    protocol              = "tcp"
+    port_range            = "0"
+    destination_addresses = ["0.0.0.0/0", "::/0"]
+  }
+
+  outbound_rule {
+    protocol              = "udp"
+    port_range            = "0"
+    destination_addresses = ["0.0.0.0/0", "::/0"]
+  }
+  outbound_rule {
+    protocol              = "icmp"
+    destination_addresses = ["0.0.0.0/0", "::/0"]
   }
 }
 

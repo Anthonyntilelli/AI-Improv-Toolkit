@@ -7,7 +7,6 @@
     name: docker
     state: restarted
     enabled: true
-    server_reload: true
 
 - name: Restart SSH Service
   ansible.builtin.service:

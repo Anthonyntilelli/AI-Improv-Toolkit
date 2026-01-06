@@ -6,6 +6,15 @@
     msg: "base_sysadmin_ssh_pubkey is not set. Please set it to the sysadmin user's SSH public key."
   when: base_sysadmin_ssh_pubkey == ""
 
+- name: Upgrade the Base system packages
+  ansible.builtin.apt:
+    update_cache: true
+    autoclean: true
+    autoremove: true
+    upgrade: "yes"
+    cache_valid_time: 3600
+
+
 - name: Ensure basic packages are installed
   ansible.builtin.apt:
     name:
@@ -19,9 +28,9 @@
       - ca-certificates
       - gnupg
       - lsb-release
+      - fail2ban
+      - apt-transport-https
     state: present
-    update_cache: true
-    cache_valid_time: 3600
 
 - name: Set timezone to America/New_York
   community.general.timezone:
@@ -80,8 +89,7 @@
     owner: show
     group: show
     mode: '0750'
-  loop:
-    - "{{ base_show_sub_dirs }}"
+  loop: "{{ base_show_sub_dirs }}"
 
 - name: Ensure /opt/show/pki directory exists with root ownership
   ansible.builtin.file:
@@ -93,18 +101,40 @@
 
 - name: Install Docker
   block:
-    - name: Getting OS info
-      ansible.builtin.shell: set -o pipefail && lsb_release -is | tr '[:upper:]' '[:lower:]'
-      register: base_os_name
-      changed_when: false
-    - name: Add Docker's official GPG key
-      ansible.builtin.apt_key:
-        url: https://download.docker.com/linux/{{ base_os_name.stdout }}/gpg
+    - name: Set Docker repo distro segment
+      ansible.builtin.set_fact:
+        base_docker_repo_distro: "{{ 'ubuntu' if ansible_facts.distribution == 'Ubuntu' else 'debian' }}"
+
+    - name: Ensure `sudo install -m 0755 -d /etc/apt/keyrings` directory exists
+      ansible.builtin.file:
+        path: /etc/apt/keyrings
+        state: directory
+        mode: '0755'
+        owner: root
+        group: root
+
+    - name: Download the Docker GPG key and save to /etc/apt/keyrings
+      ansible.builtin.get_url:
+        url: https://download.docker.com/linux/{{ base_docker_repo_distro }}/gpg
+        dest: /etc/apt/keyrings/docker.asc
+        mode: '0644'
+
+    - name: Add Docker APT repository (Deb822 .sources)
+      ansible.builtin.deb822_repository:
+        name: docker
+        types: [deb]
+        uris: ["https://download.docker.com/linux/{{ base_docker_repo_distro }}"]
+        suites: ["{{ ansible_facts.distribution_release }}"]
+        components: [stable]
+        signed_by: /etc/apt/keyrings/docker.asc
         state: present
-    - name: Add Docker apt repository
-      ansible.builtin.apt_repository:
-        repo: deb [arch=amd64] https://download.docker.com/linux/{{ base_os_name.stdout }} stable
-        state: present
+      register: base_docker_apt_repo
+
+    - name: Update apt cache
+      ansible.builtin.apt:
+        update_cache: true
+      when: base_docker_apt_repo.changed # noqa: no-handler
+
     - name: Install Docker packages
       ansible.builtin.apt:
         name:
@@ -117,12 +147,10 @@
       notify:
         - Start Docker Service
 
-- name: Move sshd to port 8022
+- name: Updating sshd_config for hardened SSH access
   ansible.builtin.copy:
     dest: /etc/ssh/sshd_config.d/10-harden-ssh.conf
     content: |
-      # Harden SSH Configuration
-      Port 8022
       AuthenticationMethods publickey
       PubkeyAuthentication yes
       PasswordAuthentication no
@@ -142,3 +170,9 @@
   ansible.builtin.file:
     path: /root/.ssh/authorized_keys
     state: absent
+
+- name: Ensure fail2ban is started and enabled
+  ansible.builtin.service:
+    name: fail2ban
+    state: started
+    enabled: true
