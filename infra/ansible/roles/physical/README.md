@@ -6,7 +6,7 @@ An Ansible role that sets up configurations specific to physical machines.
 Requirements
 ------------
 
-- Debian based system (Debian 13 preferred) with laptop tasksel installed
+- Debian based system (Debian 13 preferred) with only ssh-server and base utils tasksel installed.
 
 Role Variables
 --------------

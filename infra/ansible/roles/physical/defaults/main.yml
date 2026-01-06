@@ -5,5 +5,5 @@
 
 physical_wifi_ssid: ""
 physical_wifi_password: ""
-physical_wifi_iface: wlan0
+physical_wifi_iface: ""
 physical_wifi_autoconnect: true

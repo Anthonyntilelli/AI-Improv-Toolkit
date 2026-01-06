@@ -27,6 +27,7 @@
 #: ENV Variables:
 #:              : ROOT_CA_PASSWORD <- Password For Root CA
 #:              : INTERMEDIATE_CA_PASSWORD <- Password For intermediate CA
+#:              : SERVER_DOMAIN <- domain used for certificates (e.g: example.com)
 #: Version      :
 #:              : 0.0.1 (https://semver.org/)
 #: ExitCodes    :
@@ -66,9 +67,8 @@ readonly STATE="Pennsylvania"
 readonly LOCAL="Harrisburg"
 readonly ORG="Anthony"
 readonly ORGUNIT="Improv Show"
-readonly SERVER_DOMAIN="tilelli.me"
 
-# Constants
+# Constants (microservice: user email)
 declare -rA CLIENTS=(
   [setting]="setting@improvShow.local"
   [admin]="admin@improvShow.local"
@@ -152,6 +152,10 @@ function env_check() {
   fi
   if ! [[ -v INTERMEDIATE_CA_PASSWORD ]]; then
     die 5 "INTERMEDIATE_CA_PASSWORD is missing, please set it then run this tool again."
+  fi
+
+  if ! [[ -v SERVER_DOMAIN ]]; then
+    die 5 "SERVER_DOMAIN is missing, please set it then run this tool again."
   fi
 
   return 0
@@ -575,13 +579,10 @@ function require_existing_pki() {
   #@ USAGE: require_existing_pki
   #@ REQUIREMENTS: NONE
 
-  # [[ -d rootCA ]] || die 10 "rootCA/ not found. Run rotate inside an extracted PKI directory."
-  [[ -d intermediateCA ]] || die 10 "intermediateCA/ not found. Run rotate inside an extracted PKI directory."
-  # [[ -f openssl_root.cnf ]] || die 10 "openssl_root.cnf not found."
+  [[ -d intermediateCA ]] || die 10 "intermediateCA/ not found. Run rotate or verify inside an extracted PKI directory."
   [[ -f openssl_intermediate.cnf ]] || die 10 "openssl_intermediate.cnf not found."
   [[ -f intermediateCA/private/intermediate.key.pem ]] || die 10 "Intermediate key missing at intermediateCA/private/intermediate.key.pem"
   [[ -f intermediateCA/certs/intermediate.cert.pem ]] || die 10 "Intermediate cert missing at intermediateCA/certs/intermediate.cert.pem"
-  # [[ -f rootCA/certs/ca.cert.pem ]] || die 10 "Root cert missing at rootCA/certs/ca.cert.pem"
   return 0
 }
 
@@ -724,7 +725,7 @@ function create_bundle(){
   output "Bundle password written to ${PASSFILE} (mode 600), store it securely."
   output "Decryption can be done with below:"
   printf "%s\\n" "openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -md sha256 -pass file:${PASSFILE} -in PKI.tar.gz.enc -out PKI.tar.gz"
-  printf "%s\\n" "mkdir pki && tar -xzf PKI.tar.gz -C pki"
+  printf "%s\\n" "tar -xzf PKI.tar.gz -C . # pki directory expected"
   return 0
 }
 

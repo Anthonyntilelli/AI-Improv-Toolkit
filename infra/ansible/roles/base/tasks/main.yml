@@ -105,7 +105,7 @@
       ansible.builtin.set_fact:
         base_docker_repo_distro: "{{ 'ubuntu' if ansible_facts.distribution == 'Ubuntu' else 'debian' }}"
 
-    - name: Ensure `sudo install -m 0755 -d /etc/apt/keyrings` directory exists
+    - name: Ensure `/etc/apt/keyrings` directory exists
       ansible.builtin.file:
         path: /etc/apt/keyrings
         state: directory
