@@ -19,6 +19,7 @@ To set up the infrastructure, you will need to have the following tools installe
 
 - [Terraform](https://www.terraform.io/downloads)
 - [Ansible](https://docs.ansible.com/ansible/latest/installation_guide/intro_installation.html)
+- Install `whois` package for `mkpasswd`
 
 ## Getting Started
 
@@ -27,10 +28,9 @@ To get started with setting up the infrastructure, follow these steps:
 1. Follow installation instructions above.
 2. Run `scripts/pki_manager.sh` to generate necessary SSL certificates and key and place in the folder `secrets/pki/`.
 3. Follow manual setup instructions in `infra/manual_setup.md` to prepare a physical machines for ansible.
-4. Navigate to the `terraform/` directory and run `terraform init` to initialize the terraform configuration.
-5. Run `terraform apply` to provision the cloud resources.
-6. After the resources are provisioned, update the Ansible inventory file with the newly created server details.
-7. Navigate to the `ansible/` directory and run the appropriate playbooks to configure the servers.
+4. Navigate to the `terraform/` directory and follow the `README.md` in that directory for instructions.
+5. After the resources are provisioned, update the Ansible inventory file with the newly created server details.
+6. Navigate to the `ansible/` directory and run the appropriate playbooks to configure the servers.
     - You many need to run `ansible-galaxy collection install -r collections/requirements.yml`.
     - Run `ansible-playbook -i inventory.no-git.txt playbook.yml` to apply the configuration to all servers.
 
