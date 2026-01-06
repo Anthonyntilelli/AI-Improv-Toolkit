@@ -13,9 +13,17 @@ Terraform build script for the analysis node. This config uses digital ocean and
 
 ## Deploy
 
-1. `terraform init`
-2. `terraform plan`
-3. `terraform apply`
+```bash
+terraform init
+terraform plan
+terraform apply
+```
+
+## Destroy
+
+```bash
+terraform destroy
+```
 
 ## Digital Ocean GPU Sizes versions (12/2025)
 

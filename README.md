@@ -4,166 +4,50 @@ Toolkit/Software use to run the AI power show for my local community improv team
 
 ## Ethics Statement
 
-### IMPORTANT: Ethic will be fulfilled by the V1.0 releases. Version before v1.0 may not have all ethics involved
+This project is committed to upholding strict ethical standards regarding the use of AI in live improvisational theater.
+Please see [Ethics.md](Ethics.md) for our ethics statement regarding the use of AI in improv performances.
 
-This project explores limited, opt-in AI augmentation within live improvisational theater under strict ethical constraints. These constraints are foundational to the system’s design and operation.
+## Secrets
 
-### Human Control and Agency'
-
-- Human performers and operators always retain full creative and operational control.
-- AI output is **only** produced when explicitly triggered by a human-operated control.
-- A clearly accessible **kill switch** is present at all times and immediately disables AI output.
-- The system cannot initiate dialogue, actions, or scene changes autonomously.
-
-### Data Handling and Privacy
-
-- Voice, video, and sensor data are **not retained** beyond the duration of a single performance.
-- No persistent storage occurs during normal operation.
-- Logging is minimized and restricted to operational needs only.
-- Expanded logging and inspection are possible **only** in debug mode.
-- Debug mode is always explicitly announced to performers and relevant participants.
-
-### Ethics Mode and Debug Safeguards
-
-- The system includes a dedicated **Ethics Mode** that enforces the exclusive use of copyright-respecting AI tools and models.
-- A separate **Standard Mode** may be used for higher technical precision.
-- Ethics Mode **disables debug mode** to prevent unintended data retention or inspection.
-- Mode selection is deliberate and transparent to operators.
-
-### AI Infrastructure
-
-- The project does **not** use third-party conversational AI APIs (e.g., ChatGPT).
-- All processing is performed on locally hosted systems or explicitly provisioned cloud virtual machines.
-- Performance data is not transmitted to external services unless explicitly configured for testing.
-
-### Artistic Intent
-
-- This project does **not** claim to solve improvisation, automate creativity, or replace human performers.
-- The AI is not a performer, author, or creative authority.
-- The system is an experimental augmentation explored in good faith, with respect for artistic labor and cultural concerns surrounding AI in the arts.
-
-### Ongoing Responsibility
-
-- Ethical constraints are treated as first-order design requirements.
-- Feedback from performers, collaborators, and audiences is considered essential.
-- The project may be revised, paused, or discontinued if these principles are compromised.
-
-### Performer Consent
-
-- All performers are informed in advance when AI augmentation is used.
-- Participation is voluntary; performers may opt out of scenes or performances involving AI without penalty.
-- No performer is required to interact with, respond to, or incorporate AI output.
-
-### Audience Transparency
-
-- The presence of AI augmentation is disclosed to audiences before or at the start of a performance.
-- The project does not conceal AI involvement or present AI-generated output as human-generated.
-
-### Attribution and Authorship
-
-- AI output is not credited as authorship, performance, or creative ownership.
-- Creative credit remains solely with the human performers and creators.
-- The system does not claim originality, intent, or authorship.
-
-### Content Boundaries
-
-- The system includes constraints intended to prevent hateful, harassing, or unsafe output.
-- Human operators actively monitor AI output during performances.
-- The kill switch serves as an immediate safeguard against inappropriate or unintended content.
-
-### Accountability
-
-- Human operators are fully responsible for all AI output during a performance.
-- Responsibility for content, timing, and usage rests with the project operators, not the system itself.
-
-See ETHICS_FAQ.md for more info
-
-## Sensitive values
-
-Store sensitive value in the `credential` folder, `.env` file or end a file with `.pass`
-
-## Development Standards
-
-- LF line endings enforced via .gitattributes
-- pre-commit hooks are used to enforce style and check for errors
-  - Terraform with terraform fmt and validate
-  - Script is through shell check
-  - Secrets are detected with detect-secrets
-  - Ansible linting with ansible-lint
-  - Python (TODO)
-
-### Note: make sure to run `pre-commit install` after cloning the repo to enable git hooks
+Store sensitive values/secrets in the `secrets` folder, `.env` file, name the file have `*.no-git.*` or end a file with `.pass`.
+detect-secrets with pre-commit is used to reduce the risk of committing sensitive values to git.
 
 ## Description
 
-### TODO
+TODO
 
 ## Directory
 
 - `.vscode` - config and hints for the vscode editor.
 - `infra/` - Infrastructure as code for deploying the system.
 - `secrets/` - holds most secrets for the project, most file in this directory will be ignored by git.
+- `ethics/` - holds the ethics statement for the project.
 
-## Getting Started
+## Deploy
 
-### Development
+See [infra/README.md](infra/README.md) for more info.
+Note: The steps may change as the project is under active development.
 
-All development and testing was done on Debian/Ubuntu servers.
+## Development
 
-1) Install uv
-    - Follow instructions at [uv site](https://docs.astral.sh/uv/getting-started/installation/)
-    - `echo 'eval "$(uv generate-shell-completion bash)"' >> ~/.bashrc`
-    - `echo 'eval "$(uvx --generate-shell-completion bash)"' >> ~/.bashrc`
-2) Install terraform
-    - install `whois` package for `mkpasswd`
-3) Install shellcheck
-4) Install detect-secrets
-    - `uv tool install detect-secrets`
-5) Install ansible
-    - `uv tool install --with-executables-from ansible-core ansible`
-    - `uv tool install ansible-lint`
-6) Install and configure pre-commit
-    - `uv tool install pre-commit`
-    - `pre-commit install`
-
-### Deploy
-
-See infra/README.md for more info.
-Note:  This install steps for infra may change as the infra is under active development.
+See [Development.md](Development.md) for more info.
+Note: The steps may change as the project is under active development.
 
 ### Installing
 
-- How/where to download your program
-- Any modifications needed to be made to files/folders
+- TODO
 
 ### Executing program
 
-- How to run the program
-- Step-by-step bullets
-
-``` TODO
-code blocks for commands
-```
+- TODO
 
 ## Help
 
-Any advise for common problems or issues.
-
-``` TODO
-command to run if program contains helper info
-```
+- TODO
 
 ## Authors
 
 - Anthony Tilelli
-
-## Version History
-
-- TODO
-
-## Security
-
-**Warning** the "detect-secrets" tool is not guaranteed to detect all secrets.
 
 ## License
 

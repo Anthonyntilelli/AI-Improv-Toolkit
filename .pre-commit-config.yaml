@@ -4,9 +4,12 @@ repos:
 -   repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
     hooks:
+    -   id: check-case-conflict
+    -   id: check-executables-have-shebangs
     -   id: check-yaml
     -   id: end-of-file-fixer
     -   id: trailing-whitespace
+    -   id: no-commit-to-branch
 - repo: local
   hooks:
     - id: terraform-validate-infra-analysis-node
@@ -39,7 +42,6 @@ repos:
     - id: detect-secrets
       args: ['--baseline', '.secrets.baseline']
       exclude: package.lock.json
-
 - repo: https://github.com/ansible/ansible-lint.git
   rev: v25.12.2
   hooks:
