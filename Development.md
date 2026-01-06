@@ -7,7 +7,7 @@ __Note__: All development and testing was done on Debian/Ubuntu servers.
 1) Install [uv](https://docs.astral.sh/uv/getting-started/installation/)
 
     ```bash
-    echo '=eval "$(uv generate-shell-completion bash)"' >> ~/.bashrc
+    echo 'eval "$(uv generate-shell-completion bash)"' >> ~/.bashrc
     echo 'eval "$(uvx --generate-shell-completion bash)"' >> ~/.bashrc
     source ~/.bashrc
     ```
