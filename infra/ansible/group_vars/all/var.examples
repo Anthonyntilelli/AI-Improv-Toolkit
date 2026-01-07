@@ -1,0 +1,5 @@
+---
+ssh_key_public: ssh- .... Show key
+physical_wifi_ssid: "<ssid>"
+physical_wifi_password: "<password>"
+physical_wifi_iface: "<wifi_iface>"

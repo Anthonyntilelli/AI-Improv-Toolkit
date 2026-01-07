@@ -9,7 +9,41 @@ __pycache__/
 *.tfstate
 *.tfstate.*
 crash.log
+terraform.tfvars
+
+# Sensitive
+*.pass
+.env
+*.no-git.*
+.venv/
+
+# secrets directories
+secrets/*
+
+## Allow Git to traverse directories
+!secrets/
+!secrets/pki/
+
+## Re-ignore everything inside pki
+secrets/pki/*
+
+## Allow only the keep/example files
+!secrets/.gitkeep
+!secrets/pki/.gitkeep
+!secrets/infra.env.sh.example
+
+# Ansible
+*.retry
+.ansible/
+secrets.yml
+host_vars/*/secrets.yml
+group_vars/*/secrets.yml
 
 # Editors
 .vscode/*
 !.vscode/settings.json
+!.vscode/extensions.json
+
+# Binary
+*.tar.*
+*.enc

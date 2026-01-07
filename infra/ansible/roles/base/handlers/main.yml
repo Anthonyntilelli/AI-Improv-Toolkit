@@ -1,0 +1,15 @@
+# SPDX-License-Identifier: LGPL-3.0-only
+
+---
+# handlers file for base
+- name: Start Docker Service
+  ansible.builtin.service:
+    name: docker
+    state: restarted
+    enabled: true
+
+- name: Restart SSH Service
+  ansible.builtin.service:
+    name: ssh
+    state: restarted
+    enabled: true

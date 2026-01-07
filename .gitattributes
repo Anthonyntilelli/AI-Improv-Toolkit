@@ -4,7 +4,7 @@
 *.yml  text eol=lf
 *.yaml text eol=lf
 *.json text eol=lf
-*.md   text eol=lf
+*.md   text eol=lf diff=markdown
 *.toml text eol=lf
 
 # Explicit binaries
@@ -21,3 +21,4 @@
 *.flac binary
 *.ogg  binary
 *.aiff binary
+*.enc  binary

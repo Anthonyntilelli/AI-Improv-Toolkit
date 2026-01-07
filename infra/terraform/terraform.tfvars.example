@@ -1,0 +1,50 @@
+ssh_key_name             = "Laptop show key"
+absolute_path_to_ssh_key = "/home/<user>/.ssh/show_key.pub"
+firewall_ingress_list = [
+  {
+    service    = "ICMP",
+    ips_ciders = ["0.0.0.0/0", "::/0"]
+    local_ip   = false,
+    protocol   = "icmp",
+    port       = null
+  },
+  {
+    service    = "SSHD",
+    ips_ciders = ["0.0.0.0/0", "::/0"]
+    local_ip   = false,
+    protocol   = "tcp",
+    port       = "22"
+  },
+  {
+    service    = "Nats Clients",
+    ips_ciders = ["0.0.0.0/0", "::/0"]
+    local_ip   = false,
+    protocol   = "tcp",
+    port       = "4222"
+  },
+  {
+    service    = "Nat HTTP management",
+    ips_ciders = []
+    local_ip   = true,
+    protocol   = "tcp",
+    port       = "8222"
+  },
+  {
+    service    = "Hearing",
+    ips_ciders = ["0.0.0.0/0", "::/0"]
+    local_ip   = false,
+    protocol   = "tcp",
+    port       = "8100"
+  }
+]
+zone_id    = "1234567890ABCDEFGHIJKLMNOPQRSTUV"
+dns_record = ["analysis", "nats", "hearing"]
+
+gpu_droplet = {
+  image  = "gpu-h100x1-base"
+  region = "NYC2"
+  size   = "gpu-h200x1-141gb"
+}
+
+
+# "sysadmin_and_dev_password_hash" should no be set here use TF_VAR_sysadmin_and_dev_password_hash environmental variable instead.
