@@ -27,9 +27,16 @@ Dependencies
 Example Playbook
 ----------------
 
+```yaml
 - hosts: servers
   roles:
-      - { role: nats, nats_debug_mode: true, nats_pki_cert_path: "/path/to/cert.pem", nats_pki_key_path: "/path/to/key.pem", nats_pki_ca_path: "/path/to/ca.pem" }
+    - role: nats
+      nats_debug_mode: "{{ nats_debug_mode }}"
+      nats_docker_tag: "{{ nats_docker_tag }}"
+      nats_pki_cert_path: "{{ nats_pki_cert_path }}"
+      nats_pki_key_path: "{{ nats_pki_key_path }}"
+      nats_pki_ca_path: "{{ nats_pki_ca_path }}"
+```
 
 License
 -------

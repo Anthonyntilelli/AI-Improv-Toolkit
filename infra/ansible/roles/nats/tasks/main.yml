@@ -89,7 +89,7 @@
     command: >
       -c /etc/nats/server.conf
     user: "show:show"
-  When: not nats_debug_mode
+  when: not nats_debug_mode
 
 - name: Run and pull NATS server container in debug mode
   community.docker.docker_container:
