@@ -27,6 +27,7 @@ repos:
     files: \.(yaml|yml)$
     name: Ansible Lint
     args: [-p, infra/ansible/]
+    stages: [pre-push]
 - repo: https://github.com/AleksaC/terraform-py
   rev: v1.14.3
   hooks:
