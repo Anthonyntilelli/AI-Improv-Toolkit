@@ -2,7 +2,7 @@
 ---
 galaxy_info:
   author: Anthony Tilelli
-  description: Install physical configuration for the AI Improv Toolkit.
+  description: Install NATS server for the AI Improv Toolkit.
   company: N/A
   license: LGPL-3.0-only
   min_ansible_version: 2.20.1
