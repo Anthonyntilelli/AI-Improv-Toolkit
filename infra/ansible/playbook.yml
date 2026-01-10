@@ -19,3 +19,9 @@
   become: true
   roles:
     - physical
+
+- name: Setup NATS Server
+  hosts: nats_servers
+  become: true
+  roles:
+    { role: nats, nats_debug_mode: "{{ nats_debug_mode }}", nats_docker_tag: "{{ nats_docker_tag }}", nats_pki_cert_path: "{{ nats_pki_cert_path }}", nats_pki_key_path: "{{ nats_pki_key_path }}", nats_pki_ca_path: "{{ nats_pki_ca_path }}" }
