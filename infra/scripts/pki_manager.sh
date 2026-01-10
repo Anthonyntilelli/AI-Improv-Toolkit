@@ -77,6 +77,7 @@ declare -rA CLIENTS=(
   [hearing]="hearing@improvShow.local"
   [brain]="brain@improvShow.local"
   [output]="output@improvShow.local"
+  [health_check]="health_check@improvShow.local"
 )
 readonly CLIENT_CERT_LIFE=375  # days
 readonly -a SERVERS=(nats vision hearing)
