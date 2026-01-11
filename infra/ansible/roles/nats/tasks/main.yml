@@ -2,9 +2,9 @@
 
 ---
 
-- name: Fail if NATS PKI paths is not set
+- name: Fail if NATS PKI paths are not set
   ansible.builtin.fail:
-    msg: "One of the following variable is not set: nats_pki_cert_path, nats_pki_key_path or nats_pki_ca_path"
+    msg: "One of the following variables is not set: nats_pki_cert_path, nats_pki_key_path or nats_pki_ca_path"
   when: nats_pki_cert_path == "" or nats_pki_key_path == "" or nats_pki_ca_path == ""
 
 - name: Ensure NATS PKI directory exists
