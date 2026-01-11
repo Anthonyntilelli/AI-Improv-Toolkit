@@ -2,4 +2,8 @@
 ssh_key_public: ssh- .... Show key
 physical_wifi_ssid: "<ssid>"
 physical_wifi_password: "<password>"
-physical_wifi_iface: "<wifi_iface>"
+nats_debug_mode: <true | false>
+nats_docker_tag: 2.12.3
+nats_pki_cert_path: ../../secrets/pki/intermediateCA/certs/nats.example.com.cert.pem
+nats_pki_key_path: ../../secrets/pki/intermediateCA/private/nats.example.com.key.pem
+nats_pki_ca_path: ../../secrets/pki/intermediateCA/certs/ca-chain.cert.pem

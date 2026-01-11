@@ -6,6 +6,7 @@ This directory contains Ansible playbooks and roles for provisioning and configu
 
 - `base`: Base set up for all servers.
 - `physical`: Configuration for physical servers.
+- `nats`: Set up NATS messaging system.
 
 __Note__: More roles to be added over time.
 

@@ -19,3 +19,9 @@
   become: true
   roles:
     - physical
+
+- name: Setup NATS Server
+  hosts: nats_servers
+  become: true
+  roles:
+    - role: nats

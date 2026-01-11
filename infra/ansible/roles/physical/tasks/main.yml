@@ -32,6 +32,7 @@
       - ufw
       - sed
       - network-manager
+      - avahi-daemon
     state: present
 
 - name: Ensure Wi-Fi connection exists and is up

@@ -11,6 +11,7 @@ The objective of this folder is to become as show ready as possible with minimal
 - `scripts/`: Contains various scripts for automating deployment and management tasks.
 - `README.md`: This file, providing an overview of the infrastructure setup.
 - `manual_setup.md`: Instructions for any manual setup steps that are required.
+- `cheat_sheet.md`: A quick reference guide for common tasks and commands related to infrastructure management.
 
 ## Pre-requisites
 

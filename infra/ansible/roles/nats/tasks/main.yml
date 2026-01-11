@@ -1,0 +1,114 @@
+# SPDX-License-Identifier: LGPL-3.0-only
+
+---
+
+- name: Fail if NATS PKI paths are not set
+  ansible.builtin.fail:
+    msg: "One of the following variables is not set: nats_pki_cert_path, nats_pki_key_path or nats_pki_ca_path"
+  when: nats_pki_cert_path == "" or nats_pki_key_path == "" or nats_pki_ca_path == ""
+
+- name: Ensure NATS PKI directory exists
+  ansible.builtin.file:
+    path: /opt/show/nats/pki
+    state: directory
+    mode: '0700'
+    owner: "show"
+    group: "show"
+
+- name: Ensure NATS server persistent directory exists
+  ansible.builtin.file:
+    path: /opt/show/persistent
+    state: directory
+    mode: '0700'
+    owner: "show"
+    group: "show"
+
+- name: Copy NATS server TLS certificate
+  ansible.builtin.copy:
+    src: "{{ nats_pki_cert_path }}"
+    dest: /opt/show/nats/pki/server-cert.pem
+    mode: '0600'
+    owner: "show"
+    group: "show"
+
+- name: Copy NATS server TLS key
+  ansible.builtin.copy:
+    src: "{{ nats_pki_key_path }}"
+    dest: /opt/show/nats/pki/server-key.pem
+    mode: '0600'
+    owner: "show"
+    group: "show"
+
+- name: Copy NATS CA certificate
+  ansible.builtin.copy:
+    src: "{{ nats_pki_ca_path }}"
+    dest: /opt/show/nats/pki/ca-cert.pem
+    mode: '0600'
+    owner: "show"
+    group: "show"
+
+- name: Copy NATS show server configuration file
+  ansible.builtin.copy:
+    src: server.conf
+    dest: /opt/show/nats/server.conf
+    mode: '0600'
+    owner: "show"
+    group: "show"
+
+- name: Copy Nats debug configuration file
+  ansible.builtin.copy:
+    src: server_debug.conf
+    dest: /opt/show/nats/server_debug.conf
+    mode: '0600'
+    owner: "show"
+    group: "show"
+
+- name: Ensure Docker standard container for NATS is absent when in debug mode
+  community.docker.docker_container:
+    name: improv-nats-server
+    state: absent
+  when: nats_debug_mode
+
+- name: Ensure Docker debug container for NATS is absent when not in debug mode
+  community.docker.docker_container:
+    name: improv-nats-server-debug
+    state: absent
+  when: not nats_debug_mode
+
+- name: Run and pull NATS server container
+  community.docker.docker_container:
+    name: improv-nats-server
+    image: "nats:{{ nats_docker_tag }}"
+    state: started
+    restart_policy: always
+    ports:
+      - "4222:4222"
+    volumes:
+      - /opt/show/nats/server.conf:/etc/nats/server.conf:ro
+      - /opt/show/nats/pki:/etc/pki:ro
+    command: >
+      -c /etc/nats/server.conf
+  when: not nats_debug_mode
+
+- name: Run and pull NATS server container in debug mode
+  community.docker.docker_container:
+    name: improv-nats-server-debug
+    image: "nats:{{ nats_docker_tag }}"
+    state: started
+    restart_policy: always
+    ports:
+      - "4222:4222"
+    volumes:
+      - /opt/show/nats/server_debug.conf:/etc/nats/server_debug.conf:ro
+      - /opt/show/nats/pki:/etc/pki:ro
+      - /opt/show/persistent:/persistent:rw
+    command: >
+      -c /etc/nats/server_debug.conf
+  when: nats_debug_mode
+
+- name: Ensure NATS server is reachable
+  ansible.builtin.wait_for:
+    delay: 5
+    timeout: 30
+    port: 4222
+    host: "localhost"
