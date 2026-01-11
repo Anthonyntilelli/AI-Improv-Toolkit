@@ -31,7 +31,7 @@ Example Playbook
 - hosts: servers
   roles:
     - role: nats
-      nats_debug_mode: "true"
+      nats_debug_mode: true
       nats_docker_tag: "2.12.3"
       nats_pki_cert_path: "/path/to/cert.pem"
       nats_pki_key_path: "/path/to/key.pem"
