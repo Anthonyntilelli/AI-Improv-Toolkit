@@ -106,7 +106,7 @@
       -c /etc/nats/server_debug.conf
   when: nats_debug_mode
 
-- name: Ensure Nats server is reachable
+- name: Ensure NATS server is reachable
   ansible.builtin.wait_for:
     delay: 5
     timeout: 30
