@@ -43,6 +43,7 @@
       "libpam",
       "logtime",
       "mgmt",
+      "mypy",
       "newcerts",
       "nextupdate",
       "nmcli",
@@ -85,7 +86,6 @@
       "whois",
       "wlan"
     ],
-    "files.eol": "\n",
-    "editor.insertSpaces": true,
     "ansible.python.interpreterPath": "/bin/python3",
+    "editor.rulers": [ 80 ],
 }
