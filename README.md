@@ -19,9 +19,34 @@ TODO
 ## Directory
 
 - `.vscode` - config and hints for the vscode editor.
+- `.github` - github related files.
 - `infra/` - Infrastructure as code for deploying the system.
 - `secrets/` - holds most secrets for the project, most file in this directory will be ignored by git.
 - `ethics/` - holds the ethics statement for the project.
+- `code/` - holds the code for the various micro-services that make up the overall system.
+
+## Pre-commit
+
+Pre-commit hooks are used to enforce code quality and standards.
+
+- Install and configure pre-commit (via uv).
+
+    ```bash
+    uv tool install pre-commit
+    pre-commit install
+    ```
+
+## Code Standards
+
+- LF line endings enforced via .gitattributes
+- pre-commit hooks are used to enforce style and check for errors
+  - Terraform with terraform fmt and validate
+  - Script is through shell check
+  - Secrets are detected with detect-secrets
+  - Ansible linting with ansible-lint
+  - Python (TODO)
+
+### Note: make sure to run `pre-commit install` after cloning the repo to enable git hooks
 
 ## Deploy
 
@@ -30,7 +55,7 @@ Note: The steps may change as the project is under active development.
 
 ## Development
 
-See [Development.md](Development.md) for more info.
+See [code/README.md](code/README.md) for more info.
 Note: The steps may change as the project is under active development.
 
 ### Installing

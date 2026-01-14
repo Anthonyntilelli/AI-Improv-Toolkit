@@ -15,7 +15,6 @@ The objective of this folder is to become as show ready as possible with minimal
 
 ## Pre-requisites
 
-Note: Many of these items may already be installed if you are using the development environment setup instructions.
 To set up the infrastructure, you will need to have the following tools installed on your local machine:
 
 - [Terraform](https://www.terraform.io/downloads)

@@ -87,5 +87,5 @@
     ],
     "files.eol": "\n",
     "editor.insertSpaces": true,
-    "ansible.python.interpreterPath": "/bin/python3"
+    "ansible.python.interpreterPath": "/bin/python3",
 }
