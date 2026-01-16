@@ -1,6 +1,6 @@
 # Cheat Sheet
 
-This document provides a small set of command that may be useful during the development.
+This document provides a small set of commands that may be useful during the development.
 
 ## Starting a Nats Server with docker
 
