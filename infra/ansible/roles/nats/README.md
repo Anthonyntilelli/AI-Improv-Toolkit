@@ -13,7 +13,6 @@ Requirements
 Role Variables
 --------------
 
-- `nats_debug_mode` : Enable or disable debug mode. Default is `false`.
 - `nats_docker_tag` : Docker image tag for the NATS server. Default is `2.12.3`.
 - `nats_pki_cert_path` : Path to the NATS server certificate on host.
 - `nats_pki_key_path` : Path to the NATS server key on host.
@@ -31,7 +30,6 @@ Example Playbook
 - hosts: servers
   roles:
     - role: nats
-      nats_debug_mode: true
       nats_docker_tag: "2.12.3"
       nats_pki_cert_path: "/path/to/cert.pem"
       nats_pki_key_path: "/path/to/key.pem"

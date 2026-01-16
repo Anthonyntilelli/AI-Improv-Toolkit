@@ -5,6 +5,8 @@
         "editorconfig.editorconfig",
         "davidanson.vscode-markdownlint",
         "timonwong.shellcheck",
-        "redhat.ansible"
+        "redhat.ansible",
+        "charliermarsh.ruff",
+        "ms-python.mypy-type-checker"
     ]
 }

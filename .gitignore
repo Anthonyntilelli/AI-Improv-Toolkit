@@ -12,10 +12,8 @@ crash.log
 terraform.tfvars
 
 # Sensitive
-*.pass
-.env
+*.passwd
 *.no-git.*
-.venv/
 
 # secrets directories
 secrets/*

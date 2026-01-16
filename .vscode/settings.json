@@ -37,12 +37,14 @@
       "keygen",
       "keyid",
       "lastupdate",
+      "levelname",
       "Lfile",
       "LGPLV",
       "libinput",
       "libpam",
       "logtime",
       "mgmt",
+      "mypy",
       "newcerts",
       "nextupdate",
       "nmcli",
@@ -62,8 +64,11 @@
       "PKIPATH",
       "Prasad",
       "publickey",
+      "pydantic",
+      "pyproject",
       "RANDFILE",
       "realtek",
+      "rtype",
       "runcmd",
       "shellcheck",
       "sshguard",
@@ -85,7 +90,9 @@
       "whois",
       "wlan"
     ],
-    "files.eol": "\n",
-    "editor.insertSpaces": true,
-    "ansible.python.interpreterPath": "/bin/python3"
+    "ansible.python.interpreterPath": "/bin/python3",
+    "editor.rulers": [
+      80
+    ],
+    "python.analysis.typeCheckingMode": "strict",
 }

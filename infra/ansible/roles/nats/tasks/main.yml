@@ -55,26 +55,6 @@
     owner: "show"
     group: "show"
 
-- name: Copy Nats debug configuration file
-  ansible.builtin.copy:
-    src: server_debug.conf
-    dest: /opt/show/nats/server_debug.conf
-    mode: '0600'
-    owner: "show"
-    group: "show"
-
-- name: Ensure Docker standard container for NATS is absent when in debug mode
-  community.docker.docker_container:
-    name: improv-nats-server
-    state: absent
-  when: nats_debug_mode
-
-- name: Ensure Docker debug container for NATS is absent when not in debug mode
-  community.docker.docker_container:
-    name: improv-nats-server-debug
-    state: absent
-  when: not nats_debug_mode
-
 - name: Run and pull NATS server container
   community.docker.docker_container:
     name: improv-nats-server
@@ -88,23 +68,6 @@
       - /opt/show/nats/pki:/etc/pki:ro
     command: >
       -c /etc/nats/server.conf
-  when: not nats_debug_mode
-
-- name: Run and pull NATS server container in debug mode
-  community.docker.docker_container:
-    name: improv-nats-server-debug
-    image: "nats:{{ nats_docker_tag }}"
-    state: started
-    restart_policy: always
-    ports:
-      - "4222:4222"
-    volumes:
-      - /opt/show/nats/server_debug.conf:/etc/nats/server_debug.conf:ro
-      - /opt/show/nats/pki:/etc/pki:ro
-      - /opt/show/persistent:/persistent:rw
-    command: >
-      -c /etc/nats/server_debug.conf
-  when: nats_debug_mode
 
 - name: Ensure NATS server is reachable
   ansible.builtin.wait_for:

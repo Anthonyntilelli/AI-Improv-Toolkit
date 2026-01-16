@@ -11,3 +11,9 @@ nmcli device wifi list
 nmcli device wifi connect "SSID" password "PASSWORD"
 nmcli connection modify "SSID" connection.autoconnect yes
 ```
+
+## Getting ssh key to known_hosts file
+
+```bash
+ssh-keyscan node.example.me >> ~/.ssh/known_hosts
+```

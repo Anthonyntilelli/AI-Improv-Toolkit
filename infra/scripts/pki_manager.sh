@@ -70,7 +70,6 @@ readonly ORGUNIT="Improv Show"
 
 # Constants (microservice: user email)
 declare -rA CLIENTS=(
-  [setting]="setting@improvShow.local"
   [admin]="admin@improvShow.local"
   [ingest]="ingest@improvShow.local"
   [vision]="vision@improvShow.local"
@@ -712,7 +711,7 @@ function create_bundle(){
   #@ REQUIREMENTS: openssl tar
 
   local -r CWD="$(pwd)"
-  local -r PASSFILE="PKIBundle.pass"
+  local -r PASSFILE="PKIBundle.passwd"
   local -r BUNDLEPASSWORD="$(LC_ALL=C tr -dc 'A-Za-z0-9@%^&*()-_=+[]{}:,.?' </dev/urandom | head -c 24)"
   local -r PKIPATH="${1:?PKI path required}"
 

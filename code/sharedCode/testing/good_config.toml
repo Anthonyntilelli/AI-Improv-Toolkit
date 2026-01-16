@@ -1,0 +1,62 @@
+# Example configuration file for AI Improv Toolkit
+# MVP limitations:
+# - Languages supported: English (en-US)
+# - Show types supported: mono-scene
+# - Actors supported: 1
+# - Avatar types supported: 1
+
+[Show]
+Name = "Show Name"
+Language = "en-US"
+Actors_count = 1
+Avatar_count = 1
+Show_length = 22 # in minutes
+Type = "mono-scene"
+Show_rating = "pg-13" # options: [g, pg, pg-13, r, nc-17] Note: limited to pg-13 in Ethic mode.
+Disclaimer = "short" # options: [none, short, full] Note: must be short or full in Ethic mode.
+Command_keyword = "hay ai" # Keyword to activate voice commands.
+
+# All instructions will be passed to the respective AI components as-is.
+[AI]
+Introduction_instructions = "Ask for a location that will fit on stage." # Instructions for introduction generation
+General_instructions = "" # General instructions for all AI components
+show_watcher_instructions = "" # Instructions for show watcher component
+
+# Count of Avatar must match Show.Avatar_count
+[[AI.Avatars]]
+Instructions = ""
+
+[Mode]
+Ethic = false # When true, will have ethic mode limits applied
+Debug = false # cannot be true in Ethic mode
+
+[Buttons]
+Button_debounce_ms = 500
+
+[Buttons.Reset]
+Path = "/dev/show/big-red"
+Key = "Space"
+
+# Count of Avatars must match Show.Avatar_count
+[[Buttons.Avatars]]
+Path = "/dev/show/actor01"
+Speak = "Home"
+Speak_humor = "PageDown"
+Speak_uncomfortable = "PageUp"
+
+[Network]
+Nats_server = "localhost:4222"
+Hearing_server = "localhost:8100"
+Server_cert_path = "/etc/ai-show/settings/pki/server_cert.pem"
+Server_key_path = "/etc/ai-show/settings/pki/server_key.pem"
+Ca_cert_path = "/etc/ai-show/settings/pki/ca_cert.pem"
+Client_cert_path = "/etc/ai-show/settings/pki/client_cert.pem"
+Client_key_path = "/etc/ai-show/settings/pki/client_key.pem"
+Connection_timeout_s = 2
+Retry_attempts = 5
+Retry_backoff_ms = 500
+Use_tls = true
+
+[Health_Check]
+Enabled = true
+Interval_seconds = 5

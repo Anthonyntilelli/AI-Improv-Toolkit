@@ -1,0 +1,9 @@
+[project]
+name = "sharedCode"
+version = "0.1.0"
+description = "Shared code repository for AI Improv Toolkit"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "pydantic>=2.12.5",
+]

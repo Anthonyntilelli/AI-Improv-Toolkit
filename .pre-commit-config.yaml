@@ -7,9 +7,14 @@ repos:
   - id: check-case-conflict
   - id: check-executables-have-shebangs
   - id: check-yaml
-  - id: end-of-file-fixer
-  - id: trailing-whitespace
+    args: ['--unsafe']
+  - id: check-toml
   - id: no-commit-to-branch
+  - id: check-added-large-files
+- repo: https://github.com/editorconfig-checker/editorconfig-checker
+  rev: v3.6.0
+  hooks:
+  - id: editorconfig-checker
 - repo: https://github.com/shellcheck-py/shellcheck-py
   rev: v0.11.0.1
   hooks:
@@ -21,7 +26,7 @@ repos:
   - id: detect-secrets
     args: ['--baseline', '.secrets.baseline']
 - repo: https://github.com/ansible/ansible-lint.git
-  rev: v25.12.2
+  rev: v26.1.0
   hooks:
   - id: ansible-lint
     files: \.(yaml|yml)$
@@ -33,4 +38,21 @@ repos:
   hooks:
   - id: tf-fmt
   - id: tf-validate
+    stages: [pre-push]
+- repo: https://github.com/astral-sh/ruff-pre-commit
+  # Ruff version.
+  rev: v0.14.13
+  hooks:
+    - id: ruff-check
+    - id: ruff-format
+      stages: [pre-push]
+- repo: https://github.com/pre-commit/mirrors-mypy
+  rev: v1.19.1
+  hooks:
+  - id: mypy
+    stages: [pre-push]
+- repo: https://github.com/DavidAnson/markdownlint-cli2
+  rev: v0.20.0
+  hooks:
+  - id: markdownlint-cli2
     stages: [pre-push]
