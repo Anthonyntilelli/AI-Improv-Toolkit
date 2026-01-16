@@ -70,7 +70,6 @@ readonly ORGUNIT="Improv Show"
 
 # Constants (microservice: user email)
 declare -rA CLIENTS=(
-  [setting]="setting@improvShow.local"
   [admin]="admin@improvShow.local"
   [ingest]="ingest@improvShow.local"
   [vision]="vision@improvShow.local"

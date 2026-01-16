@@ -1,14 +1,13 @@
 # Example configuration file for AI Improv Toolkit
 # MVP limitations:
-# - Languages supported: English (en)
+# - Languages supported: English (en-US)
 # - Show types supported: mono-scene
 # - Actors supported: 1
 # - Avatar types supported: 1
-# - TLS is always used for network connections
 
 [Show]
 Name = "Show Name"
-Language = "en"
+Language = "en-US"
 Actors_count = 1
 Avatar_count = 1
 Show_length = 22 # in minutes
@@ -21,9 +20,7 @@ Command_keyword = "hay ai" # Keyword to activate voice commands.
 [AI]
 Introduction_instructions = "Ask for a location that will fit on stage." # Instructions for introduction generation
 General_instructions = "" # General instructions for all AI components
-
-[AI.show_watcher]
-Instructions = ""
+show_watcher_instructions = "" # Instructions for show watcher component
 
 # Count of Avatar must match Show.Avatar_count
 [[AI.Avatars]]
@@ -38,29 +35,28 @@ Button_debounce_ms = 500
 
 [Buttons.Reset]
 Path = "/dev/show/big-red"
-Key = "space"
-Grab = true
+Key = "Space"
 
 # Count of Avatars must match Show.Avatar_count
 [[Buttons.Avatars]]
 Path = "/dev/show/actor01"
-Speak = "home"
-Speak_humor = "pgup"
-Speak_uncomfortable = "pgdown"
-Grab = true
+Speak = "Home"
+Speak_humor = "PageDown"
+Speak_uncomfortable = "PageUp"
 
 [Network]
 Nats_server = "localhost:4222"
 Hearing_server = "localhost:8100"
-Server_cert_path = "/config/server_cert.pem"
-Server_key_path = "/config/server_key.pem"
-Ca_cert_path = "/config/ca_cert.pem"
-Client_cert_path = "/config/client_cert.pem"
-Connection_timeout_ms = 3000
+Server_cert_path = "/etc/ai-show/settings/pki/server_cert.pem"
+Server_key_path = "/etc/ai-show/settings/pki/server_key.pem"
+Ca_cert_path = "/etc/ai-show/settings/pki/ca_cert.pem"
+Client_cert_path = "/etc/ai-show/settings/pki/client_cert.pem"
+Client_key_path = "/etc/ai-show/settings/pki/client_key.pem"
+Connection_timeout_s = 2
 Retry_attempts = 5
 Retry_backoff_ms = 500
+Use_tls = true
 
 [Health_Check]
 Enabled = true
-Interval_seconds = 1
-Extra = "this_setting_is_not_valid"
+Interval_seconds = 5

@@ -12,7 +12,8 @@ __Note__: More roles to be added over time.
 
 ## Pre-requisites
 
-- Create the Ansible inventory file `inventory` (use `inventory.no-git.txt` to be gitignored) based on your infrastructure setup and assign appropriate groups to the servers.
+- Create the Ansible inventory file `inventory` (use `inventory.no-git.txt` to be gitignored) based on your infrastructure
+setup and assign appropriate groups to the servers.
 - Ensure you have SSH access to the servers with the necessary permissions to perform configuration tasks.
 - Follow main infra/README.md to set up necessary environmental variables and PKI.
 
@@ -21,12 +22,12 @@ __Note__: More roles to be added over time.
 1. Set up the needed groupVar files in `group_vars/` as needed for your environment. See `group_vars/all/var.examples` for reference.
 2. Install required Ansible collections:
 
-    ```bash
-   ansible-galaxy collection install -r collections/requirements.yml
-   ```
+  ```bash
+  ansible-galaxy collection install -r collections/requirements.yml
+  ```
 
 3. Run the playbook to configure the servers:
 
-   ```bash
-   ansible-playbook -i inventory.no-git.txt playbook.yml
-   ```
+  ```bash
+  ansible-playbook -i inventory.no-git.txt playbook.yml
+  ```

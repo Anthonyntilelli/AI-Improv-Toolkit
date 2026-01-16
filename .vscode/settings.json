@@ -37,6 +37,7 @@
       "keygen",
       "keyid",
       "lastupdate",
+      "levelname",
       "Lfile",
       "LGPLV",
       "libinput",
@@ -63,9 +64,11 @@
       "PKIPATH",
       "Prasad",
       "publickey",
+      "pydantic",
       "pyproject",
       "RANDFILE",
       "realtek",
+      "rtype",
       "runcmd",
       "shellcheck",
       "sshguard",
@@ -88,5 +91,8 @@
       "wlan"
     ],
     "ansible.python.interpreterPath": "/bin/python3",
-    "editor.rulers": [ 80 ],
+    "editor.rulers": [
+      80
+    ],
+    "python.analysis.typeCheckingMode": "strict",
 }

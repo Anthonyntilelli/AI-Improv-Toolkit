@@ -3,21 +3,25 @@
 This repository contains code for the AI Tool kit project. Each folder contains a particular component of the overall
 project.
 Each component will have its own README.md file with details on how to deploy and manage that service.
-These components work together to create the overall system. I am making use of components architecture to allow
-part of the system to be run in the cloud while the smaller parts can run in the show. The ram shortage is preventing
-finding a strong enough edge
-device to run the entire system locally.
+These components work together to create the overall system.
 
 The `infra` directory contains the infrastructure as code to deploy the overall system.
 
-## Micro-services
+## Components
 
-- Settings - Reads and validates configuration settings for the AI Toolkit.
-The validated settings are then uploaded to the KV in NATS service to be used by other components.
+TODO
 
 ## Contents
 
-- `settings` -  settings component code.
+- `sharedCode` -  ShadedCode that is used by multiple components.
+- `cheat_sheet.md` - A cheat sheet with useful commands for development.
+
+## Tools
+
+Most tools are installed globally or via pre-commit on the development machine as they are used across multiple components.
+
+- ruff - Python linter and formatter.
+- mypy - Static type checker for Python.
 
 ## General Development
 
