@@ -13,7 +13,8 @@ Role Variables
 
 - `base_sysadmin_ssh_pubkey`: The SSH public key for the `sysadmin` user to be added to their `authorized_keys` file.
 
-- `base_show_sub_dirs`: A list of subdirectories to create under `/opt/show`. Default includes `setting`, `nats`, `ingest`, `vision`, `hearing`, `brain`, and `output`.
+- `base_show_sub_dirs`: A list of subdirectories to create under `/opt/show`. Default includes `nats`, `ingest`,
+`vision`, `hearing`, `brain`, and `output`.
   - Do not include `pki` as it has special permissions.
 
 Dependencies

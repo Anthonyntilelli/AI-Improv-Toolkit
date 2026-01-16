@@ -28,7 +28,7 @@ __NOTE__: Detect-secrets with pre-commit is used to reduce the risk of committin
 - `secrets/` - holds most secrets for the project, most file in this directory
 will be ignored by git.
 - `ethics/` - holds the ethics statement for the project.
-- `code/` - holds the code for the various components that make up the overall system.
+- `code/` - holds the code for the for the overall system.
 
 ## Deploy
 
@@ -85,4 +85,3 @@ This project is licensed under the LGPLV3 License - see the LICENSE.md file for 
 - [Improbotics](https://improbotics.org/)
 - [DomPizzie (README template)](https://gist.github.com/DomPizzie/7a5ff55ffa9081f2de27c315f5018afc)
 - [Deepak Prasad](https://www.golinuxcloud.com/openssl-create-certificate-chain-linux/)
-

@@ -9,7 +9,8 @@ Terraform build script for the analysis node. This config uses digital ocean and
   - Scope needed are droplet, firewall, ssh_key, tag (additional scopes may be added.)
 - Set and export the environmental variable `CLOUDFLARE_API_TOKEN` with a cloudflare api Token.
   - API token only needs to "edit zone DNS".
-- Set and export the environmental variable `TF_VAR_sysadmin_and_dev_password_hash` with hash password from `mkpasswd --method=SHA-512 --rounds=500000`
+- Set and export the environmental variable `TF_VAR_sysadmin_and_dev_password_hash` with hash
+password from `mkpasswd --method=SHA-512 --rounds=500000`
 
 ## Deploy
 

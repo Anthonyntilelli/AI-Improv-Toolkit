@@ -26,7 +26,7 @@ Example Playbook
 
 - hosts: servers
   roles:
-      - { role: physical, physical_wifi_ssid: "Your_SSID", physical_wifi_password: "Your_Password" } <!-- pragma: allowlist secret --->
+      - { role: physical, physical_wifi_ssid: "Your_SSID", physical_wifi_password: "Your_Password" } <!-- pragma: allowlist secret ---> <!-- markdownlint-disable-line -->
 
 License
 -------

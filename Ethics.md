@@ -2,7 +2,8 @@
 
 ## IMPORTANT: Ethic will be fulfilled by the V1.0 releases. Versions before v1.0 may not have all ethics involved
 
-This project explores limited, opt-in AI augmentation within live improvisational theater under strict ethical constraints. These constraints are foundational to the system’s design and operation.
+This project explores limited, opt-in AI augmentation within live improvisational theater under strict ethical
+constraints. These constraints are foundational to the system’s design and operation.
 
 ## Human Control and Agency
 
@@ -36,7 +37,8 @@ This project explores limited, opt-in AI augmentation within live improvisationa
 
 - This project does **not** claim to solve improvisation, automate creativity, or replace human performers.
 - The AI is not a performer, author, or creative authority.
-- The system is an experimental augmentation explored in good faith, with respect for artistic labor and cultural concerns surrounding AI in the arts.
+- The system is an experimental augmentation explored in good faith, with respect for artistic labor and cultural
+concerns surrounding AI in the arts.
 
 ## Ongoing Responsibility
 
@@ -84,13 +86,16 @@ No. The AI does not initiate content. It responds only when triggered by a human
 No. Data is show-persistent only and discarded after the performance unless debug mode is explicitly enabled and announced.
 
 **What is debug mode, and when is it used?**
-Debug mode enables additional logging for development and testing. It is always announced and never active during Ethics Mode.
+Debug mode enables additional logging for development and testing. It is always announced and never active during
+Ethics Mode.
 
 **What is Ethics Mode?**
-Ethics Mode enforces the use of copyright-respecting AI tools and disables debug functionality to ensure privacy and data minimization.
+Ethics Mode enforces the use of copyright-respecting AI tools and disables debug functionality to ensure privacy and
+data minimization.
 
 **Are third-party AI APIs used?**
-No. The system does not rely on external conversational AI services. All processing occurs locally or on controlled cloud infrastructure.
+No. The system does not rely on external conversational AI services. All processing occurs locally or on controlled
+cloud infrastructure.
 
 **Why use AI at all?**
 The project is an optional experiment in augmentation, not a solution to a problem or a replacement for human creativity.

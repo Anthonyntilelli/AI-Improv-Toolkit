@@ -142,6 +142,7 @@ class ButtonResetSubSettings(TypedDict):
     """
     Settings for the reset button.
     """
+
     Path: str
     Key: KeyOptions
 
@@ -150,6 +151,7 @@ class AIAvatarSubSettings(TypedDict):
     """
     Instructions for the AI avatar.
     """
+
     Instructions: str
 
 
@@ -157,15 +159,18 @@ class ButtonAvatarSubSettings(TypedDict):
     """
     Settings for the avatar button.
     """
+
     Path: str
     Speak: KeyOptions
     Speak_humor: KeyOptions
     Speak_uncomfortable: KeyOptions
 
+
 class ShowSettings(TypedDict):
     """
     Settings related to the overall show configuration.
     """
+
     Name: str
     Language: Literal["en-US"]
     Actors_count: PositiveInt
@@ -185,6 +190,7 @@ class AISettings(TypedDict):
     """
     Settings related to AI behavior and instructions.
     """
+
     Introduction_instructions: str
     General_instructions: str
     show_watcher_instructions: str
@@ -195,6 +201,7 @@ class ModeSettings(TypedDict):
     """
     Docstring for ModeSettings
     """
+
     Ethic: bool
     Debug: bool
 
@@ -203,6 +210,7 @@ class ButtonSettings(TypedDict):
     """
     Settings related to button configurations.
     """
+
     Button_debounce_ms: PositiveInt
     Reset: ButtonResetSubSettings
     Avatars: list[ButtonAvatarSubSettings]
@@ -213,6 +221,7 @@ class NetworkSettings(TypedDict):
     Settings related to network configurations.
     Not all user will need server certs/keys, but they are included here for completeness.
     """
+
     Nats_server: str
     Hearing_server: str
     Server_cert_path: str
