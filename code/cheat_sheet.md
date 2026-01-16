@@ -5,7 +5,7 @@ This document provides a small set of command that may be useful during the deve
 ## Starting a Nats Server with docker
 
 ```bash
-docker run --rm --name nats  --rm -p 4222:4222 -p 8222:8222 nats --http_port 8222
+docker run --rm --name nats -p 4222:4222 -p 8222:8222 nats --http_port 8222
 ```
 
 ## Testing Nats connection with nats-cli
