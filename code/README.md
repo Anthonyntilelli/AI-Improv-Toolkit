@@ -13,7 +13,7 @@ TODO
 
 ## Contents
 
-- `sharedCode` -  ShadedCode that is used by multiple components.
+- `sharedCode` -  SharedCode that is used by multiple components.
 - `cheat_sheet.md` - A cheat sheet with useful commands for development.
 
 ## Tools
