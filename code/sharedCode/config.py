@@ -199,7 +199,7 @@ class AISettings(TypedDict):
 
 class ModeSettings(TypedDict):
     """
-    Docstring for ModeSettings
+    Settings that control operational modes like Ethics mode and Debug mode.
     """
 
     Ethic: bool
