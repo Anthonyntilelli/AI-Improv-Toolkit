@@ -1,4 +1,4 @@
-# ShareCode
+# SharedCode
 
 This directory contains shared code modules used across multiple components of the AI Improv Toolkit project.
 These modules provide common functionality, configurations, and utilities to ensure consistency and reusability
