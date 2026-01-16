@@ -1,0 +1,7 @@
+[project]
+name = "settings"
+version = "0.1.0"
+description = "Validates config file for AI Improv Toolkit and loads settings into NATS server."
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = []

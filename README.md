@@ -2,6 +2,10 @@
 
 Toolkit/Software use to run the AI power show for my local community improv team.
 
+## Description
+
+TODO
+
 ## Ethics Statement
 
 This project is committed to upholding strict ethical standards regarding the
@@ -16,10 +20,6 @@ or end a file with `.passwd`.
 
 __NOTE__: Detect-secrets with pre-commit is used to reduce the risk of committing sensitive values to git.
 
-## Description
-
-TODO
-
 ## Directory
 
 - `.vscode` - config and hints for the vscode editor.
@@ -28,8 +28,17 @@ TODO
 - `secrets/` - holds most secrets for the project, most file in this directory
 will be ignored by git.
 - `ethics/` - holds the ethics statement for the project.
-- `code/` - holds the code for the various micro-services that make up the
-overall system.
+- `code/` - holds the code for the various components that make up the overall system.
+
+## Deploy
+
+See [infra/README.md](infra/README.md) for more info.
+Note: The steps may change as the project is under active development.
+
+## Development
+
+See [code/README.md](code/README.md) for more info.
+Note: The steps may change as the project is under active development.
 
 ## Pre-commit
 
@@ -59,24 +68,6 @@ Pre-commit hooks are used to enforce code quality and standards.
   - Ansible linting with ansible-lint
   - Python linting with ruff and mypy
 
-## Deploy
-
-See [infra/README.md](infra/README.md) for more info.
-Note: The steps may change as the project is under active development.
-
-## Development
-
-See [code/README.md](code/README.md) for more info.
-Note: The steps may change as the project is under active development.
-
-### Installing
-
-- TODO
-
-### Executing program
-
-- TODO
-
 ## Help
 
 - TODO
@@ -94,3 +85,4 @@ This project is licensed under the LGPLV3 License - see the LICENSE.md file for 
 - [Improbotics](https://improbotics.org/)
 - [DomPizzie (README template)](https://gist.github.com/DomPizzie/7a5ff55ffa9081f2de27c315f5018afc)
 - [Deepak Prasad](https://www.golinuxcloud.com/openssl-create-certificate-chain-linux/)
+
