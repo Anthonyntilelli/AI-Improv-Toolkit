@@ -237,7 +237,7 @@ class NetworkSettings(TypedDict):
 
 class HealthCheckSettings(TypedDict):
     Enabled: bool
-    Interval_seconds: int
+    Interval_seconds: PositiveInt
 
 
 class Config(BaseModel):
