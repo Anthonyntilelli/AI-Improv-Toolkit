@@ -5,6 +5,9 @@
 # - Actors supported: 1
 # - Avatar types supported: 1
 
+# Note: This configuration is for an Ingest component.
+# Adjust the [Mode] and [Network] section accordingly for other component roles.
+
 [Show]
 Name = "Show Name"
 Language = "en-US"
@@ -29,6 +32,7 @@ Instructions = ""
 [Mode]
 Ethic = false # When true, will have ethic mode limits applied
 Debug = false # cannot be true in Ethic mode
+Role = "ingest" # options: [ingest, vision, hearing, brain, output, health_check] Role of the component
 
 [Buttons]
 Button_debounce_ms = 500
@@ -47,11 +51,11 @@ Speak_uncomfortable = "PageUp"
 [Network]
 Nats_server = "localhost:4222"
 Hearing_server = "localhost:8100"
-Server_cert_path = "/etc/ai-show/settings/pki/server_cert.pem"
-Server_key_path = "/etc/ai-show/settings/pki/server_key.pem"
-Ca_cert_path = "/etc/ai-show/settings/pki/ca_cert.pem"
-Client_cert_path = "/etc/ai-show/settings/pki/client_cert.pem"
-Client_key_path = "/etc/ai-show/settings/pki/client_key.pem"
+Server_cert_path = "/etc/ai-show/pki/ingest/server_cert.pem"
+Server_key_path = "/etc/ai-show/pki/ingest/server_key.pem"
+Ca_cert_path = "/etc/ai-show/pki/ingest/ca_cert.pem"
+Client_cert_path = "/etc/ai-show/pki/ingest/client_cert.pem"
+Client_key_path = "/etc/ai-show/pki/ingest/client_key.pem"
 Connection_timeout_s = 2
 Retry_attempts = 5
 Retry_backoff_ms = 500
