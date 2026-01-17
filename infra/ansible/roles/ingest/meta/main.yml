@@ -1,0 +1,10 @@
+# SPDX-License-Identifier: LGPL-3.0-only
+---
+galaxy_info:
+  author: Anthony Tilelli
+  description: Install Ingest role on server for the AI Improv Toolkit.
+  company: N/A
+  license: LGPL-3.0-only
+  min_ansible_version: 2.20.1
+  galaxy_tags: []
+dependencies: []
