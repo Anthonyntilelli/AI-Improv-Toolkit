@@ -138,13 +138,14 @@ KeyOptions = Literal[
 ]
 
 ComponentRole = Literal[
-        "ingest",
-        "vision",
-        "hearing",
-        "brain",
-        "output",
-        "health_check",
+    "ingest",
+    "vision",
+    "hearing",
+    "brain",
+    "output",
+    "health_check",
 ]
+
 
 class ButtonResetSubSettings(TypedDict):
     """
@@ -212,7 +213,7 @@ class ModeSettings(TypedDict):
 
     Ethic: bool
     Debug: bool
-    Role:  ComponentRole # Role of the component
+    Role: ComponentRole  # Role of the component
 
 
 class ButtonSettings(TypedDict):
