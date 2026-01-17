@@ -3,3 +3,6 @@ ingest-pc physical_wifi_iface="<wifi interface>"
 
 [nats_servers]
 nats.example.com
+
+[ingest]
+ingest-pc

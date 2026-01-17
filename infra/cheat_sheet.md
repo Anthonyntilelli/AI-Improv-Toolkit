@@ -17,3 +17,18 @@ nmcli connection modify "SSID" connection.autoconnect yes
 ```bash
 ssh-keyscan node.example.me >> ~/.ssh/known_hosts
 ```
+
+## List USB/find devices
+
+```bash
+lsusb
+lsusb -t
+```
+
+## Reload udev rules after editing
+
+```bash
+udevadm control --reload-rules
+udevadm trigger
+udevadm settle
+```

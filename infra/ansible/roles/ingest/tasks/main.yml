@@ -1,3 +1,108 @@
 # SPDX-License-Identifier: LGPL-3.0-only
 ---
-# tasks file for ingest
+
+- name: Fail if Ingest PKI paths are not set
+  ansible.builtin.fail:
+    msg: "One of the following variables is not set: ingest_pki_cert_path, ingest_pki_key_path or ingest_pki_ca_path"
+  when: ingest_pki_cert_path == "" or ingest_pki_key_path == "" or ingest_pki_ca_path == ""
+
+# Setting up udev rules for Show HID devices
+- name: Install usb hid management package
+  ansible.builtin.package:
+    name:
+      - evtest
+      - libhidapi-hidraw0
+      - usbutils
+    state: present
+
+- name: Ensure show is in the 'input' group
+  ansible.builtin.user:
+    name: show
+    groups: input
+    append: true
+
+- name: Create the /dev/show directory
+  ansible.builtin.copy:
+    dest: /etc/tmpfiles.d/dev-show.conf
+    content: "d /dev/show 0775 root root -\n"
+    owner: root
+    group: root
+    mode: '0640'
+
+- name: Force creation of /dev/show directory now
+  ansible.builtin.command: systemd-tmpfiles --create /etc/tmpfiles.d/dev-show.conf
+  args:
+    creates: /dev/show
+
+- name: Install show udev rules
+  ansible.builtin.copy:
+    src: udev_rules.conf
+    dest: /etc/udev/rules.d/70-show-hid.rules
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Udev reload
+
+
+# Setting up the Ingest service in Docker
+- name: Ensure ingest directory exists
+  ansible.builtin.file:
+    path: /opt/show/ingest/
+    state: directory
+    mode: '0750'
+    owner: "show"
+    group: "show"
+
+- name: Ensure ingest PKI directory exists
+  ansible.builtin.file:
+    path: /opt/show/ingest/pki
+    state: directory
+    mode: '0700'
+    owner: "show"
+    group: "show"
+
+- name: Copy ingest server TLS certificate
+  ansible.builtin.copy:
+    src: "{{ ingest_pki_cert_path }}"
+    dest: /opt/show/ingest/pki/client_cert.pem
+    mode: '0600'
+    owner: "show"
+    group: "show"
+
+- name: Copy ingest server TLS key
+  ansible.builtin.copy:
+    src: "{{ ingest_pki_key_path }}"
+    dest: /opt/show/ingest/pki/client_key.pem
+    mode: '0600'
+    owner: "show"
+    group: "show"
+
+- name: Copy ingest CA certificate
+  ansible.builtin.copy:
+    src: "{{ ingest_pki_ca_path }}"
+    dest: /opt/show/ingest/pki/ca_cert.pem
+    mode: '0600'
+    owner: "show"
+    group: "show"
+
+- name: Copy ingest configuration file
+  ansible.builtin.copy:
+    src: config.toml
+    dest: /opt/show/ingest/config.toml
+    mode: '0600'
+    owner: "show"
+    group: "show"
+
+# TODO: Uncomment and set the correct image name to run the ingest container
+# - name: Run and pull ingest container
+#   community.docker.docker_container:
+#     name: improv-ingest
+#     image: "<todo>:{{ ingest_docker_tag }}"
+#     state: started
+#     restart_policy: always
+#     volumes:
+#       - /opt/show/ingest/config.toml:/etc/ai-show/ingest/config.toml:ro
+#       - /opt/show/ingest/pki:/etc/ai-show/ingest/pki:ro
+#     command: >
+#       -c /etc/ingest/config.toml
+#     user: 495:495

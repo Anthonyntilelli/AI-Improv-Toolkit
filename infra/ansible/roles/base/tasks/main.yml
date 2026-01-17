@@ -18,6 +18,7 @@
 - name: Ensure basic packages are installed
   ansible.builtin.apt:
     name:
+      - tree
       - sudo
       - curl
       - wget

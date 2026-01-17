@@ -1,3 +1,8 @@
 # SPDX-License-Identifier: LGPL-3.0-only
 ---
 # defaults file for ingest
+
+ingest_docker_tag: "latest"
+ingest_pki_cert_path: ""
+ingest_pki_key_path: ""
+ingest_pki_ca_path: ""

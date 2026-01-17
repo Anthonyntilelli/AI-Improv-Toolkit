@@ -25,3 +25,9 @@
   become: true
   roles:
     - role: nats
+
+- name: Setup Ingest Service
+  hosts: ingest
+  become: true
+  roles:
+    - role: ingest

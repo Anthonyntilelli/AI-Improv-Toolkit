@@ -1,38 +1,48 @@
-Role Name
+Ingest Role
 =========
 
-A brief description of the role goes here.
+An Ansible role to set up the Ingest component for the AI Improv Toolkit.
 
 Requirements
 ------------
 
-Any pre-requisites that may not be covered by Ansible itself or the role should be mentioned here. For instance, if the role uses the EC2 module, it may be a good idea to mention in this section that the boto package is required.
+- A Debian based system.
+- Docker installed on the target system.
+- Base and physical Roles installed on the target system.
 
 Role Variables
 --------------
 
-A description of the settable variables for this role should go here, including any variables that are in defaults/main.yml, vars/main.yml, and any variables that can/should be set via parameters to the role. Any variables that are read from other roles and/or the global scope (ie. hostvars, group vars, etc.) should be mentioned here as well.
+"`ingest_docker_tag` : Docker image tag for the Ingest service. Default is `latest`.
+"`ingest_pki_cert_path` : Path to the Ingest service certificate on host.
+"`ingest_pki_key_path` : Path to the Ingest service key on host.
+"`ingest_pki_ca_path` : Path to the Ingest service CA certificate on host.
 
 Dependencies
 ------------
 
-A list of other roles hosted on Galaxy should go here, plus any details in regards to parameters that may need to be set for other roles, or variables that are used from other roles.
+- base
+- physical
 
 Example Playbook
 ----------------
 
-Including an example of how to use your role (for instance, with variables passed in as parameters) is always nice for users too:
-
-    - hosts: servers
-      roles:
-         - { role: username.rolename, x: 42 }
+```yaml
+- hosts: servers
+  roles:
+    - role: ingest
+      ingest_docker_tag: "latest"
+      ingest_pki_cert_path: "/path/to/cert.pem"
+      ingest_pki_cert_path: "/path/to/key.pem"
+      ingest_pki_ca_path: "/path/to/ca.pem"
+```
 
 License
 -------
 
-BSD
+This role is licensed under the LGPL-3.0-only license. See the LICENSE file for details.
 
 Author Information
 ------------------
 
-An optional section for the role authors to include contact information, or a website (HTML is not allowed).
+- Anthony Tilelli
