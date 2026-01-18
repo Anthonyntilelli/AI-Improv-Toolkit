@@ -5,7 +5,11 @@ description = "A toolkit for AI improv show applications."
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
+    "nats-py>=2.12.0",
+    "numpy>=2.4.1",
     "pydantic>=2.12.5",
+    "sounddevice>=0.5.3",
+    "webrtcvad>=2.0.10",
 ]
 
 [dependency-groups]
