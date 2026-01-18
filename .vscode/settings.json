@@ -11,6 +11,8 @@
       "levelname",
       "LGPLV",
       "libasound",
+      "libudev",
+      "libusb",
       "mypy",
       "portaudio",
       "pydantic",

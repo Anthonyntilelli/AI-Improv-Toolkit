@@ -1,3 +1,5 @@
+import asyncio
+import importlib
 import sys
 from typing import Final
 import logging
@@ -29,7 +31,7 @@ def main() -> None:
 
     match config.Mode["Role"]:
       case "ingest":
-        raise NotImplementedError("This is not yet implemented")  # TODO: implement
+        asyncio.run(importlib.import_module("ingest").main(config))
       case "vision":
         raise NotImplementedError("This is not yet implemented")  # TODO: implement
       case "hearing":

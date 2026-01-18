@@ -8,6 +8,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libasound2-dev \
     build-essential \
     openssl \
+    libusb-1.0-0-dev \
+    libudev-dev \
     && rm -rf /var/lib/apt/lists/*
 
 COPY . /app

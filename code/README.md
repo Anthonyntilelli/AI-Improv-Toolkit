@@ -21,3 +21,5 @@ TODO
   - libasound2-dev
   - build-essential
   - openssl
+  - libusb-1.0-0-dev # hidapi dependency
+  - libudev-dev # hidapi dependency

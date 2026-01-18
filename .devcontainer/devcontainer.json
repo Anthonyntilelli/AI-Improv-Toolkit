@@ -1,7 +1,7 @@
 // For format details, see https://aka.ms/devcontainer.json. For config options, see the
 // README at: https://github.com/devcontainers/templates/tree/main/src/python
 {
-	"name": "Python 3",
+	"name": "Dev Container - Python 3.14",
 	// Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
 	"build": {
 		"dockerfile": "Dockerfile"
@@ -20,7 +20,7 @@
 
 	// Use 'postCreateCommand' to run commands after the container is created.
 	// "postCreateCommand": "pip3 install --user -r requirements.txt",
-  "postCreateCommand": ".devcontainer/post-install.sh",
+   "postCreateCommand": ".devcontainer/post-install.sh",
 
 	// Configure tool-specific properties.
 	"customizations": {
