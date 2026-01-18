@@ -4,25 +4,8 @@ set -e
 # URL for Astral's uv installer script
 UV_INSTALL_URL="https://astral.sh/uv/install.sh"
 
-apt-get update
-
-
 # Tools we want uv to manage
 readonly TOOLS_TO_ADD_UV=( "pre-commit" "ansible")
-
-readonly REQUIRED_PACKAGES=( "portaudio19-dev" "libasound2-dev" "build-essential" "openssl" )
-
-whoami
-
-
-echo "=== Devcontainer post-create: ensure terraform and whois are available ==="
-if ! command -v terraform >/dev/null 2>&1; then
-    # Add HashiCorp apt repository and install terraform
-    mkdir -p /etc/apt/keyrings
-    wget -qO- https://apt.releases.hashicorp.com/gpg | gpg --dearmor -o /etc/apt/keyrings/hashicorp-archive-keyring.gpg
-    echo "deb [signed-by=/etc/apt/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" > /etc/apt/sources.list.d/hashicorp.list
-    apt-get install -y --no-install-recommends terraform whois
-fi
 
 echo "=== Devcontainer post-create: ensure uv is available ==="
 if ! command -v uv >/dev/null 2>&1; then
@@ -59,16 +42,12 @@ else
   echo "No .pre-commit-config.yaml found; skipping pre-commit install."
 fi
 
-
-echo "=== Devcontainer post-create: ensure required packages are installed ==="
-apt-get update
-for package in "${REQUIRED_PACKAGES[@]}"; do
-  if ! dpkg -s "$package" >/dev/null 2>&1; then
-    echo "Installing package: $package"
-    apt-get install -y --no-install-recommends "$package"
-  else
-    echo "Package $package is already installed."
-  fi
-done
-rm -rf /var/lib/apt/lists/*
-
+echo "=== Setting up starship prompt if available ==="
+# Setup starship prompt if available
+if command -v starship &> /dev/null; then
+    # Add starship initialization to .bashrc if not already present
+    if ! grep -q "starship init bash" ~/.bashrc; then
+        # shellcheck disable=SC2016
+        echo 'eval "$(starship init bash)"' >> ~/.bashrc
+    fi
+fi

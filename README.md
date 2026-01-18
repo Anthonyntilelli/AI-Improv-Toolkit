@@ -46,6 +46,30 @@ Note: The steps may change as the project is under active development.
 A dev container is provide it should automatically install all the needed items to deploy or develop this project.
 See [.devcontainer/devcontainer.json](.devcontainer/devcontainer.json) for more info.
 
+### Optional: Starship Prompt
+
+The dev container includes [Starship](https://starship.rs/), a minimal, fast, and customizable prompt.
+To use it, you need a Nerd Font installed on your host machine.
+
+#### Installing a Nerd Font on your host
+
+1. Download a Nerd Font (recommended: [FiraCode Nerd Font](https://github.com/ryanoasis/nerd-fonts/releases)):
+
+   ```bash
+   mkdir -p ~/.local/share/fonts
+   wget https://github.com/ryanoasis/nerd-fonts/releases/download/v3.1.1/FiraCode.zip
+   unzip FiraCode.zip -d ~/.local/share/fonts/FiraCode
+   rm FiraCode.zip
+   fc-cache -fv
+   ```
+
+2. Configure VS Code's integrated terminal:
+   - Open Settings (Ctrl+,)
+   - Search for "terminal font"
+   - Set `Terminal > Integrated: Font Family` to `FiraCode Nerd Font` (or your chosen Nerd Font)
+
+Starship will automatically activate in the dev container terminal once a Nerd Font is configured.
+
 ## Pre-commit
 
 Pre-commit hooks are used to enforce code quality and standards.

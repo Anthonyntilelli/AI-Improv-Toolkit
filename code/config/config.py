@@ -1,6 +1,7 @@
 """
 Validated configuration model for the AI Improv Toolkit. Makes use of pydantic for validation.
 
+The only exposed elements are the Config class and the generate_config function.
 e.g. from config import Config, generate_config
 """
 
@@ -9,7 +10,7 @@ from pydantic import BaseModel, ConfigDict, PositiveInt, model_validator
 import tomllib
 
 # Define the valid key options
-KeyOptions = Literal[
+_KeyOptions = Literal[
     "a",
     "b",
     "c",
@@ -100,6 +101,7 @@ KeyOptions = Literal[
     "]",
     "^",
     "_",
+    "`",
     "{",
     "|",
     "}",
@@ -137,7 +139,7 @@ KeyOptions = Literal[
     "F12",
 ]
 
-ComponentRole = Literal[
+_ComponentRole = Literal[
     "ingest",
     "vision",
     "hearing",
@@ -147,16 +149,16 @@ ComponentRole = Literal[
 ]
 
 
-class ButtonResetSubSettings(TypedDict):
+class _ButtonResetSubSettings(TypedDict):
     """
     Settings for the reset button.
     """
 
     Path: str
-    Key: KeyOptions
+    Key: _KeyOptions
 
 
-class AIAvatarSubSettings(TypedDict):
+class _AIAvatarSubSettings(TypedDict):
     """
     Instructions for the AI avatar.
     """
@@ -164,18 +166,18 @@ class AIAvatarSubSettings(TypedDict):
     Instructions: str
 
 
-class ButtonAvatarSubSettings(TypedDict):
+class _ButtonAvatarSubSettings(TypedDict):
     """
     Settings for the avatar button.
     """
 
     Path: str
-    Speak: KeyOptions
-    Speak_humor: KeyOptions
-    Speak_uncomfortable: KeyOptions
+    Speak: _KeyOptions
+    Speak_humor: _KeyOptions
+    Speak_uncomfortable: _KeyOptions
 
 
-class ShowSettings(TypedDict):
+class _ShowSettings(TypedDict):
     """
     Settings related to the overall show configuration.
     """
@@ -195,7 +197,7 @@ class ShowSettings(TypedDict):
     Command_keyword: str  # Keyword to activate voice commands.
 
 
-class AISettings(TypedDict):
+class _AISettings(TypedDict):
     """
     Settings related to AI behavior and instructions.
     """
@@ -203,30 +205,30 @@ class AISettings(TypedDict):
     Introduction_instructions: str
     General_instructions: str
     show_watcher_instructions: str
-    Avatars: list[AIAvatarSubSettings]  # List of avatar settings
+    Avatars: list[_AIAvatarSubSettings]  # List of avatar settings
 
 
-class ModeSettings(TypedDict):
+class _ModeSettings(TypedDict):
     """
     Settings that control operational modes like Ethics mode and Debug mode.
     """
 
     Ethic: bool
     Debug: bool
-    Role: ComponentRole  # Role of the component
+    Role: _ComponentRole  # Role of the component
 
 
-class ButtonSettings(TypedDict):
+class _ButtonSettings(TypedDict):
     """
     Settings related to button configurations.
     """
 
     Button_debounce_ms: PositiveInt
-    Reset: ButtonResetSubSettings
-    Avatars: list[ButtonAvatarSubSettings]
+    Reset: _ButtonResetSubSettings
+    Avatars: list[_ButtonAvatarSubSettings]
 
 
-class NetworkSettings(TypedDict):
+class _NetworkSettings(TypedDict):
     """
     Settings related to network configurations.
     Not all user will need server certs/keys, but they are included here for completeness.
@@ -245,7 +247,7 @@ class NetworkSettings(TypedDict):
     Use_tls: bool
 
 
-class HealthCheckSettings(TypedDict):
+class _HealthCheckSettings(TypedDict):
     Enabled: bool
     Interval_seconds: PositiveInt
 
@@ -257,12 +259,12 @@ class Config(BaseModel):
     """
 
     model_config = ConfigDict(extra="forbid")
-    Show: ShowSettings
-    AI: AISettings
-    Mode: ModeSettings
-    Buttons: ButtonSettings
-    Network: NetworkSettings
-    Health_Check: HealthCheckSettings
+    Show: _ShowSettings
+    AI: _AISettings
+    Mode: _ModeSettings
+    Buttons: _ButtonSettings
+    Network: _NetworkSettings
+    Health_Check: _HealthCheckSettings
 
     @model_validator(mode="after")
     def validate_mvp_limits(self):
