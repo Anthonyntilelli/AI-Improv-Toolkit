@@ -11,7 +11,7 @@
 [Show]
 Name = "Show Name"
 Language = "en-US"
-Actors_count = 1
+Actors_count = 1  # Each actor will need a mic channel.
 Avatar_count = 1
 Show_length = 22 # in minutes
 Type = "mono-scene"
