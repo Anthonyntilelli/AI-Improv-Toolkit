@@ -4,14 +4,14 @@ set -e
 # URL for Astral's uv installer script
 UV_INSTALL_URL="https://astral.sh/uv/install.sh"
 
-echo "=== Devcontainer post-create: ensure terraform is available ==="
+echo "=== Devcontainer post-create: ensure terraform and whois are available ==="
 if ! command -v terraform >/dev/null 2>&1; then
     # Add HashiCorp apt repository and install terraform
     RUN mkdir -p /etc/apt/keyrings \
     && wget -qO- https://apt.releases.hashicorp.com/gpg | gpg --dearmor -o /etc/apt/keyrings/hashicorp-archive-keyring.gpg \
     && echo "deb [signed-by=/etc/apt/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" > /etc/apt/sources.list.d/hashicorp.list \
     && apt-get update \
-    && apt-get install -y --no-install-recommends terraform \
+    && apt-get install -y --no-install-recommends terraform whois \
     && rm -rf /var/lib/apt/lists/*
 fi
 

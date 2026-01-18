@@ -11,7 +11,8 @@
       "mypy",
       "shellcheck",
       "timonwong",
-      "trixie"
+      "trixie",
+      "whois"
     ],
     "python.defaultInterpreterPath": "./code/.venv/bin/python3.14",
 }
