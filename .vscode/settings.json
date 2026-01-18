@@ -13,4 +13,5 @@
       "timonwong",
       "trixie"
     ],
+    "python.defaultInterpreterPath": "./code/.venv/bin/python3.14",
 }
