@@ -2,4 +2,15 @@
     "editor.rulers": [
       80
     ],
+    "cSpell.words": [
+      "davidanson",
+      "debugpy",
+      "Improbotics",
+      "Improv",
+      "LGPLV",
+      "mypy",
+      "shellcheck",
+      "timonwong",
+      "trixie"
+    ],
 }

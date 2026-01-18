@@ -22,6 +22,7 @@ __NOTE__: Detect-secrets with pre-commit is used to reduce the risk of committin
 
 ## Directory
 
+- `.devcontainer` - config for the dev container.
 - `.vscode` - config and hints for the vscode editor.
 - `.github` - github related files.
 - `infra/` - Infrastructure as code for deploying the system.
@@ -39,6 +40,11 @@ Note: The steps may change as the project is under active development.
 
 See [code/README.md](code/README.md) for more info.
 Note: The steps may change as the project is under active development.
+
+## Dev Container
+
+A dev container is provide it should automatically install all the needed items to deploy or develop this project.
+See [.devcontainer/devcontainer.json](.devcontainer/devcontainer.json) for more info.
 
 ## Pre-commit
 
@@ -80,8 +86,6 @@ Pre-commit hooks are used to enforce code quality and standards.
 
 This project is licensed under the LGPLV3 License - see the LICENSE.md file for details
 
-## Acknowledgments
+## Inspiration
 
 - [Improbotics](https://improbotics.org/)
-- [DomPizzie (README template)](https://gist.github.com/DomPizzie/7a5ff55ffa9081f2de27c315f5018afc)
-- [Deepak Prasad](https://www.golinuxcloud.com/openssl-create-certificate-chain-linux/)
