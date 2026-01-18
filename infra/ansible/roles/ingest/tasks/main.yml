@@ -101,7 +101,7 @@
 #     state: started
 #     restart_policy: always
 #     volumes:
-#       - /opt/show/ingest/config.toml:/etc/ai-show/ingest/config.toml:ro
+#       - /opt/show/ingest/config.toml:/etc/ai-show/config.toml:ro
 #       - /opt/show/ingest/pki:/etc/ai-show/ingest/pki:ro
 #     command: >
 #       -c /etc/ingest/config.toml
