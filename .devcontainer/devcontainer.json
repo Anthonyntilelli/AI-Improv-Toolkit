@@ -1,5 +1,6 @@
 {
-  "name": "AI-Improv-Toolkit Dev Container",
+  "name": "AI-Improv-Toolkit Dev Container (podman)",
+  "containerEngine": "podman",
   "build": {
     "dockerfile": "Dockerfile",
     "context": "..",
@@ -29,9 +30,10 @@
   "remoteUser": "vscode",
   "containerEnv": {
     "PATH": "/home/vscode/.local/bin:/usr/local/bin:/root/.local/bin:${PATH}",
-    "DOCKER_HOST": "unix:///var/run/docker.sock"
+    "DOCKER_HOST": "unix:///run/podman/podman.sock",
+    "PODMAN_SOCKET": "/run/podman/podman.sock"
   },
   "mounts": [
-    "source=${localEnv:XDG_RUNTIME_DIR}/docker.sock,target=/var/run/docker.sock,type=bind"
+    "source=${localEnv:XDG_RUNTIME_DIR}/podman/podman.sock,target=/run/podman/podman.sock,type=bind"
   ]
 }

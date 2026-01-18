@@ -1,4 +1,5 @@
-# Simple dev container for AI-Improv-Toolkit with Python 3.14, Ansible, Terraform, Docker CLI, openssl and make
+# .devcontainer/Dockerfile
+# Simple dev container for AI-Improv-Toolkit with Python 3.14, Ansible, Terraform, Podman/Docker CLI, openssl and make
 FROM python:3.14-slim
 
 ENV DEBIAN_FRONTEND=noninteractive
@@ -7,7 +8,7 @@ ARG USERNAME=vscode
 ARG USER_UID=1000
 ARG USER_GID=1000
 
-# Install system packages, Docker client, Ansible, Terraform (HashiCorp apt repo), openssl and make
+# Install system packages, Docker client (docker.io), Ansible, Terraform (HashiCorp apt repo), openssl and make
 RUN apt-get update \
   && apt-get install -y --no-install-recommends \
     ca-certificates \
@@ -18,7 +19,6 @@ RUN apt-get update \
     unzip \
     git \
     build-essential \
-    software-properties-common \
     apt-transport-https \
     docker.io \
     ansible \
@@ -34,11 +34,13 @@ RUN mkdir -p /etc/apt/keyrings \
   && apt-get install -y --no-install-recommends terraform \
   && rm -rf /var/lib/apt/lists/*
 
-# Create a non-root vscode user (UID/GID passed by devcontainer build args)
-RUN groupadd --gid ${USER_GID} ${USERNAME} || true \
-  && useradd -m --uid ${USER_UID} --gid ${USER_GID} -s /bin/bash ${USERNAME} \
-  && mkdir -p /home/${USERNAME}/.local/bin \
-  && chown -R ${USERNAME}:${USERNAME} /home/${USERNAME}
+# Create a non-root vscode user (use shell fallbacks in case build args are empty)
+RUN set -eux; \
+  USER_UID="${USER_UID:-1000}"; USER_GID="${USER_GID:-1000}"; \
+  groupadd --gid "${USER_GID}" "${USERNAME}" || true; \
+  useradd -m --uid "${USER_UID}" --gid "${USER_GID}" -s /bin/bash "${USERNAME}" || true; \
+  mkdir -p /home/"${USERNAME}"/.local/bin; \
+  chown -R "${USER_UID}":"${USER_GID}" /home/"${USERNAME}"
 
 # Ensure pip is reasonably up-to-date
 RUN python -m pip install --upgrade pip
