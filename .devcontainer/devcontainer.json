@@ -1,0 +1,37 @@
+{
+  "name": "AI-Improv-Toolkit Dev Container",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": "..",
+    "args": {
+      "USER_UID": "${localEnv:UID}",
+      "USER_GID": "${localEnv:GID}"
+    }
+  },
+  "settings": {
+    "terminal.integrated.shell.linux": "/bin/bash"
+  },
+  "extensions": [
+    "streetsidesoftware.code-spell-checker",
+    "streetsidesoftware.code-spell-checker-cspell-bundled-dictionaries",
+    "editorconfig.editorconfig",
+    "davidanson.vscode-markdownlint",
+    "timonwong.shellcheck",
+    "redhat.ansible",
+    "ms-python.mypy-type-checker",
+    "ms-python.vscode-pylance",
+    "ms-python.python",
+    "ms-python.debugpy",
+    "ms-python.vscode-python-envs",
+    "redhat.vscode-yaml"
+  ],
+  "postCreateCommand": ".devcontainer/post-create.sh",
+  "remoteUser": "vscode",
+  "containerEnv": {
+    "PATH": "/home/vscode/.local/bin:/usr/local/bin:/root/.local/bin:${PATH}",
+    "DOCKER_HOST": "unix:///var/run/docker.sock"
+  },
+  "mounts": [
+    "source=${localEnv:XDG_RUNTIME_DIR}/docker.sock,target=/var/run/docker.sock,type=bind"
+  ]
+}

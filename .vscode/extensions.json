@@ -6,7 +6,11 @@
         "davidanson.vscode-markdownlint",
         "timonwong.shellcheck",
         "redhat.ansible",
-        "charliermarsh.ruff",
-        "ms-python.mypy-type-checker"
+        "ms-python.mypy-type-checker",
+        "ms-python.vscode-pylance",
+        "ms-python.python",
+        "ms-python.debugpy",
+        "ms-python.vscode-python-envs",
+        "redhat.vscode-yaml"
     ]
 }
