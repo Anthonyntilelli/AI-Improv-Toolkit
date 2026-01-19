@@ -35,7 +35,6 @@ Debug = false # cannot be true in Ethic mode
 Role = "ingest" # options: [ingest, vision, hearing, brain, output, health_check] Role of the component
 
 [Buttons]
-Button_debounce_ms = 500
 
 [Buttons.Reset]
 Path = "/dev/show/big-red"

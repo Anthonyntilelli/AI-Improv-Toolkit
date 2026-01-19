@@ -26,4 +26,5 @@
       "whois"
     ],
     "python.defaultInterpreterPath": "./code/.venv/bin/python3.14",
+    "python.analysis.typeCheckingMode": "standard",
 }

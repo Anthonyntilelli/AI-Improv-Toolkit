@@ -1,8 +1,5 @@
 """
 Validated configuration model for the AI Improv Toolkit. Makes use of pydantic for validation.
-
-The only exposed elements are the Config class and the generate_config function.
-e.g. from config import Config, generate_config
 """
 
 from typing import TypedDict, Literal, Any
@@ -10,7 +7,33 @@ from pydantic import BaseModel, ConfigDict, PositiveInt, model_validator
 import tomllib
 
 # Define the valid key options
-_KeyOptions = Literal[
+KeyOptions = Literal[
+    "A",
+    "B",
+    "C",
+    "D",
+    "E",
+    "F",
+    "G",
+    "H",
+    "I",
+    "J",
+    "K",
+    "L",
+    "M",
+    "N",
+    "O",
+    "P",
+    "Q",
+    "R",
+    "S",
+    "T",
+    "U",
+    "V",
+    "W",
+    "X",
+    "Y",
+    "Z",
     "a",
     "b",
     "c",
@@ -149,13 +172,13 @@ _ComponentRole = Literal[
 ]
 
 
-class _ButtonResetSubSettings(TypedDict):
+class ButtonResetSubSettings(TypedDict):
     """
     Settings for the reset button.
     """
 
     Path: str
-    Key: _KeyOptions
+    Key: KeyOptions
 
 
 class _AIAvatarSubSettings(TypedDict):
@@ -166,15 +189,15 @@ class _AIAvatarSubSettings(TypedDict):
     Instructions: str
 
 
-class _ButtonAvatarSubSettings(TypedDict):
+class ButtonAvatarSubSettings(TypedDict):
     """
     Settings for the avatar button.
     """
 
     Path: str
-    Speak: _KeyOptions
-    Speak_humor: _KeyOptions
-    Speak_uncomfortable: _KeyOptions
+    Speak: KeyOptions
+    Speak_humor: KeyOptions
+    Speak_uncomfortable: KeyOptions
 
 
 class _ShowSettings(TypedDict):
@@ -223,9 +246,8 @@ class _ButtonSettings(TypedDict):
     Settings related to button configurations.
     """
 
-    Button_debounce_ms: PositiveInt
-    Reset: _ButtonResetSubSettings
-    Avatars: list[_ButtonAvatarSubSettings]
+    Reset: ButtonResetSubSettings
+    Avatars: list[ButtonAvatarSubSettings]
 
 
 class _NetworkSettings(TypedDict):
