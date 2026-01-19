@@ -38,13 +38,13 @@ Role = "ingest" # options: [ingest, vision, hearing, brain, output, health_check
 
 [Buttons.Reset]
 Path = "/dev/show/big-red"
-Key = "Space"
+Key = "KEY_SPACE"
 grab = true
 
 # Count of Avatars must match Show.Avatar_count
 [[Buttons.Avatars]]
 Path = "/dev/show/avatar"
-Speak = "Space"
+Speak = "KEY_SPACE"
 grab = true
 
 [Network]

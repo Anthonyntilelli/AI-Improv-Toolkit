@@ -4,6 +4,7 @@ from .config import (
     ButtonResetSubSettings,
     KeyOptions,
     ButtonAvatarSubSettings,
+    AllowedActions,
 )
 
 __all__ = [
@@ -12,4 +13,5 @@ __all__ = [
     "ButtonResetSubSettings",
     "KeyOptions",
     "ButtonAvatarSubSettings",
+    "AllowedActions",
 ]
