@@ -1,17 +1,17 @@
 # SPDX-License-Identifier: LGPL-3.0-only
----
 # handlers file for ingest
 
-- name: Udev reload
-  block:
-    - name: Reload udev rules
-      ansible.builtin.command: udevadm control --reload-rules
-      changed_when: false
+- name: Reload udev rules
+  ansible.builtin.command: udevadm control --reload-rules
+  listen: Udev reload
+  changed_when: false
 
-    - name: Trigger udev to apply new rules
-      ansible.builtin.command: udevadm trigger
-      changed_when: false
+- name: Trigger udev to apply new rules
+  ansible.builtin.command: udevadm trigger
+  listen: Udev reload
+  changed_when: false
 
-    - name: Wait for udev to settle
-      ansible.builtin.command: udevadm settle
-      changed_when: false
+- name: Wait for udev to settle
+  ansible.builtin.command: udevadm settle
+  listen: Udev reload
+  changed_when: false

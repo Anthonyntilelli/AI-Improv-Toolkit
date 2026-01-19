@@ -11,7 +11,7 @@
 [Show]
 Name = "Show Name"
 Language = "en-US"
-Actors_count = 1
+Actors_count = 1  # Each actor will need a mic channel.
 Avatar_count = 1
 Show_length = 22 # in minutes
 Type = "mono-scene"
@@ -35,7 +35,6 @@ Debug = false # cannot be true in Ethic mode
 Role = "ingest" # options: [ingest, vision, hearing, brain, output, health_check] Role of the component
 
 [Buttons]
-Button_debounce_ms = 500
 
 [Buttons.Reset]
 Path = "/dev/show/big-red"
@@ -44,9 +43,9 @@ Key = "Space"
 # Count of Avatars must match Show.Avatar_count
 [[Buttons.Avatars]]
 Path = "/dev/show/blue-actor"
-Speak = "Home"
-Speak_humor = "PageDown"
-Speak_uncomfortable = "PageUp"
+Speak = "Tab"
+Speak_humor = "PageUP"
+Speak_uncomfortable = "PageDown"
 
 [Network]
 Nats_server = "localhost:4222"
