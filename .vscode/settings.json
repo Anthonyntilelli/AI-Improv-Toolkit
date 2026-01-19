@@ -5,6 +5,7 @@
     "cSpell.words": [
       "davidanson",
       "debugpy",
+      "evdev",
       "Fira",
       "Improbotics",
       "Improv",
@@ -27,4 +28,5 @@
     ],
     "python.defaultInterpreterPath": "./code/.venv/bin/python3.14",
     "python.analysis.typeCheckingMode": "standard",
+    "ansible.python.interpreterPath": "/workspaces/AI-Improv-Toolkit/code/.venv/bin/python",
 }

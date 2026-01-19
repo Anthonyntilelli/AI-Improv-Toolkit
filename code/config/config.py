@@ -34,25 +34,6 @@ KeyOptions = Literal[
     "X",
     "Y",
     "Z",
-    "a",
-    "b",
-    "c",
-    "d",
-    "e",
-    "f",
-    "g",
-    "h",
-    "i",
-    "j",
-    "k",
-    "l",
-    "m",
-    "n",
-    "o",
-    "p",
-    "q",
-    "r",
-    "s",
     "t",
     "u",
     "v",
@@ -179,6 +160,7 @@ class ButtonResetSubSettings(TypedDict):
 
     Path: str
     Key: KeyOptions
+    grab: bool # wether the button will be grabbed for exclusive use.
 
 
 class _AIAvatarSubSettings(TypedDict):
@@ -196,8 +178,7 @@ class ButtonAvatarSubSettings(TypedDict):
 
     Path: str
     Speak: KeyOptions
-    Speak_humor: KeyOptions
-    Speak_uncomfortable: KeyOptions
+    grab: bool # wether the button will be grabbed for exclusive use.
 
 
 class _ShowSettings(TypedDict):

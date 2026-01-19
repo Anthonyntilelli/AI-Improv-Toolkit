@@ -39,13 +39,13 @@ Role = "ingest" # options: [ingest, vision, hearing, brain, output, health_check
 [Buttons.Reset]
 Path = "/dev/show/big-red"
 Key = "Space"
+grab = true
 
 # Count of Avatars must match Show.Avatar_count
 [[Buttons.Avatars]]
-Path = "/dev/show/blue-actor"
-Speak = "Tab"
-Speak_humor = "PageUP"
-Speak_uncomfortable = "PageDown"
+Path = "/dev/show/avatar"
+Speak = "Space"
+grab = true
 
 [Network]
 Nats_server = "localhost:4222"
