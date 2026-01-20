@@ -20,9 +20,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     openssl \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Starship prompt
-RUN wget -qO- https://starship.rs/install.sh | sh -s -- -y
-
 # Switch to vscode user for uv and tools installation
 USER vscode
 
@@ -32,12 +29,5 @@ RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 # Pre-install tools with uv
 RUN /home/vscode/.local/bin/uv tool install pre-commit && \
     /home/vscode/.local/bin/uv tool install ansible-core --with ansible && \
+    /home/vscode/.local/bin/uv tool install ansible-lint && \
     /home/vscode/.local/bin/uv cache clean
-
-# Setup Starship in bashrc for vscode user
-RUN if ! grep -q "starship init bash" ~/.bashrc; then \
-    echo 'eval "$(starship init bash)"' >> ~/.bashrc; \
-    fi
-
-# Switch back to root for any remaining setup
-USER root

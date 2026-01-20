@@ -14,15 +14,6 @@ if command -v uv >/dev/null 2>&1; then
   fi
 fi
 
-# Setup starship prompt for vscode user
-echo "=== Setting up starship prompt ==="
-if command -v starship &> /dev/null; then
-    if ! grep -q "starship init bash" ~/.bashrc; then
-        # shellcheck disable=SC2016
-        echo 'eval "$(starship init bash)"' >> ~/.bashrc
-    fi
-fi
-
 # Enable terraform autocomplete for vscode user
 if command -v terraform >/dev/null 2>&1; then
   echo "=== Enabling terraform autocomplete ==="

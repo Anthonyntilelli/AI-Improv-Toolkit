@@ -20,17 +20,17 @@ def main() -> None:
 
     logging.basicConfig(
         stream=sys.stdout,
-        level=logging.DEBUG if config.Mode["Debug"] else logging.INFO,
+        level=logging.DEBUG if config.Mode.Debug else logging.INFO,
         format="[%(asctime)s] {%(filename)s:%(lineno)d} %(levelname)s - %(message)s",
     )
 
     logger.info("Starting AI Show Application")
     logger.debug(f"Configuration loaded successfully from {CONFIG_FILE}")
-    logger.info(f"Application has been set to the role of {config.Mode['Role']}")
+    logger.info(f"Application has been set to the role of {config.Mode.Role}")
 
-    match config.Mode["Role"]:
+    match config.Mode.Role:
         case "ingest":
-            importlib.import_module("ingest").main(config)
+            importlib.import_module("ingest").start(config)
         case "vision":
             raise NotImplementedError("This is not yet implemented")  # TODO: implement
         case "hearing":
@@ -42,9 +42,7 @@ def main() -> None:
         case "health_check":
             raise NotImplementedError("This is not yet implemented")  # TODO: implement
         case _:
-            logger.error(
-                f"Unknown role specified in configuration: {config.Mode['Role']}"
-            )
+            logger.error(f"Unknown role specified in configuration: {config.Mode.Role}")
             sys.exit(1)
 
 

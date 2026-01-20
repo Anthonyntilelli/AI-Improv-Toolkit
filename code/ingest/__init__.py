@@ -1,3 +1,3 @@
-from .ingest import main
+from .ingest import start
 
-__all__: list[str] = ["main"]
+__all__: list[str] = ["start"]

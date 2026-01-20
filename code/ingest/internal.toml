@@ -1,7 +1,13 @@
+[Audio]
 Sample_rate = 16000  # Hz, required by faster-whisper and webrtcvad
 Chunk_size_ms = 250  # milliseconds per chunk sent to hearing service
 Pre_roll_ms = 200  # silence buffer before speech detected
 Post_roll_ms = 300  # silence buffer after speech ends
 Vad_aggressiveness = 2  # 0-3; higher = more aggressive (fewer false positives)
 Vad_frame_ms = 20  # 10, 20, or 30 ms frames for webrtcvad
-Button_debounce_ms = 500
+[Button]
+Debounce_ms = 500
+
+[Network]
+Client_cert_path = "/etc/ai-show/ingest/pki/client_cert.pem"
+Client_key_path = "/etc/ai-show/ingest/pki/client_key.pem"

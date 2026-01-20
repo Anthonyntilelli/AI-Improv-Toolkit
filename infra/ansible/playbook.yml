@@ -31,3 +31,9 @@
   become: true
   roles:
     - role: ingest
+
+- name: Setup Development User
+  hosts: dev
+  become: true
+  roles:
+    - dev

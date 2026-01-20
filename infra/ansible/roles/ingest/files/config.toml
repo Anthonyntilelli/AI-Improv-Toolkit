@@ -50,15 +50,11 @@ grab = true
 [Network]
 Nats_server = "localhost:4222"
 Hearing_server = "localhost:8100"
-Server_cert_path = "/etc/ai-show/ingest/pki/server_cert.pem"
-Server_key_path = "/etc/ai-show/ingest/pki/server_key.pem"
-Ca_cert_path = "/etc/ai-show/ingest/pki/ca_cert.pem"
-Client_cert_path = "/etc/ai-show/ingest/pki/client_cert.pem"
-Client_key_path = "/etc/ai-show/ingest/pki/client_key.pem"
 Connection_timeout_s = 2
 Retry_attempts = 5
 Retry_backoff_ms = 500
-Use_tls = true
+Use_tls = false
+Ca_cert_path = "/etc/ai-show/ca_cert.pem"
 
 [Health_Check]
 Enabled = true

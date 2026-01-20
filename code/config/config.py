@@ -2,7 +2,7 @@
 Validated configuration model for the AI Improv Toolkit. Makes use of pydantic for validation.
 """
 
-from typing import TypedDict, Literal, Any
+from typing import NamedTuple, Literal, Any
 from pydantic import BaseModel, ConfigDict, PositiveInt, model_validator
 import tomllib
 
@@ -97,7 +97,7 @@ _ComponentRole = Literal[
 ]
 
 
-class ButtonResetSubSettings(TypedDict):
+class ButtonResetSubSettings(NamedTuple):
     """
     Settings for the reset button.
     """
@@ -107,7 +107,7 @@ class ButtonResetSubSettings(TypedDict):
     grab: bool  # wether the button will be grabbed for exclusive use.
 
 
-class _AIAvatarSubSettings(TypedDict):
+class _AIAvatarSubSettings(NamedTuple):
     """
     Instructions for the AI avatar.
     """
@@ -115,7 +115,7 @@ class _AIAvatarSubSettings(TypedDict):
     Instructions: str
 
 
-class ButtonAvatarSubSettings(TypedDict):
+class ButtonAvatarSubSettings(NamedTuple):
     """
     Settings for the avatar button.
     """
@@ -125,7 +125,7 @@ class ButtonAvatarSubSettings(TypedDict):
     grab: bool  # wether the button will be grabbed for exclusive use.
 
 
-class _ShowSettings(TypedDict):
+class _ShowSettings(NamedTuple):
     """
     Settings related to the overall show configuration.
     """
@@ -145,7 +145,7 @@ class _ShowSettings(TypedDict):
     Command_keyword: str  # Keyword to activate voice commands.
 
 
-class _AISettings(TypedDict):
+class _AISettings(NamedTuple):
     """
     Settings related to AI behavior and instructions.
     """
@@ -156,7 +156,7 @@ class _AISettings(TypedDict):
     Avatars: list[_AIAvatarSubSettings]  # List of avatar settings
 
 
-class _ModeSettings(TypedDict):
+class _ModeSettings(NamedTuple):
     """
     Settings that control operational modes like Ethics mode and Debug mode.
     """
@@ -166,7 +166,7 @@ class _ModeSettings(TypedDict):
     Role: _ComponentRole  # Role of the component
 
 
-class _ButtonSettings(TypedDict):
+class _ButtonSettings(NamedTuple):
     """
     Settings related to button configurations.
     """
@@ -175,7 +175,7 @@ class _ButtonSettings(TypedDict):
     Avatars: list[ButtonAvatarSubSettings]
 
 
-class _NetworkSettings(TypedDict):
+class _NetworkSettings(NamedTuple):
     """
     Settings related to network configurations.
     Not all user will need server certs/keys, but they are included here for completeness.
@@ -183,22 +183,19 @@ class _NetworkSettings(TypedDict):
 
     Nats_server: str
     Hearing_server: str
-    Server_cert_path: str
-    Server_key_path: str
     Ca_cert_path: str
-    Client_key_path: str
-    Client_cert_path: str
     Connection_timeout_s: PositiveInt
     Retry_attempts: PositiveInt
     Retry_backoff_ms: PositiveInt
     Use_tls: bool
 
 
-class _HealthCheckSettings(TypedDict):
+class _HealthCheckSettings(NamedTuple):
     Enabled: bool
     Interval_seconds: PositiveInt
 
 
+# @dataclasses.dataclass(frozen=True)
 class Config(BaseModel):
     """
     Validated configuration model for the AI Improv Toolkit.
@@ -216,36 +213,36 @@ class Config(BaseModel):
     @model_validator(mode="after")
     def validate_mvp_limits(self):
         # Enforce MVP limitations
-        if self.Show["Language"] != "en-US":
+        if self.Show.Language != "en-US":
             raise ValueError("Only 'en-US' language is supported in MVP.")
-        if self.Show["Type"] != "mono-scene":
+        if self.Show.Type != "mono-scene":
             raise ValueError("Only 'mono-scene' show type is supported in MVP.")
-        if self.Show["Actors_count"] != 1:
+        if self.Show.Actors_count != 1:
             raise ValueError("Only 1 actor is supported in MVP.")
-        if self.Show["Avatar_count"] != 1:
+        if self.Show.Avatar_count != 1:
             raise ValueError("Only 1 avatar is supported in MVP.")
         return self
 
     @model_validator(mode="after")
     def validate_avatars_count(self):
-        if len(self.Buttons["Avatars"]) != self.Show["Avatar_count"]:
+        if len(self.Buttons.Avatars) != self.Show.Avatar_count:
             raise ValueError("Buttons.Avatar count must match Show.Avatar_count.")
-        if len(self.AI["Avatars"]) != self.Show["Avatar_count"]:
+        if len(self.AI.Avatars) != self.Show.Avatar_count:
             raise ValueError("AI.Avatar count must match Show.Avatar_count.")
         return self
 
     @model_validator(mode="after")
     def validate_ethic_mode(self):
-        if self.Mode["Ethic"]:
-            if self.Show["Show_rating"] not in ["g", "pg", "pg-13"]:
+        if self.Mode.Ethic:
+            if self.Show.Show_rating not in ["g", "pg", "pg-13"]:
                 raise ValueError("In Ethic mode, Show_rating must be g, pg, or pg-13.")
-            if self.Show["Disclaimer"] not in ["short", "full"]:
+            if self.Show.Disclaimer not in ["short", "full"]:
                 raise ValueError("In Ethic mode, Disclaimer must be short or full.")
-            if self.Mode["Debug"]:
+            if self.Mode.Debug:
                 raise ValueError(
                     "Ethic mode and Debug mode cannot be enabled simultaneously."
                 )
-            if self.Network["Use_tls"] is not True:
+            if self.Network.Use_tls is not True:
                 raise ValueError("TLS must be enabled in Ethics mode.")
         return self
 

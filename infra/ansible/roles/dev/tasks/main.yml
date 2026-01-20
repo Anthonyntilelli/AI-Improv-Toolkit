@@ -1,0 +1,57 @@
+# SPDX-License-Identifier: LGPL-3.0-only
+
+---
+# tasks file for dev
+
+- name: Install sshfs
+  ansible.builtin.package:
+    name: sshfs
+    state: present
+
+- name: Create Dev user
+  ansible.builtin.user:
+    name: developer
+    comment: "Development User for vscode remote access"
+    shell: "/bin/bash"
+    groups:
+      - sudo
+      - docker
+      - show
+      - ssh-users
+    append: true
+    create_home: true
+    state: present
+
+- name: Ensure .ssh directory exists
+  ansible.builtin.file:
+    path: /home/developer/.ssh
+    owner: developer
+    group: developer
+    mode: '0700'
+    state: directory
+
+- name: Copy authorized_key from sysadmin user to developer user
+  ansible.builtin.copy:
+    src: /home/sysadmin/.ssh/authorized_keys
+    dest: /home/developer/.ssh/authorized_keys
+    owner: developer
+    group: developer
+    mode: '0600'
+    remote_src: true
+
+- name: Configure sudoers for developer user
+  ansible.builtin.copy:
+    dest: /etc/sudoers.d/developer
+    content: "developer ALL=(ALL) NOPASSWD:ALL\n" # pragma: allowlist secret
+    owner: root
+    group: root
+    mode: '0440'
+    validate: 'visudo -cf %s'
+
+- name: Creates project folder
+  ansible.builtin.file:
+    path: /home/developer/projects
+    owner: developer
+    group: developer
+    mode: '0755'
+    state: directory

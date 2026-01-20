@@ -1,28 +1,10 @@
-// For format details, see https://aka.ms/devcontainer.json. For config options, see the
-// README at: https://github.com/devcontainers/templates/tree/main/src/python
 {
-	"name": "Dev Container - Python 3.14",
-	// Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
+	"name": "Dev Container - Local",
 	"build": {
 		"dockerfile": "Dockerfile"
 	},
-  // Mount SSH keys for git access, you will need to have your keys in ~/.ssh
-  "runArgs": [
-        "--volume", "/home/tony/.gitconfig:/home/vscode/.gitconfig:ro"
-    ],
-
-	// Features to add to the dev container. More info: https://containers.dev/features.
-	// "features": {},
-
-	// Use 'forwardPorts' to make a list of ports inside the container available locally.
-	// "forwardPorts": [],
-
-	// Use 'postCreateCommand' to run commands after the container is created.
-	// "postCreateCommand": "pip3 install --user -r requirements.txt",
-   "postCreateCommand": ".devcontainer/post-install.sh",
-   "postStartCommand": "sudo bash .devcontainer/pre-start.sh",
-
-	// Configure tool-specific properties.
+  "runArgs": [ "--volume", "/home/tony/.gitconfig:/home/vscode/.gitconfig:ro" ],
+  "postCreateCommand": ".devcontainer/local/post-install.sh",
 	"customizations": {
 		"vscode": {
 			"extensions": [
@@ -38,13 +20,7 @@
 				"ms-python.debugpy",
 				"ms-python.vscode-python-envs",
 				"redhat.vscode-yaml"
-			],
-			 "settings": {
-                "terminal.integrated.fontFamily": "monospace"
-            }
+			]
 		}
 	}
-
-	// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
-	// "remoteUser": "root"
 }

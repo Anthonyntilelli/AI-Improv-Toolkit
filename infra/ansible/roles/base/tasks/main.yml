@@ -6,6 +6,15 @@
     msg: "base_sysadmin_ssh_pubkey is not set. Please set it to the sysadmin user's SSH public key."
   when: base_sysadmin_ssh_pubkey == ""
 
+- name: Configure sudoers for sysadmin user
+  ansible.builtin.copy:
+    dest: /etc/sudoers.d/sysadmin
+    content: "sysadmin ALL=(ALL) NOPASSWD:ALL\n" # pragma: allowlist secret
+    owner: root
+    group: root
+    mode: '0440'
+    validate: 'visudo -cf %s'
+
 - name: Upgrade the Base system packages
   ansible.builtin.apt:
     update_cache: true
