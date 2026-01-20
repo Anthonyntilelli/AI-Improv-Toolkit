@@ -44,3 +44,6 @@ These instructions summarize the essential architecture, workflows, and conventi
 - Audio/VAD parameters sourced from [code/ingest/internal.toml](code/ingest/internal.toml) and validated by [code/ingest/_config.py](code/ingest/_config.py).
 
 Questions or ambiguities? Open a brief issue or ask to clarify config fields, TLS setup, or role boundaries. If parts of `hearing`/`vision`/`brain`/`output` need scaffolding, mirror ingest patterns and respect Ethics Mode constraints.
+
+## Environment
+  - If I invoke copilot locally, assume I am inside a devcontainer defined by .devcontainer/devcontainer.json. We will not be setting the devcontainer to privileged mode.

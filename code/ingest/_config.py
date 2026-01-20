@@ -1,12 +1,17 @@
 """
 Will validate the internal.toml configuration file.
 """
-
-from typing import Final, Literal, Any
-from pydantic import BaseModel, ConfigDict, PositiveInt
+from pathlib import Path
 import tomllib
+from typing import Final, Literal, Any
 
-INTERNAL_CONFIG_PATH: Final[str] = "internal.toml"
+
+from pydantic import BaseModel, ConfigDict, PositiveInt
+
+
+
+
+INTERNAL_CONFIG_PATH: Final[str] = f"{Path(__file__).resolve().parent / 'internal.toml'}"
 
 
 class _AudioSettings(BaseModel):
@@ -26,7 +31,7 @@ class _AudioSettings(BaseModel):
     Button_debounce_ms: PositiveInt
 
 
-def load_internal_config(actorCount: PositiveInt) -> _AudioSettings:
+def _load_internal_config(actorCount: PositiveInt) -> _AudioSettings:
     """
     Generates a AudioSettings object from a TOML configuration file.
     Any raised validation errors will be propagated to the caller.
