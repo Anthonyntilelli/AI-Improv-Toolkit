@@ -15,7 +15,7 @@ import evdev
 from config import KeyOptions as KO
 
 from config import config as cfg
-from ._config import load_internal_config, _AudioSettings as AudioSettings
+from ._config import _load_internal_config, _AudioSettings as AudioSettings
 
 
 @dataclass
@@ -74,7 +74,7 @@ def main(config: cfg.Config) -> None:
 
     # TODO: set signal handlers for graceful shutdown
 
-    AudioConfig: AudioSettings = load_internal_config(config.Show["Actors_count"])
+    AudioConfig: AudioSettings = _load_internal_config(config.Show["Actors_count"])
     print(f"Loaded audio config: {AudioConfig}")
 
     with button_devices(config) as buttons:

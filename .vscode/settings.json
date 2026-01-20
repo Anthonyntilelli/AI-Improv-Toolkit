@@ -15,6 +15,7 @@
       "libasound",
       "libudev",
       "libusb",
+      "mknod",
       "mypy",
       "portaudio",
       "pydantic",
@@ -29,7 +30,7 @@
       "webrtcvad",
       "whois"
     ],
-    "python.defaultInterpreterPath": "./code/.venv/bin/python3.14",
+    "python.defaultInterpreterPath": "/workspaces/AI-Improv-Toolkit/code/.venv/bin/python",
     "python.analysis.typeCheckingMode": "standard",
     "ansible.python.interpreterPath": "/workspaces/AI-Improv-Toolkit/code/.venv/bin/python",
 }
