@@ -1,6 +1,7 @@
 """
 Will validate the internal.toml configuration file.
 """
+
 from pathlib import Path
 import tomllib
 from typing import Final, Literal, Any
@@ -9,9 +10,9 @@ from typing import Final, Literal, Any
 from pydantic import BaseModel, ConfigDict, PositiveInt
 
 
-
-
-INTERNAL_CONFIG_PATH: Final[str] = f"{Path(__file__).resolve().parent / 'internal.toml'}"
+INTERNAL_CONFIG_PATH: Final[str] = (
+    f"{Path(__file__).resolve().parent / 'internal.toml'}"
+)
 
 
 class _AudioSettings(BaseModel):

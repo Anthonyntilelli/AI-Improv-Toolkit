@@ -60,9 +60,11 @@ def button_devices(config: cfg.Config) -> Generator[list[_Button], None, None]:
             if button.grabbed:
                 button.device.ungrab()
 
+
 async def print_events(device: evdev.InputDevice) -> None:
     async for event in device.async_read_loop():
-        print(device.path, evdev.categorize(event), sep=': ')
+        print(device.path, evdev.categorize(event), sep=": ")
+
 
 def main(config: cfg.Config) -> None:
     """Main function to start the ingest role."""
@@ -72,18 +74,17 @@ def main(config: cfg.Config) -> None:
 
     # TODO: set signal handlers for graceful shutdown
 
-
     AudioConfig: AudioSettings = load_internal_config(config.Show["Actors_count"])
     print(f"Loaded audio config: {AudioConfig}")
 
     with button_devices(config) as buttons:
         for device in buttons:
-          asyncio.ensure_future(print_events(device.device))
+            asyncio.ensure_future(print_events(device.device))
 
     try:
-      loop.run_forever()
+        loop.run_forever()
     finally:
-      loop.run_until_complete(loop.shutdown_asyncgens())
-      loop.close()
+        loop.run_until_complete(loop.shutdown_asyncgens())
+        loop.close()
 
     print("Ingest role completed.")
