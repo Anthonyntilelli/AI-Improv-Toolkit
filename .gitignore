@@ -41,6 +41,7 @@ group_vars/*/secrets.yml
 .vscode/*
 !.vscode/settings.json
 !.vscode/extensions.json
+!.vscode/launch.json
 
 # Binary
 *.tar.*
