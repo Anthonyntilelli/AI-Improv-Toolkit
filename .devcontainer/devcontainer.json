@@ -8,7 +8,6 @@
 	},
   // Mount SSH keys for git access, you will need to have your keys in ~/.ssh
   "runArgs": [
-        "--volume", "/home/tony/.ssh/:/home/vscode/.ssh:ro",
         "--volume", "/home/tony/.gitconfig:/home/vscode/.gitconfig:ro"
     ],
 
