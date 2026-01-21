@@ -48,10 +48,14 @@
     mode: '0440'
     validate: 'visudo -cf %s'
 
-- name: Creates project folder
+- name: Creates project folder Mount Point for sshfs
   ansible.builtin.file:
     path: /home/developer/projects
     owner: developer
     group: developer
     mode: '0755'
     state: directory
+
+- name: Output message about developer user creation
+  ansible.builtin.debug:
+    msg: "Manual step required: Please set up SSH keys for the 'developer' user to enable passwordless access and manually set docker context if needed."

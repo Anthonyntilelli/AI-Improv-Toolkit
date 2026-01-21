@@ -21,6 +21,7 @@
       "mypy",
       "NONBLOCK",
       "NOPASSWD",
+      "passwordless",
       "portaudio",
       "pycache",
       "pydantic",

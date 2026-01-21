@@ -20,7 +20,12 @@ nats --server nats://localhost:4222 sub test.subject
 ```bash
 docker context create show-ingest --docker "host=ssh://developer@show-ingest"  # Run once to create context
 
-docker --context show-ingest build -t local/ai-improv-toolkit:latest .
+docker --context show-ingest build -t local/ai-improv-toolkit:latest . # From root of repo
+```
+
+## Running the AI Improv Toolkit container with device access
+
+```bash
 docker run --rm -it --name ai-improv-toolkit-container -v /dev/show/:/dev/show/ --device=/dev/input local/ai-improv-toolkit
 
 # To get a bash shell inside the container for debugging
