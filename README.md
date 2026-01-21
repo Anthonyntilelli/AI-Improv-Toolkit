@@ -41,6 +41,14 @@ Note: The steps may change as the project is under active development.
 See [code/README.md](code/README.md) for more info.
 Note: The steps may change as the project is under active development.
 
+## Build
+
+Run the docker build command from root directory:
+
+```bash
+docker build -t local/ai-improv-toolkit .
+```
+
 ## Dev Container
 
 A dev container is provide it should automatically install all the needed items to deploy or develop this project.

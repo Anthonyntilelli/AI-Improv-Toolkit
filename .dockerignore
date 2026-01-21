@@ -1,0 +1,52 @@
+# VCS
+.git
+.gitignore
+.gitattributes
+
+# Editor / tooling metadata
+.vscode/
+.devcontainer/
+.markdownlint.yml
+.pre-commit-config.yaml
+
+# Python caches / tooling
+__pycache__/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Virtualenvs
+.venv/
+venv/
+
+# Env files / secrets
+.env
+.env.*
+.secrets.baseline
+secrets/
+
+# Sensitive
+*.passwd
+*.no-git.*
+
+# Infrastructure / IaC (not needed in runtime image)
+infra/
+terraform/
+
+# Logs / temp
+*.log
+*.tmp
+tmp/
+cache/
+
+# Docs (optional)
+*.md
+
+# OS / editor junk
+.DS_Store
+*.swp
+
+# Node
+node_modules/

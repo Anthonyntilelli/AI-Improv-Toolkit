@@ -5,6 +5,7 @@
     "cSpell.words": [
       "davidanson",
       "debugpy",
+      "ecodes",
       "evdev",
       "Fira",
       "fscrypt",
@@ -21,6 +22,7 @@
       "NONBLOCK",
       "NOPASSWD",
       "portaudio",
+      "pycache",
       "pydantic",
       "pyproject",
       "RDONLY",
