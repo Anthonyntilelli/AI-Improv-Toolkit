@@ -44,7 +44,7 @@ echo 'alias dsc-ingest="dsc run --rm -it --name ingest -v /dev/show/:/dev/show/ 
 } >> ~/.bash_aliases
 
 if jobs -p >/dev/null 2>&1; then
-  wait $(jobs -p)  # Wait for background tasks to finish
+  wait "$(jobs -p)"  # Wait for background tasks to finish
 fi
 
 echo "=== Devcontainer post-create: setup complete ==="
