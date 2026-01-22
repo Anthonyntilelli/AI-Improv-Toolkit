@@ -20,9 +20,7 @@ COPY /code/pyproject.toml /code/uv.lock /app/
 RUN uv sync --locked
 
 COPY code/main.py /app/
-COPY code/ingest/ /app/ingest/
 COPY code/config/ /app/config/
-# TODO Remove in real deployment
-COPY code/testing/ /app/testing/
+COPY code/ingest/ /app/ingest/
 
 CMD ["uv", "run", "main.py"]

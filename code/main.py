@@ -6,11 +6,12 @@ import logging
 import config as cfg
 
 logger = logging.getLogger(__name__)
-CONFIG_FILE: Final[str] = "testing/good_config.toml"
-# CONFIG_FILE: Final[str] = "/etc/ai-show/config.toml"
 
 
 def main() -> None:
+    # CONFIG_FILE: Final[str] = "testing/good_config.toml"
+    CONFIG_FILE: Final[str] = "/etc/ai-show/config.toml"
+
     config: cfg.Config
     try:
         config = cfg.generate_config(CONFIG_FILE)

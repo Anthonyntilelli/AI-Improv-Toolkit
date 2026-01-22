@@ -15,20 +15,13 @@ nats --server nats://localhost:4222 pub test.subject "Hello, NATS!"
 nats --server nats://localhost:4222 sub test.subject
 ```
 
-## Docker build with context
+## Docker build and running with context
 
 ```bash
 docker context create show-ingest --docker "host=ssh://developer@show-ingest"  # Run once to create context
 
-docker --context show-ingest build -t local/ai-improv-toolkit:latest . # From root of repo
-```
+alias ds='docker --context show-ingest'  # Optional alias for convenience
+ds build -t local/ai-improv-toolkit:latest . # From root of repo
 
-## Running the AI Improv Toolkit container with device access
-
-```bash
-docker run --rm -it --name ai-improv-toolkit-container -v /dev/show/:/dev/show/ --device=/dev/input local/ai-improv-toolkit
-
-# To get a bash shell inside the container for debugging
-docker run --rm -it --name ai-improv-toolkit-container -v /dev/show/:/dev/show/ --device=/dev/input --entrypoint /bin/bash local/ai-improv-toolkit
-
+ds run --rm -it --name ai-improv-toolkit-container -v /dev/show/:/dev/show/ --device=/dev/input -v /opt/show/ingest/config.toml:/etc/ai-show/config.toml local/ai-improv-toolkit
 ```
