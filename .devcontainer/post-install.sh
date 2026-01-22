@@ -43,6 +43,8 @@ echo 'alias dsc-nats="dsc run --rm -d --name nats -p 4222:4222 -p 8222:8222 nats
 echo 'alias dsc-ingest="dsc run --rm -it --name ingest -v /dev/show/:/dev/show/ --device=/dev/input -v /opt/show/ingest/config.toml:/etc/ai-show/config.toml local/ai-improv-toolkit"'
 } >> ~/.bash_aliases
 
-wait "$(jobs -p)"  # Wait for background tasks to finish
+if jobs -p >/dev/null 2>&1; then
+  wait $(jobs -p)  # Wait for background tasks to finish
+fi
 
 echo "=== Devcontainer post-create: setup complete ==="
