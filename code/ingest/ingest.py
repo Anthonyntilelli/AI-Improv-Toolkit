@@ -138,7 +138,7 @@ async def reconnect_device(
             )
         except OSError as e:
             print(
-                f"Reconnection failed for device {path}, retrying in ${RECONNECTION_DELAY_S} seconds: {e}"
+                f"Connection failed for device {path}, retrying in {RECONNECTION_DELAY_S} seconds: {e}"
             )
             await asyncio.sleep(RECONNECTION_DELAY_S)
 
@@ -241,6 +241,7 @@ async def monitor_input_events(
                 ),
             )
         )
+        return  # exit without reconnecting
     if disconnected:
         async with device_lock:
             device_list[interface.path] = await reconnect_device(
