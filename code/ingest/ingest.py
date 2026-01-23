@@ -247,7 +247,6 @@ async def monitor_input_events(
             device_list[interface.path] = await reconnect_device(
                 interface.path, device.settings, device.debounce_ms
             )
-        disconnected = False  # just in case
         # Restart event listening
         asyncio.create_task(
             monitor_input_events(
