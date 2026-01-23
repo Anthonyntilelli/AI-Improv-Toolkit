@@ -7,13 +7,23 @@ Use the start function to start the ingest process.
 import asyncio
 import contextlib
 from dataclasses import dataclass, field
+from enum import Enum
 import time
-from typing import Literal, NamedTuple, AsyncIterator, Optional
+from typing import Final, Literal, NamedTuple, AsyncIterator, Optional
 import evdev
 # import nats
 
 from config import config as cfg
 from ._config import Button, ButtonSubSettings, load_internal_config, IngestSettings
+
+MAX_RECONNECT_ATTEMPTS: Final[int] = 5
+RECONNECTION_DELAY_S: Final[int] = 2
+
+
+class QueuePriority(Enum):
+    reset = 1
+    status = 5
+    action = 10
 
 
 def start(config: cfg.Config) -> None:
@@ -41,7 +51,9 @@ class QueueData(NamedTuple):
     message_type: Literal["action", "status"]
     action: cfg.AllowedActions | None
     timestamp_ms: int
-    status: Literal["connected", "disconnected", "dead"] | None # dead = device failed permanently
+    status: (
+        Literal["connected", "disconnected", "dead"] | None
+    )  # dead = device failed permanently
 
 
 @dataclass(order=False)  # Important: order=False prevents automatic comparison methods
@@ -103,7 +115,7 @@ def event_filter(event, path: str, allowed_keys: list[cfg.KeyOptions]) -> bool:
     # Skip key releases and repeats
     if event.value != 1:  # 1=down, 0=up, 2=repeat
         return False
-    key: evdev.KeyEvent = evdev.categorize(event) # type: ignore
+    key: evdev.KeyEvent = evdev.categorize(event)  # type: ignore
     if key.keycode and key.keycode not in allowed_keys:
         print(f"{path}: Ignored Non-configured key event: {event}")
         return False
@@ -125,8 +137,10 @@ async def reconnect_device(
                 device=new_device, settings=settings, debounce_ms=debounce_ms
             )
         except OSError as e:
-            print(f"Reconnection failed for device {path}, retrying in 2 seconds: {e}")
-            await asyncio.sleep(2)
+            print(
+                f"Reconnection failed for device {path}, retrying in ${RECONNECTION_DELAY_S} seconds: {e}"
+            )
+            await asyncio.sleep(RECONNECTION_DELAY_S)
 
 
 async def monitor_input_events(
@@ -142,7 +156,7 @@ async def monitor_input_events(
     try:
         output_queue.put_nowait(
             PrioritizedRequest(
-                priority=5,
+                priority=QueuePriority.status.value,
                 request_data=QueueData(
                     device_path=interface.path,
                     message_type="status",
@@ -165,10 +179,10 @@ async def monitor_input_events(
                 continue
 
             time_stamp = time_stamp_ms()
-            key: evdev.KeyEvent = evdev.categorize(event) # type: ignore
+            key: evdev.KeyEvent = evdev.categorize(event)  # type: ignore
             print(interface.path, key, sep=": ")
             key_action: Optional[cfg.AllowedActions] = device.settings.key.get(
-                key.keycode # type: ignore
+                key.keycode  # type: ignore
             )
             if key_action:
                 data = QueueData(
@@ -179,7 +193,10 @@ async def monitor_input_events(
                     status=None,
                 )
                 p_request = PrioritizedRequest(
-                    priority=10 if key_action == "reset" else 1, request_data=data
+                    priority=QueuePriority.action.value
+                    if key_action == "reset"
+                    else QueuePriority.reset.value,
+                    request_data=data,
                 )
                 output_queue.put_nowait(p_request)
                 print(f"Action for {key.keycode}: {key_action} sent to output queue.")
@@ -209,8 +226,8 @@ async def monitor_input_events(
         print(f"Error in print_events for device {interface.path}: {e}")
 
     # If disconnected, attempt to reconnect and restart event listening with new device
-    # Limits reconnection to 5 to prevent unbound recursions
-    if disconnected and reconnect_count < 5:
+    # Limits reconnection to MAX_RECONNECT_ATTEMPTS to prevent unbound recursions
+    if disconnected and reconnect_count < MAX_RECONNECT_ATTEMPTS:
         async with device_lock:
             device_list[interface.path] = await reconnect_device(
                 interface.path, device.settings, device.debounce_ms
@@ -236,9 +253,8 @@ async def monitor_input_events(
                     timestamp_ms=time_stamp_ms(),
                     status="dead",
                 ),
-              )
+            )
         )
-
 
 
 # TODO: Implement NATS connection and message publishing
