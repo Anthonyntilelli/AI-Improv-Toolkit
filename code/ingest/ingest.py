@@ -8,13 +8,21 @@ import asyncio
 import contextlib
 from dataclasses import dataclass, field
 from enum import Enum
+import ssl
 import time
 from typing import Final, Literal, NamedTuple, AsyncIterator, Optional
 import evdev
-# import nats
+import nats
+from nats.aio.client import Client as NATS
 
 from config import config as cfg
-from ._config import Button, ButtonSubSettings, load_internal_config, IngestSettings
+from ._config import (
+    Button,
+    ButtonSubSettings,
+    load_internal_config,
+    IngestSettings,
+    NetworkSubSettings,
+)
 
 MAX_RECONNECT_ATTEMPTS: Final[int] = 5
 RECONNECTION_DELAY_S: Final[int] = 2
@@ -69,7 +77,33 @@ class PrioritizedRequest:
         return self.priority < other.priority
 
 
-# TODO: Async Context Manager for NATS connection
+@contextlib.asynccontextmanager
+async def nats_init(network_settings: NetworkSubSettings) -> AsyncIterator[NATS]:
+    """Async context manager to initialize and cleanup NATS connection."""
+    nc: Optional[NATS] = None
+    try:
+        if network_settings.Use_tls:
+            context: ssl.SSLContext = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+            context.minimum_version = ssl.TLSVersion.TLSv1_2
+            context.verify_mode = ssl.CERT_REQUIRED
+            context.check_hostname = True
+            context.load_verify_locations(cafile=network_settings.Ca_cert_path)
+            # Load client certificate and private key
+            context.load_cert_chain(
+                certfile=network_settings.Client_cert_path,
+                keyfile=network_settings.Client_key_path,
+                password=None,
+            )
+            nc = await nats.connect(
+                servers=f"tls://{network_settings.Nats_server}", tls=context
+            )
+        else:
+            nc = await nats.connect(f"nats://{network_settings.Nats_server}")
+        yield nc
+    finally:
+        if nc:
+            await nc.flush()
+            await nc.close()
 
 
 @contextlib.asynccontextmanager
@@ -83,7 +117,14 @@ async def button_init(
         for settings in buttons_settings.buttons:
             button = evdev.InputDevice(settings.device_path)
             if settings.grab:
-                button.grab()
+                try:
+                    button.grab()
+                except OSError as e:
+                    button.close()
+                    print(
+                        f"Unable to grab {settings.device_path}, device unavailable: {e}"
+                    )
+                    raise
             buttons[settings.device_path] = ControlDevice(
                 device=button, settings=settings, debounce_ms=debounce_ms
             )
@@ -259,8 +300,20 @@ async def monitor_input_events(
         )
 
 
-
-# TODO: Implement NATS connection and message publishing
+async def nats_task(nc: NATS, output_queue: asyncio.PriorityQueue[PrioritizedRequest]) -> None:
+    """Consume events from the output_queue and publish them to NATS."""
+    try:
+        while True:
+            item = await output_queue.get()
+            try:
+                # Publish the queued item to the INTERFACE subject.
+                payload = str(item.request_data).encode("utf-8")
+                await nc.publish("INTERFACE", payload)
+            finally:
+                output_queue.task_done()
+    except asyncio.CancelledError:
+        # Allow task to be cancelled cleanly during shutdown.
+        return
 
 
 async def async_loop(ingest_settings: IngestSettings) -> None:
@@ -269,25 +322,27 @@ async def async_loop(ingest_settings: IngestSettings) -> None:
     device_lock = asyncio.Lock()
     nats_queue: asyncio.PriorityQueue[PrioritizedRequest] = asyncio.PriorityQueue()
 
-    # Connect to nats server
-    # TODO: Implement NATS connection with and without TLS
-
-    # Connect and grab to relevant devices
-    async with button_init(
-        ingest_settings.Buttons, ingest_settings.Buttons.Debounce_ms
-    ) as avatar_devices:
-        devices_tasks = [
+    # Initialize NATS connection and button devices
+    async with (
+        button_init(
+            ingest_settings.Buttons, ingest_settings.Buttons.Debounce_ms
+        ) as avatar_devices,
+        nats_init(ingest_settings.Network) as nc,
+    ):
+        tasks = [
             asyncio.create_task(
                 monitor_input_events(device, avatar_devices, nats_queue, device_lock, 0)
             )
             for device in avatar_devices.values()
         ]
+        tasks.append(asyncio.create_task(nats_task(nc, nats_queue)))
         try:
-            await asyncio.gather(*devices_tasks)
+            await asyncio.gather(*tasks)
         finally:
-            for t in devices_tasks:
+            for t in tasks:
                 t.cancel()
-            await asyncio.gather(*devices_tasks, return_exceptions=True)
+            await asyncio.gather(*tasks, return_exceptions=True)
+
 
     # Pass button presses to Nats server
 
