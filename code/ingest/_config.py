@@ -46,7 +46,7 @@ class Button(NamedTuple):
     """Represents a button configuration."""
 
     device_path: str
-    key: dict[KO, str]  # key with action name
+    key: dict[KO, cfg.AllowedActions]  # key with action name
     grab: bool
 
 

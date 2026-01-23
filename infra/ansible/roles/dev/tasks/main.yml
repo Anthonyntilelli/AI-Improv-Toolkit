@@ -3,11 +3,6 @@
 ---
 # tasks file for dev
 
-- name: Install sshfs
-  ansible.builtin.package:
-    name: sshfs
-    state: present
-
 - name: Create Dev user
   ansible.builtin.user:
     name: developer
@@ -55,7 +50,3 @@
     group: developer
     mode: '0755'
     state: directory
-
-- name: Output message about developer user creation
-  ansible.builtin.debug:
-    msg: "Manual step required: Please set up SSH keys for the 'developer' user to enable passwordless access and manually set docker context if needed."

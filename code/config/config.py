@@ -246,6 +246,18 @@ class Config(BaseModel):
                 raise ValueError("TLS must be enabled in Ethics mode.")
         return self
 
+    @model_validator(mode="after")
+    def validate_buttons(self):
+        """Validate that all configured button paths are unique."""
+        paths = set()
+        for button in self.Buttons.Avatars:
+            if button.Path in paths:
+                raise ValueError(f"Duplicate button path found: {button.Path}")
+            paths.add(button.Path)
+        if self.Buttons.Reset.Path in paths:
+            raise ValueError(f"Duplicate button path found: {self.Buttons.Reset.Path}")
+        return self
+
 
 def generate_config(configPath: str) -> Config:
     """

@@ -8,12 +8,13 @@ import asyncio
 import contextlib
 from dataclasses import dataclass, field
 import time
-from typing import Literal, NamedTuple, AsyncIterator
+from typing import Literal, NamedTuple, AsyncIterator, Optional
 import evdev
 # import nats
 
 from config import config as cfg
 from ._config import Button, ButtonSubSettings, load_internal_config, IngestSettings
+
 
 def start(config: cfg.Config) -> None:
     """Function to start the ingest role."""
@@ -31,25 +32,30 @@ class ControlDevice(NamedTuple):
     settings: Button
     debounce_ms: int
 
+
 class QueueData(NamedTuple):
     """Represents data for a Queue."""
 
     device_path: str
-    message_type: Literal["action", "status"] # action = button press, status = device connect/disconnect
+    # action = button press, status = device connect/disconnect
+    message_type: Literal["action", "status"]
     action: cfg.AllowedActions | None
     timestamp_ms: int
-    status: Literal["connected", "disconnected"] | None
+    status: Literal["connected", "disconnected", "dead"] | None # dead = device failed permanently
 
-@dataclass(order=False) # Important: order=False prevents automatic comparison methods
+
+@dataclass(order=False)  # Important: order=False prevents automatic comparison methods
 class PrioritizedRequest:
     """Represents a prioritized request for the PriorityQueue."""
 
-    priority: int = field(compare=False) # Priority level (lower number = higher priority)
-    request_data: QueueData = field(compare=False) # Actual request data
+    # Priority level (lower number = higher priority)
+    priority: int = field(compare=False)
+    request_data: QueueData = field(compare=False)  # Actual request data
 
     # This method is what the PriorityQueue uses to compare two objects
     def __lt__(self, other: "PrioritizedRequest") -> bool:
         return self.priority < other.priority
+
 
 # TODO: Async Context Manager for NATS connection
 
@@ -58,20 +64,20 @@ class PrioritizedRequest:
 async def button_init(
     buttons_settings: ButtonSubSettings,
     debounce_ms: int,
-) -> AsyncIterator[list[ControlDevice]]:
+) -> AsyncIterator[dict[str, ControlDevice]]:
     """Async context manager to initialize and cleanup button devices."""
-    buttons: list[ControlDevice] = []
+    buttons: dict[str, ControlDevice] = {}
     try:
         for settings in buttons_settings.buttons:
             button = evdev.InputDevice(settings.device_path)
             if settings.grab:
                 button.grab()
-            buttons.append(
-                ControlDevice(device=button, settings=settings, debounce_ms=debounce_ms)
+            buttons[settings.device_path] = ControlDevice(
+                device=button, settings=settings, debounce_ms=debounce_ms
             )
         yield buttons
     finally:
-        for device in buttons:
+        for device in buttons.values():
             print(f"Cleaning up device:{device.device.path}")
             try:
                 if device.settings.grab:
@@ -97,21 +103,57 @@ def event_filter(event, path: str, allowed_keys: list[cfg.KeyOptions]) -> bool:
     # Skip key releases and repeats
     if event.value != 1:  # 1=down, 0=up, 2=repeat
         return False
-    # Only respond to selected keys based on configuration
-    key = evdev.categorize(event)
-    if key.keycode not in allowed_keys:  # type: ignore
+    key: evdev.KeyEvent = evdev.categorize(event) # type: ignore
+    if key.keycode and key.keycode not in allowed_keys:
         print(f"{path}: Ignored Non-configured key event: {event}")
         return False
     return True
 
 
-async def print_events(device: ControlDevice) -> None:
+async def reconnect_device(
+    path: str, settings: Button, debounce_ms: int
+) -> ControlDevice:
+    """Attempt to reconnect to a disconnected device."""
+    while True:
+        try:
+            print(f"Attempting to reconnect to device: {path}")
+            new_device = evdev.InputDevice(path)
+            if settings.grab:
+                new_device.grab()
+            print(f"Reconnected to device: {path}")
+            return ControlDevice(
+                device=new_device, settings=settings, debounce_ms=debounce_ms
+            )
+        except OSError as e:
+            print(f"Reconnection failed for device {path}, retrying in 2 seconds: {e}")
+            await asyncio.sleep(2)
+
+
+async def monitor_input_events(
+    device: ControlDevice,
+    device_list: dict[str, ControlDevice],
+    output_queue: asyncio.PriorityQueue[PrioritizedRequest],
+    device_lock: asyncio.Lock,
+    reconnect_count: int,
+) -> None:
     interface = device.device  # type: evdev.InputDevice
     time_stamp: int = 0  # Initial timestamp for debounce
+    disconnected: bool = False
     try:
-        async for event in interface.async_read_loop():
-            # TODO: Implement logic to handle disconnected devices and reconnection
+        output_queue.put_nowait(
+            PrioritizedRequest(
+                priority=5,
+                request_data=QueueData(
+                    device_path=interface.path,
+                    message_type="status",
+                    action=None,
+                    timestamp_ms=time_stamp_ms(),
+                    status="connected",
+                ),
+            )
+        )
 
+        async for event in interface.async_read_loop():
             # Skip non-key events or non-configured keys
             if not event_filter(
                 event, interface.path, list(device.settings.key.keys())
@@ -123,24 +165,90 @@ async def print_events(device: ControlDevice) -> None:
                 continue
 
             time_stamp = time_stamp_ms()
-            key = evdev.categorize(event)
+            key: evdev.KeyEvent = evdev.categorize(event) # type: ignore
             print(interface.path, key, sep=": ")
-            key_action = device.settings.key.get(key.keycode)  # type: ignore
+            key_action: Optional[cfg.AllowedActions] = device.settings.key.get(
+                key.keycode # type: ignore
+            )
             if key_action:
-                print(f"Action for {key.keycode}: {key_action}")
+                data = QueueData(
+                    device_path=interface.path,
+                    message_type="action",
+                    action=key_action,
+                    timestamp_ms=time_stamp_ms(),
+                    status=None,
+                )
+                p_request = PrioritizedRequest(
+                    priority=10 if key_action == "reset" else 1, request_data=data
+                )
+                output_queue.put_nowait(p_request)
+                print(f"Action for {key.keycode}: {key_action} sent to output queue.")
             else:
                 print(f"No action configured for key: {key.keycode}")
     except asyncio.CancelledError:
         raise
     except OSError as e:
         print(f"Device {interface.path} disconnected, stopping listener: {e}")
+        device.device.close()
+        async with device_lock:
+            device_list.pop(interface.path)  # remove closed device from list
+            disconnected = True
+        output_queue.put_nowait(
+            PrioritizedRequest(
+                priority=10,
+                request_data=QueueData(
+                    device_path=interface.path,
+                    message_type="status",
+                    action=None,
+                    timestamp_ms=time_stamp_ms(),
+                    status="disconnected",
+                ),
+            )
+        )
     except Exception as e:
         print(f"Error in print_events for device {interface.path}: {e}")
+
+    # If disconnected, attempt to reconnect and restart event listening with new device
+    # Limits reconnection to 5 to prevent unbound recursions
+    if disconnected and reconnect_count < 5:
+        async with device_lock:
+            device_list[interface.path] = await reconnect_device(
+                interface.path, device.settings, device.debounce_ms
+            )
+        disconnected = False  # just in case
+        # Restart event listening
+        await monitor_input_events(
+            device_list[interface.path],
+            device_list,
+            output_queue,
+            device_lock,
+            reconnect_count + 1,
+        )
+    else:
+        print(f"Stopped monitoring device: {interface.path}")
+        output_queue.put_nowait(
+            PrioritizedRequest(
+                priority=10,
+                request_data=QueueData(
+                    device_path=interface.path,
+                    message_type="status",
+                    action=None,
+                    timestamp_ms=time_stamp_ms(),
+                    status="dead",
+                ),
+              )
+        )
+
+
+
+# TODO: Implement NATS connection and message publishing
 
 
 async def async_loop(ingest_settings: IngestSettings) -> None:
     """Asyncio event loop for ingest role."""
     print("Ingest async loop started.")
+    device_lock = asyncio.Lock()
+    nats_queue: asyncio.PriorityQueue[PrioritizedRequest] = asyncio.PriorityQueue()
 
     # Connect to nats server
     # TODO: Implement NATS connection with and without TLS
@@ -149,9 +257,11 @@ async def async_loop(ingest_settings: IngestSettings) -> None:
     async with button_init(
         ingest_settings.Buttons, ingest_settings.Buttons.Debounce_ms
     ) as avatar_devices:
-
         devices_tasks = [
-            asyncio.create_task(print_events(device)) for device in avatar_devices
+            asyncio.create_task(
+                monitor_input_events(device, avatar_devices, nats_queue, device_lock, 0)
+            )
+            for device in avatar_devices.values()
         ]
         try:
             await asyncio.gather(*devices_tasks)
@@ -164,14 +274,3 @@ async def async_loop(ingest_settings: IngestSettings) -> None:
 
     # Close NATS connection and cleanup on exit
     print("Ingest async loop completed.")
-
-# nats_queue: asyncio.PriorityQueue[PrioritizedRequest] = asyncio.PriorityQueue()
-
-# test_event = QueueData(
-#             device_path="/dev/input/event0",
-#             type="action",
-#             action="reset",
-#             timestamp_ms=time_stamp_ms(),
-#             status=None
-#         )
-# nats_queue.put_nowait(PrioritizedRequest(priority=1, request_data=test_event))

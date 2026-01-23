@@ -7,6 +7,8 @@ import config as cfg
 
 logger = logging.getLogger(__name__)
 
+# TODO: Before merge: Set up reset action.
+
 
 def main() -> None:
     # CONFIG_FILE: Final[str] = "testing/good_config.toml"
