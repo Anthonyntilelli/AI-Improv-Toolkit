@@ -227,22 +227,8 @@ async def monitor_input_events(
 
     # If disconnected, attempt to reconnect and restart event listening with new device
     # Limits reconnection to MAX_RECONNECT_ATTEMPTS to prevent unbound recursions
-    if disconnected and reconnect_count < MAX_RECONNECT_ATTEMPTS:
-        async with device_lock:
-            device_list[interface.path] = await reconnect_device(
-                interface.path, device.settings, device.debounce_ms
-            )
-        disconnected = False  # just in case
-        # Restart event listening
-        await monitor_input_events(
-            device_list[interface.path],
-            device_list,
-            output_queue,
-            device_lock,
-            reconnect_count + 1,
-        )
-    else:
-        print(f"Stopped monitoring device: {interface.path}")
+    if reconnect_count >= MAX_RECONNECT_ATTEMPTS:
+        print(f"Stopped monitoring device: {interface.path} device failed permanently.")
         output_queue.put_nowait(
             PrioritizedRequest(
                 priority=10,
@@ -255,6 +241,23 @@ async def monitor_input_events(
                 ),
             )
         )
+    if disconnected:
+        async with device_lock:
+            device_list[interface.path] = await reconnect_device(
+                interface.path, device.settings, device.debounce_ms
+            )
+        disconnected = False  # just in case
+        # Restart event listening
+        asyncio.create_task(
+            monitor_input_events(
+                device_list[interface.path],
+                device_list,
+                output_queue,
+                device_lock,
+                reconnect_count + 1,
+            )
+        )
+
 
 
 # TODO: Implement NATS connection and message publishing
