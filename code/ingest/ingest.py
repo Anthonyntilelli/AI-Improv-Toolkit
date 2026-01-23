@@ -14,6 +14,7 @@ from typing import Final, Literal, NamedTuple, AsyncIterator, Optional
 import evdev
 import nats
 from nats.aio.client import Client as NATS
+import json
 
 from config import config as cfg
 from ._config import (
@@ -62,6 +63,7 @@ class QueueData(NamedTuple):
     status: (
         Literal["connected", "disconnected", "dead"] | None
     )  # dead = device failed permanently
+    version: int = 1
 
 
 @dataclass(order=False)  # Important: order=False prevents automatic comparison methods
@@ -310,7 +312,7 @@ async def nats_task(nc: NATS, output_queue: asyncio.PriorityQueue[PrioritizedReq
             item = await output_queue.get()
             try:
                 # Publish the queued item to the INTERFACE subject.
-                payload = str(item.request_data).encode("utf-8")
+                payload = json.dumps(item.request_data._asdict()).encode("utf-8")
                 await nc.publish("INTERFACE", payload)
             finally:
                 output_queue.task_done()
