@@ -47,9 +47,9 @@ Path = "/dev/show/avatar"
 Speak = "KEY_SPACE"
 grab = true
 
-[Network]
-Nats_server = "localhost:4222"
-Hearing_server = "localhost:8100"
+[Network]  # NOTE: Localhost does not work in a container
+Nats_server = "nats_server:4222"
+Hearing_server = "hearing_server:8100"
 Connection_timeout_s = 2
 Retry_attempts = 5
 Retry_backoff_ms = 500

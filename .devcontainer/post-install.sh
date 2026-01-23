@@ -39,8 +39,9 @@ docker context create show-ingest --docker "host=ssh://developer@show-ingest"  #
 {
 echo 'alias dsc="docker --context show-ingest"'
 echo 'alias dsc-b="dsc build -t local/ai-improv-toolkit:latest ."'
-echo 'alias dsc-nats="dsc run --rm -d --name nats -p 4222:4222 -p 8222:8222 nats --http_port 8222" # Note: unencrypted'
-echo 'alias dsc-ingest="dsc run --rm -it --name ingest -v /dev/show/:/dev/show/ --device=/dev/input -v /opt/show/ingest/config.toml:/etc/ai-show/config.toml local/ai-improv-toolkit"'
+echo 'alias dsc-nats="dsc run --network dev_network --rm -d --name nats_server -p 4222:4222 -p 8222:8222 nats --http_port 8222" # Note: unencrypted'
+echo 'alias dsc-ingest="dsc run --network dev_network --rm -it --name ingest -v /dev/show/:/dev/show/ --device=/dev/input -v /opt/show/ingest/config.toml:/etc/ai-show/config.toml local/ai-improv-toolkit:latest"'
+echo "alias dsc-stop-all='dsc ps -q | xargs -r dsc stop'"
 } >> ~/.bash_aliases
 
 if jobs -p >/dev/null 2>&1; then

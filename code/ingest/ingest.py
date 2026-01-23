@@ -83,6 +83,7 @@ async def nats_init(network_settings: NetworkSubSettings) -> AsyncIterator[NATS]
     nc: Optional[NATS] = None
     try:
         if network_settings.Use_tls:
+            print("Attempting Nats connection with TLS.")
             context: ssl.SSLContext = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
             context.minimum_version = ssl.TLSVersion.TLSv1_2
             context.verify_mode = ssl.CERT_REQUIRED
@@ -98,10 +99,12 @@ async def nats_init(network_settings: NetworkSubSettings) -> AsyncIterator[NATS]
                 servers=f"tls://{network_settings.Nats_server}", tls=context
             )
         else:
+            print("Attempting Nats connection without TLS.")
             nc = await nats.connect(f"nats://{network_settings.Nats_server}")
         yield nc
     finally:
-        if nc:
+        if nc and nc.is_connected:
+            print("Closing Nats connection.")
             await nc.flush()
             await nc.close()
 

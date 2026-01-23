@@ -3,6 +3,12 @@
 ---
 # tasks file for dev
 
+- name: Install golang
+  ansible.builtin.apt:
+    name: golang-go
+    state: present
+    update_cache: true
+
 - name: Create Dev user
   ansible.builtin.user:
     name: developer
@@ -43,10 +49,17 @@
     mode: '0440'
     validate: 'visudo -cf %s'
 
-- name: Creates project folder Mount Point for sshfs
-  ansible.builtin.file:
-    path: /home/developer/projects
-    owner: developer
-    group: developer
-    mode: '0755'
-    state: directory
+- name: Create a docker network for development
+  community.docker.docker_network:
+    name: dev_network
+    state: present
+
+- name: Install NATS CLI to /usr/local/bin
+  ansible.builtin.command:
+    argv:
+      - /usr/bin/go
+      - install
+      - github.com/nats-io/natscli/nats@latest
+    creates: /usr/local/bin/nats
+  environment:
+    GOBIN: /usr/local/bin
