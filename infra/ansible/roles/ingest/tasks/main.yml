@@ -21,6 +21,12 @@
     groups: input
     append: true
 
+- name: Ensure show is in the 'audio' group
+  ansible.builtin.user:
+    name: show
+    groups: audio
+    append: true
+
 - name: Create the /dev/show directory
   ansible.builtin.copy:
     dest: /etc/tmpfiles.d/dev-show.conf

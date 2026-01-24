@@ -63,3 +63,15 @@
     creates: /usr/local/bin/nats
   environment:
     GOBIN: /usr/local/bin
+
+- name: Ensure developer is in the 'input' group
+  ansible.builtin.user:
+    name: developer
+    groups: input
+    append: true
+
+- name: Ensure developer is in the 'audio' group
+  ansible.builtin.user:
+    name: developer
+    groups: audio
+    append: true
