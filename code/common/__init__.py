@@ -45,6 +45,6 @@ __all__ = [
     "QueuePriority",
     "QueueRequest",
     "NatsConnectionSettings",
-     "nats_init",
-     "nats_publish",
+    "nats_init",
+    "nats_publish",
 ]

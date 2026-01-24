@@ -1,6 +1,7 @@
 """
 Validated configuration model for the AI Improv Toolkit. Makes use of pydantic for validation.
 """
+
 import logging
 from typing import NamedTuple, Literal, Any
 from pydantic import BaseModel, ConfigDict, PositiveInt, model_validator
@@ -179,7 +180,7 @@ class ModeSettings(NamedTuple):
 
     Ethic: bool
     Role: ComponentRole  # Role of the component
-    Debug_level: Literal ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
+    Debug_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
 
 
 class ButtonSettings(NamedTuple):
@@ -273,6 +274,7 @@ class Config(BaseModel):
         if self.Buttons.Reset.Path in paths:
             raise ValueError(f"Duplicate button path found: {self.Buttons.Reset.Path}")
         return self
+
 
 def generate_config(configPath: str) -> Config:
     """

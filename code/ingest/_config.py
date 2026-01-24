@@ -7,12 +7,12 @@ All setting needed for ingestion are defined here.
 import os
 from pathlib import Path
 import tomllib
-from typing import Final, Literal, Any, NamedTuple
+from typing import Final, Literal, Any, NamedTuple, Optional
 
 from pydantic import BaseModel, PositiveInt, model_validator
-from config import config as cfg
+from common import config as cfg
 
-from config import KeyOptions as KO
+from common import KeyOptions as KO
 
 INTERNAL_CONFIG_PATH: Final[str] = (
     f"{Path(__file__).resolve().parent / 'internal.toml'}"
@@ -62,15 +62,15 @@ class NetworkSubSettings(NamedTuple):
     Network settings configuration.
     """
 
-    Client_cert_path: str
-    Client_key_path: str
     Nats_server: str
     Hearing_server: str
-    Ca_cert_path: str
     Connection_timeout_s: PositiveInt
     Retry_attempts: PositiveInt
     Retry_backoff_ms: PositiveInt
     Use_tls: bool
+    Ca_cert_path: Optional[str] = None
+    Client_cert_path: Optional[str] = None
+    Client_key_path: Optional[str] = None
 
 
 class HealthCheckSubSettings(NamedTuple):
@@ -89,6 +89,15 @@ class IngestSettings(BaseModel):
     Buttons: ButtonSubSettings
     Network: NetworkSubSettings
     HealthCheck: HealthCheckSubSettings
+    Ethics_mode: bool
+
+    @model_validator(mode="after")
+    def validate_ethics_mode(self):
+        if self.Ethics_mode and not self.Network.Use_tls:
+            raise ValueError(
+                "Ethics mode requires TLS to be enabled in network settings."
+            )
+        return self
 
     @model_validator(mode="after")
     def validate_network_settings(self):
@@ -98,6 +107,10 @@ class IngestSettings(BaseModel):
                 self.Network.Client_cert_path,
                 self.Network.Client_key_path,
             ]:
+                if file is None:
+                    raise ValueError(
+                        "TLS is enabled, but file paths are not all provided."
+                    )
                 if not (Path(file).is_file() and os.access(file, os.R_OK)):
                     raise ValueError(
                         f"TLS is enabled, but certificate/key file {file} is not accessible."
@@ -187,6 +200,7 @@ def load_internal_config(config: cfg.Config) -> IngestSettings:
             Enabled=config.Health_Check.Enabled,
             Interval_seconds=config.Health_Check.Interval_seconds,
         ),
+        Ethics_mode=config.Mode.Ethic,
     )
 
     return setting

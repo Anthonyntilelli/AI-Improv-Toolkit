@@ -1,11 +1,9 @@
-import asyncio
 import importlib
 import sys
 from typing import Final
 import logging
 
 import common.config as cfg
-import common.nats as nats
 
 logger = logging.getLogger(__name__)
 

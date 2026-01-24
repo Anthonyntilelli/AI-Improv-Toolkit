@@ -61,9 +61,9 @@ class NatsConnectionSettings(NamedTuple):
 
     nats_server: str
     use_tls: bool
-    ca_cert_path: str
-    client_cert_path: str
-    client_key_path: str
+    ca_cert_path: Optional[str] = None
+    client_cert_path: Optional[str] = None
+    client_key_path: Optional[str] = None
     key_password: Optional[str] = None
 
 
@@ -73,6 +73,14 @@ async def nats_init(network_settings: NatsConnectionSettings) -> AsyncIterator[N
     nc: Optional[NATS] = None
     try:
         if network_settings.use_tls:
+            if network_settings.ca_cert_path is None:
+                raise ValueError("CA certificate path is required when TLS is enabled.")
+            if network_settings.client_cert_path is None:
+                raise ValueError(
+                    "Client certificate path is required when TLS is enabled."
+                )
+            if network_settings.client_key_path is None:
+                raise ValueError("Client key path is required when TLS is enabled")
             print("Attempting Nats connection with TLS.")
             context: ssl.SSLContext = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
             context.minimum_version = ssl.TLSVersion.TLSv1_2
