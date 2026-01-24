@@ -1,7 +1,7 @@
 """
 Validated configuration model for the AI Improv Toolkit. Makes use of pydantic for validation.
 """
-
+import logging
 from typing import NamedTuple, Literal, Any
 from pydantic import BaseModel, ConfigDict, PositiveInt, model_validator
 import tomllib
@@ -178,8 +178,8 @@ class ModeSettings(NamedTuple):
     """
 
     Ethic: bool
-    Debug: bool
     Role: ComponentRole  # Role of the component
+    Debug_level: Literal ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
 
 
 class ButtonSettings(NamedTuple):
@@ -254,9 +254,9 @@ class Config(BaseModel):
                 raise ValueError("In Ethic mode, Show_rating must be g, pg, or pg-13.")
             if self.Show.Disclaimer not in ["short", "full"]:
                 raise ValueError("In Ethic mode, Disclaimer must be short or full.")
-            if self.Mode.Debug:
+            if self.Mode.Debug_level in ["DEBUG", "INFO", "WARNING"]:
                 raise ValueError(
-                    "Ethic mode and Debug mode cannot be enabled simultaneously."
+                    "In Ethics mode, Debug_level cannot be DEBUG, INFO, or WARNING."
                 )
             if self.Network.Use_tls is not True:
                 raise ValueError("TLS must be enabled in Ethics mode.")
@@ -273,7 +273,6 @@ class Config(BaseModel):
         if self.Buttons.Reset.Path in paths:
             raise ValueError(f"Duplicate button path found: {self.Buttons.Reset.Path}")
         return self
-
 
 def generate_config(configPath: str) -> Config:
     """
@@ -292,3 +291,15 @@ def generate_config(configPath: str) -> Config:
         unverified_config = tomllib.load(fp)
 
     return Config(**unverified_config)
+
+
+def get_logging_level(config: Config) -> int:
+    """Get the logging level based on the Debug_level setting."""
+    level_mapping = {
+        "DEBUG": logging.DEBUG,
+        "INFO": logging.INFO,
+        "WARNING": logging.WARNING,
+        "ERROR": logging.ERROR,
+        "CRITICAL": logging.CRITICAL,
+    }
+    return level_mapping[config.Mode.Debug_level]

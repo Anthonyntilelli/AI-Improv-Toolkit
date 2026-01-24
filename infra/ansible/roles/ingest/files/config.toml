@@ -31,7 +31,7 @@ Instructions = ""
 
 [Mode]
 Ethic = false # When true, will have ethic mode limits applied
-Debug = false # cannot be true in Ethic mode
+Debug_level = "INFO" #  In Ethics mode mode must be "Error" or "Critical"
 Role = "ingest" # options: [ingest, vision, hearing, brain, output, health_check] Role of the component
 
 [Buttons]

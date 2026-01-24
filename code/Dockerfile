@@ -16,11 +16,11 @@ WORKDIR /app
 # Disable development dependencies
 ENV UV_NO_DEV=1
 
-COPY /code/pyproject.toml /code/uv.lock /app/
+COPY pyproject.toml uv.lock /app/
 RUN uv sync --locked
 
-COPY code/main.py /app/
-COPY code/config/ /app/config/
-COPY code/ingest/ /app/ingest/
+COPY main.py /app/
+COPY common/ /app/common/
+COPY ingest/ /app/ingest/
 
 CMD ["uv", "run", "main.py"]

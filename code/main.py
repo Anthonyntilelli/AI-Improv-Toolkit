@@ -1,9 +1,11 @@
+import asyncio
 import importlib
 import sys
 from typing import Final
 import logging
 
-import common as cfg
+import common.config as cfg
+import common.nats as nats
 
 logger = logging.getLogger(__name__)
 
@@ -11,19 +13,18 @@ logger = logging.getLogger(__name__)
 
 
 def main() -> None:
-    # CONFIG_FILE: Final[str] = "testing/good_config.toml"
     CONFIG_FILE: Final[str] = "/etc/ai-show/config.toml"
 
     config: cfg.Config
     try:
         config = cfg.generate_config(CONFIG_FILE)
     except Exception as e:
-        print(f"Failed to load configuration: {e}")
+        print(f"Failed to load configuration: {e}", file=sys.stderr)
         sys.exit(1)
 
     logging.basicConfig(
         stream=sys.stdout,
-        level=logging.DEBUG if config.Mode.Debug else logging.INFO,
+        level=cfg.get_logging_level(config),
         format="[%(asctime)s] {%(filename)s:%(lineno)d} %(levelname)s - %(message)s",
     )
 

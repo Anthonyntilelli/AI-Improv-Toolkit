@@ -33,8 +33,7 @@ class ButtonData(NamedTuple):
     # action = button press, status = device connect/disconnect
     message_type: Literal["action", "status"]
     action: cfg.AllowedActions | None
-    timestamp_ms: int
-    # dead = device failed permanently
+    # status: dead = device failed permanently
     status: Optional[Literal["connected", "disconnected", "dead"]]
     version: int = 1
     object_type: str = "ButtonData"
@@ -42,7 +41,7 @@ class ButtonData(NamedTuple):
 
 
 @dataclass(order=False)  # Important: order=False prevents automatic comparison methods
-class PrioritizedRequest:
+class QueueRequest:
     """Represents a prioritized request for the PriorityQueue."""
 
     # Priority level (lower number = higher priority)
@@ -50,8 +49,11 @@ class PrioritizedRequest:
     request_data: Any = field(compare=False)  # Actual request data
 
     # This method is what the PriorityQueue uses to compare two objects
-    def __lt__(self, other: "PrioritizedRequest") -> bool:
+    def __lt__(self, other: "QueueRequest") -> bool:
         return self.priority < other.priority
+
+
+NatsSubjects = Literal["INTERFACE"]
 
 
 class NatsConnectionSettings(NamedTuple):
@@ -62,7 +64,7 @@ class NatsConnectionSettings(NamedTuple):
     ca_cert_path: str
     client_cert_path: str
     client_key_path: str
-    key_password: Optional[str] = None  # Not used in this implementation
+    key_password: Optional[str] = None
 
 
 @contextlib.asynccontextmanager
@@ -98,7 +100,7 @@ async def nats_init(network_settings: NatsConnectionSettings) -> AsyncIterator[N
 
 
 async def nats_publish(
-    nc: NATS, subject: str, output_queue: asyncio.PriorityQueue[PrioritizedRequest]
+    nc: NATS, subject: NatsSubjects, output_queue: asyncio.PriorityQueue[QueueRequest]
 ) -> None:
     """Publish a message to a NATS subject from the output queue."""
     try:

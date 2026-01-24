@@ -13,12 +13,13 @@ from .config import (
     HealthCheckSettings,
     Config,
     generate_config,
+    get_logging_level,
 )
 
 from .nats import (
     QueuePriority,
     ButtonData,
-    PrioritizedRequest,
+    QueueRequest,
     NatsConnectionSettings,
     nats_init,
     nats_publish,
@@ -39,8 +40,10 @@ __all__ = [
     "HealthCheckSettings",
     "Config",
     "generate_config",
+    "get_logging_level",
+    "ButtonData",
     "QueuePriority",
-    "PrioritizedRequest",
+    "QueueRequest",
     "NatsConnectionSettings",
      "nats_init",
      "nats_publish",
