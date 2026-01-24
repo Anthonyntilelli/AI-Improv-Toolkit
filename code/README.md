@@ -18,7 +18,7 @@ TODO
 - Python 3.14+
 - Docker
 - Apt packages:
-  - portaudio19-dev
+  - portaudio19-dev  # for SoundDevice
   - libasound2-dev
   - build-essential
   - openssl
