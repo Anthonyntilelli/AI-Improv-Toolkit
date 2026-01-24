@@ -18,9 +18,16 @@ from ._button import button_init, monitor_input_events
 def start(config: cfg.Config) -> None:
     """Function to start the ingest role."""
     print("Ingest role started.")
-    ingest_settings: IngestSettings = load_internal_config(config)
-    print("Loaded ingest config")
-    asyncio.run(button_loop(ingest_settings))
+    try:
+        # TODO: REMOVE skip_button_validation
+        ingest_settings: IngestSettings = load_internal_config(
+            config, skip_button_validation=True
+        )
+        print("Loaded ingest config")
+    except Exception as e:
+        print(f"Failed to load ingest configuration: {e}")
+        return
+    # asyncio.run(button_loop(ingest_settings)) # TODO: RE-ENABLE button_loop
     print("Ingest role completed.")
 
 

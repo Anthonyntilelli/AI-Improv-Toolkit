@@ -62,7 +62,7 @@ Interval_seconds = 5
 
 [Actors]
 
-[[Actors.mics]]
+[[Actors.Mics]]
 Mic_path = "/dev/snd/by-id/usb-Jieli_Technology_USB_Composite_Device_5500745F8A672305-00" # pragma: allowlist secret
 Channel_number = 0 # count starts at 0
-type = "mono" # options: [mono, stereo]
+Type = "mono" # options: [mono, stereo]

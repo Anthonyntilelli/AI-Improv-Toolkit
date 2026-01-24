@@ -3,8 +3,8 @@ Validated configuration model for the AI Improv Toolkit. Makes use of pydantic f
 """
 
 import logging
-from typing import NamedTuple, Literal, Any
-from pydantic import BaseModel, ConfigDict, PositiveInt, model_validator
+from typing import Annotated, NamedTuple, Literal, Any
+from pydantic import BaseModel, ConfigDict, Field, PositiveInt, model_validator
 import tomllib
 
 AllowedActions = Literal["reset", "speak"]
@@ -212,6 +212,18 @@ class HealthCheckSettings(NamedTuple):
     Interval_seconds: PositiveInt
 
 
+class MicsSubSettings(NamedTuple):
+    Mic_path: str
+    Channel_number: Annotated[int, Field(ge=0)]
+    Type: Literal["mono", "stereo"]
+
+
+class ActorSettings(NamedTuple):
+    """Holds actor specific settings."""
+
+    Mics: list[MicsSubSettings]
+
+
 # @dataclasses.dataclass(frozen=True)
 class Config(BaseModel):
     """
@@ -226,9 +238,10 @@ class Config(BaseModel):
     Buttons: ButtonSettings
     Network: NetworkSettings
     Health_Check: HealthCheckSettings
+    Actors: ActorSettings
 
     @model_validator(mode="after")
-    def validate_mvp_limits(self):
+    def validate_mvp_limits(self) -> "Config":
         # Enforce MVP limitations
         if self.Show.Language != "en-US":
             raise ValueError("Only 'en-US' language is supported in MVP.")
@@ -241,7 +254,7 @@ class Config(BaseModel):
         return self
 
     @model_validator(mode="after")
-    def validate_avatars_count(self):
+    def validate_avatars_count(self) -> "Config":
         if len(self.Buttons.Avatars) != self.Show.Avatar_count:
             raise ValueError("Buttons.Avatar count must match Show.Avatar_count.")
         if len(self.AI.Avatars) != self.Show.Avatar_count:
@@ -249,7 +262,7 @@ class Config(BaseModel):
         return self
 
     @model_validator(mode="after")
-    def validate_ethic_mode(self):
+    def validate_ethic_mode(self) -> "Config":
         if self.Mode.Ethic:
             if self.Show.Show_rating not in ["g", "pg", "pg-13"]:
                 raise ValueError("In Ethic mode, Show_rating must be g, pg, or pg-13.")
@@ -264,7 +277,7 @@ class Config(BaseModel):
         return self
 
     @model_validator(mode="after")
-    def validate_buttons(self):
+    def validate_buttons(self) -> "Config":
         """Validate that all configured button paths are unique."""
         paths = set()
         for button in self.Buttons.Avatars:
@@ -273,6 +286,22 @@ class Config(BaseModel):
             paths.add(button.Path)
         if self.Buttons.Reset.Path in paths:
             raise ValueError(f"Duplicate button path found: {self.Buttons.Reset.Path}")
+        return self
+
+    @model_validator(mode="after")
+    def validate_actors_mics(self) -> "Config":
+        """Validate that the Actors configurations are valid."""
+        if len(self.Actors.Mics) != self.Show.Actors_count:
+            raise ValueError("Number of Actors.Mics must match Show.Actors_count.")
+        mic_path_channel: set[tuple[str, int]] = set()
+        for mic in self.Actors.Mics:
+            mic_path_channel.add((mic.Mic_path, mic.Channel_number))
+
+        if len(mic_path_channel) != len(self.Actors.Mics):
+            raise ValueError(
+                "Duplicate mic path and channel combinations found in Actors.Mics."
+            )
+
         return self
 
 

@@ -90,6 +90,8 @@ class IngestSettings(BaseModel):
     Network: NetworkSubSettings
     HealthCheck: HealthCheckSubSettings
     Ethics_mode: bool
+    skip_button_validation: bool = False
+    ActorMics: list[cfg.MicsSubSettings]
 
     @model_validator(mode="after")
     def validate_ethics_mode(self):
@@ -119,6 +121,8 @@ class IngestSettings(BaseModel):
 
     @model_validator(mode="after")
     def validate_buttons(self):
+        if self.skip_button_validation:
+            return self
         for button in self.Buttons.buttons:
             p = Path(button.device_path)
             if not p.exists():
@@ -138,6 +142,31 @@ class IngestSettings(BaseModel):
                 ) from e
         return self
 
+    @model_validator(mode="after")
+    def validate_audio_device(self):
+        actor_mics = self.ActorMics
+        for mic in actor_mics:
+            audio_device = Path(mic.Mic_path)
+            if not audio_device.exists():
+                raise ValueError(
+                    f"Audio capture device path {audio_device} does not exist."
+                )
+            if not audio_device.is_char_device():
+                raise ValueError(
+                    f"Audio capture device path {audio_device} is not a character device, likely not an audio device."
+                )
+
+            # Open in non-blocking read-only mode (to avoid blocking if grabbed)
+            flags = os.O_RDONLY | os.O_NONBLOCK
+            try:
+                fd = os.open(audio_device, flags)
+                os.close(fd)
+            except OSError as e:
+                raise ValueError(
+                    f"Audio capture device path {audio_device} is not accessible: {e}"
+                ) from e
+        return self
+
     # TODO Enable audio validation when needed
     # @model_validator(mode="after")
     # def validate_audio(self):
@@ -148,7 +177,9 @@ class IngestSettings(BaseModel):
     #     return self
 
 
-def load_internal_config(config: cfg.Config) -> IngestSettings:
+def load_internal_config(
+    config: cfg.Config, skip_button_validation: bool = False
+) -> IngestSettings:
     """
     Load and validate the internal.toml configuration file.
     """
@@ -201,6 +232,8 @@ def load_internal_config(config: cfg.Config) -> IngestSettings:
             Interval_seconds=config.Health_Check.Interval_seconds,
         ),
         Ethics_mode=config.Mode.Ethic,
+        skip_button_validation=skip_button_validation,
+        ActorMics=config.Actors.Mics,
     )
 
     return setting

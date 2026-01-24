@@ -14,6 +14,8 @@ from .config import (
     Config,
     generate_config,
     get_logging_level,
+    ActorSettings,
+    MicsSubSettings,
 )
 
 from .nats import (
@@ -47,4 +49,6 @@ __all__ = [
     "NatsConnectionSettings",
     "nats_init",
     "nats_publish",
+    "ActorSettings",
+    "MicsSubSettings",
 ]
