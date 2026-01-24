@@ -85,9 +85,25 @@ KeyOptions = Literal[
     "KEY_PAGEDOWN",
     "KEY_INSERT",
     "KEY_DELETE",
+    "KEY_KP0",
+    "KEY_KP1",
+    "KEY_KP2",
+    "KEY_KP3",
+    "KEY_KP4",
+    "KEY_KP5",
+    "KEY_KP6",
+    "KEY_KP7",
+    "KEY_KP8",
+    "KEY_KP9",
+    "KEY_KPDOT",
+    "KEY_KPENTER",
+    "KEY_KPMINUS",
+    "KEY_KPPLUS",
+    "KEY_KPASTERISK",
+    "KEY_KPSLASH",
 ]
 
-_ComponentRole = Literal[
+ComponentRole = Literal[
     "ingest",
     "vision",
     "hearing",
@@ -107,7 +123,7 @@ class ButtonResetSubSettings(NamedTuple):
     grab: bool  # wether the button will be grabbed for exclusive use.
 
 
-class _AIAvatarSubSettings(NamedTuple):
+class AIAvatarSubSettings(NamedTuple):
     """
     Instructions for the AI avatar.
     """
@@ -125,7 +141,7 @@ class ButtonAvatarSubSettings(NamedTuple):
     grab: bool  # wether the button will be grabbed for exclusive use.
 
 
-class _ShowSettings(NamedTuple):
+class ShowSettings(NamedTuple):
     """
     Settings related to the overall show configuration.
     """
@@ -145,7 +161,7 @@ class _ShowSettings(NamedTuple):
     Command_keyword: str  # Keyword to activate voice commands.
 
 
-class _AISettings(NamedTuple):
+class AISettings(NamedTuple):
     """
     Settings related to AI behavior and instructions.
     """
@@ -153,20 +169,20 @@ class _AISettings(NamedTuple):
     Introduction_instructions: str
     General_instructions: str
     show_watcher_instructions: str
-    Avatars: list[_AIAvatarSubSettings]  # List of avatar settings
+    Avatars: list[AIAvatarSubSettings]  # List of avatar settings
 
 
-class _ModeSettings(NamedTuple):
+class ModeSettings(NamedTuple):
     """
     Settings that control operational modes like Ethics mode and Debug mode.
     """
 
     Ethic: bool
     Debug: bool
-    Role: _ComponentRole  # Role of the component
+    Role: ComponentRole  # Role of the component
 
 
-class _ButtonSettings(NamedTuple):
+class ButtonSettings(NamedTuple):
     """
     Settings related to button configurations.
     """
@@ -175,7 +191,7 @@ class _ButtonSettings(NamedTuple):
     Avatars: list[ButtonAvatarSubSettings]
 
 
-class _NetworkSettings(NamedTuple):
+class NetworkSettings(NamedTuple):
     """
     Settings related to network configurations.
     Not all user will need server certs/keys, but they are included here for completeness.
@@ -190,7 +206,7 @@ class _NetworkSettings(NamedTuple):
     Use_tls: bool
 
 
-class _HealthCheckSettings(NamedTuple):
+class HealthCheckSettings(NamedTuple):
     Enabled: bool
     Interval_seconds: PositiveInt
 
@@ -203,12 +219,12 @@ class Config(BaseModel):
     """
 
     model_config = ConfigDict(extra="forbid")
-    Show: _ShowSettings
-    AI: _AISettings
-    Mode: _ModeSettings
-    Buttons: _ButtonSettings
-    Network: _NetworkSettings
-    Health_Check: _HealthCheckSettings
+    Show: ShowSettings
+    AI: AISettings
+    Mode: ModeSettings
+    Buttons: ButtonSettings
+    Network: NetworkSettings
+    Health_Check: HealthCheckSettings
 
     @model_validator(mode="after")
     def validate_mvp_limits(self):
