@@ -48,13 +48,15 @@ if ! grep -q "dsc" ~/.bash_aliases; then
     echo 'alias dsc="docker --context show-ingest"'
     echo 'alias dsc-b="dsc build -t local/ai-improv-toolkit:latest ."'
     echo 'alias dsc-nats="dsc run --network dev_network --rm -d --name nats_server -p 4222:4222 -p 8222:8222 nats --http_port 8222" # Note: unencrypted'
-    echo 'alias dsc-ingest="dsc run --network dev_network --rm -it --name ingest -v /dev/show/:/dev/show/ --device=/dev/input -v /opt/show/ingest/config.toml:/etc/ai-show/config.toml local/ai-improv-toolkit:latest"'
+    echo 'alias dsc-ingest="dsc run --network dev_network --rm -it --name ingest -v /dev/show/:/dev/show/ --device=/dev/input --device /dev/snd:/dev/snd -v /opt/show/ingest/config.toml:/etc/ai-show/config.toml local/ai-improv-toolkit:latest"'
     echo "alias dsc-stop-all='dsc ps -q | xargs -r dsc stop'"
+    echo "alias des-bash='dsc run --network dev_network --rm -it --name ingest -v /dev/show/:/dev/show/ --device=/dev/input --device /dev/snd:/dev/snd -v /opt/show/ingest/config.toml:/etc/ai-show/config.toml local/ai-improv-toolkit:latest /bin/bash'"
   } >> ~/.bash_aliases
 fi
 
 pids="$(jobs -pr || true)"
 if [ -n "$pids" ]; then
+  # shellcheck disable=SC2086
   wait $pids
 fi
 

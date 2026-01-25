@@ -13,6 +13,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     terraform \
     whois \
     docker-cli \
+    vim \
     && rm -rf /var/lib/apt/lists/*
 
 # Install system packages used by the application

@@ -36,10 +36,12 @@
       "rtype",
       "shellcheck",
       "socat",
+      "sounddevice",
       "syncthing",
       "timonwong",
       "trixie",
       "ungrab",
+      "virtualenv",
       "webrtcvad",
       "whois"
     ],
