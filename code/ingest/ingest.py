@@ -13,6 +13,7 @@ from ._config import (
     IngestSettings,
 )
 from ._button import button_init, monitor_input_events
+from ._audio import audio_placeholder
 
 
 def start(config: cfg.Config) -> None:
@@ -27,7 +28,8 @@ def start(config: cfg.Config) -> None:
     except Exception as e:
         print(f"Failed to load ingest configuration: {e}")
         return
-    # asyncio.run(button_loop(ingest_settings)) # TODO: RE-ENABLE button_loop
+    # asyncio.run(button_loop(ingest_settings)) # TODO: RE-ENABLE button_loop and stick in own thread or process ??
+    mic_loop(ingest_settings)
     print("Ingest role completed.")
 
 
@@ -67,3 +69,20 @@ async def button_loop(ingest_settings: IngestSettings) -> None:
                 t.cancel()
             await asyncio.gather(*tasks, return_exceptions=True)
     print("Ingest Button loop completed.")
+
+
+def mic_loop(ingest_settings: IngestSettings) -> None:
+    """Loop to monitor microphone and send to hearing server (not NATS)."""
+    print("Ingest Mic Loop Started.")
+
+    # TODO: Implement microphone monitoring and sending to hearing server
+
+    audio_placeholder()
+
+    # Set up ssl Context if tls is used
+    # create context with microphone and hearing server connection
+    # Create hearing server and microphone connection tasks
+    # Gather tasks and handle cancellation
+
+    print("Ingest Mic Loop Completed.")
+    return

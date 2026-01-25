@@ -11,6 +11,7 @@ from typing import Final, Literal, Any, NamedTuple, Optional
 
 from pydantic import BaseModel, PositiveInt, model_validator
 from common import config as cfg
+import sounddevice as sd
 
 from common import KeyOptions as KO
 
@@ -34,7 +35,6 @@ class AudioSubSettings(NamedTuple):
     """
 
     Sample_rate: PositiveInt
-    Channels: PositiveInt
     Pre_roll_ms: PositiveInt
     Post_roll_ms: PositiveInt
     Chunk_size_ms: PositiveInt
@@ -145,25 +145,15 @@ class IngestSettings(BaseModel):
     @model_validator(mode="after")
     def validate_audio_device(self):
         actor_mics = self.ActorMics
-        for mic in actor_mics:
-            audio_device = Path(mic.Mic_path)
-            if not audio_device.exists():
-                raise ValueError(
-                    f"Audio capture device path {audio_device} does not exist."
-                )
-            if not audio_device.is_char_device():
-                raise ValueError(
-                    f"Audio capture device path {audio_device} is not a character device, likely not an audio device."
-                )
-
-            # Open in non-blocking read-only mode (to avoid blocking if grabbed)
-            flags = os.O_RDONLY | os.O_NONBLOCK
+        for actor_id, mic in enumerate(actor_mics):
             try:
-                fd = os.open(audio_device, flags)
-                os.close(fd)
-            except OSError as e:
+                sd.check_input_settings(device=mic.Mic_name, samplerate=mic.Sample_rate)
+            except Exception as e:
+                correct_rates = sd.query_devices(mic.Mic_name).get(
+                    "default_samplerate", "unknown"
+                )
                 raise ValueError(
-                    f"Audio capture device path {audio_device} is not accessible: {e}"
+                    f"Audio device name {mic.Mic_name} for actor '{actor_id}' is not valid, sample rate: {mic.Sample_rate}, correct rates: {correct_rates}: Error: {e}"
                 ) from e
         return self
 
@@ -209,16 +199,20 @@ def load_internal_config(
     # Derive settings from the main config
     setting: IngestSettings = IngestSettings(
         Show=ShowSubSettings(Avatar_count=config.Show.Avatar_count),
-        Audio=AudioSubSettings(
-            **unverified_internal_config["Audio"], Channels=config.Show.Actors_count
-        ),
+        Audio=AudioSubSettings(**unverified_internal_config.get("Audio", {})),
         Buttons=ButtonSubSettings(
             buttons=[reset_button] + avatar_buttons,
-            Debounce_ms=unverified_internal_config["Button"]["Debounce_ms"],
+            Debounce_ms=unverified_internal_config.get("Button", {}).get(
+                "Debounce_ms", -99
+            ),
         ),
         Network=NetworkSubSettings(
-            Client_cert_path=unverified_internal_config["Network"]["Client_cert_path"],
-            Client_key_path=unverified_internal_config["Network"]["Client_key_path"],
+            Client_cert_path=unverified_internal_config.get("Network", {}).get(
+                "Client_cert_path", None
+            ),
+            Client_key_path=unverified_internal_config.get("Network", {}).get(
+                "Client_key_path", None
+            ),
             Nats_server=config.Network.Nats_server,
             Hearing_server=config.Network.Hearing_server,
             Ca_cert_path=config.Network.Ca_cert_path,

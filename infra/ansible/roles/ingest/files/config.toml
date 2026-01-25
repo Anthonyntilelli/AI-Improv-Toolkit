@@ -63,6 +63,5 @@ Interval_seconds = 5
 [Actors]
 
 [[Actors.Mics]]
-Mic_path = "/dev/snd/by-id/usb-Jieli_Technology_USB_Composite_Device_5500745F8A672305-00" # pragma: allowlist secret
-Channel_number = 0 # count starts at 0
-Type = "mono" # options: [mono, stereo]
+Mic_name = "USB Composite Device"  # Find Mic_name using the /opt/show/ingest/sound_list_name.sh
+Sample_rate = 48000.0

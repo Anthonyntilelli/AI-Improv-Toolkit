@@ -122,7 +122,7 @@ for i, d in enumerate(sd.query_devices()):
     name_l = name.lower()
     if any(x in name_l for x in deny):
         continue
-    print(f'- "{name}"  in={d["max_input_channels"]}')
+    print(f'- "{name}", sample_rate={d["default_samplerate"]}, max_input_channels={d["max_input_channels"]}')
     count += 1
 if count == 0:
     print("No input devices found. Check /dev/snd permissions and audio group membership.")

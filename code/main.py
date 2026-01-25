@@ -18,7 +18,7 @@ def main() -> None:
     try:
         config = cfg.generate_config(CONFIG_FILE)
     except Exception as e:
-        print(f"Failed to load configuration: {e}", file=sys.stderr)
+        print(f"Failed to load {CONFIG_FILE} configuration: {e}", file=sys.stderr)
         sys.exit(1)
 
     logging.basicConfig(
