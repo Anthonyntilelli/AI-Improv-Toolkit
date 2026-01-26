@@ -112,7 +112,8 @@ list_audio_devices() {
   output "------------------------------------------------------------"
   python3 - <<'EOF'
 import sounddevice as sd
-count = 0
+in_count = 0
+out_count = 0
 deny = ("default", "sysdefault", "dmix", "front", "surround", "iec958", "spdif")
 print("Input devices (PortAudio/sounddevice):")
 for i, d in enumerate(sd.query_devices()):
@@ -123,9 +124,23 @@ for i, d in enumerate(sd.query_devices()):
     if any(x in name_l for x in deny):
         continue
     print(f'- "{name}", sample_rate={d["default_samplerate"]}, max_input_channels={d["max_input_channels"]}')
-    count += 1
-if count == 0:
+    in_count += 1
+if in_count == 0:
     print("No input devices found. Check /dev/snd permissions and audio group membership.")
+
+print("\nOutput devices (PortAudio/sounddevice):")
+for i, d in enumerate(sd.query_devices()):
+    if d["max_output_channels"] <= 0:
+        continue
+    name = d["name"]
+    name_l = name.lower()
+    if any(x in name_l for x in deny):
+        continue
+    print(f'- "{name}", sample_rate={d["default_samplerate"]}, max_output_channels={d["max_output_channels"]}')
+    out_count += 1
+
+if out_count == 0:
+    print("No output devices found. Check /dev/snd permissions and audio group membership.")
 EOF
   output "------------------------------------------------------------"
   return 0

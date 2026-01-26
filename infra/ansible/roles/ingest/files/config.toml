@@ -37,7 +37,7 @@ Role = "ingest" # options: [ingest, vision, hearing, brain, output, health_check
 [Buttons]
 
 [Buttons.Reset]
-Path = "/dev/show/big-red"
+Path = "/dev/show/reset"
 Key = "KEY_SPACE"
 grab = true
 
