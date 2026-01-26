@@ -13,7 +13,7 @@ from ._config import (
     IngestSettings,
 )
 from ._button import button_init, monitor_input_events
-from ._audio import audio_placeholder
+from ._audio import record_and_forward
 
 
 def start(config: cfg.Config) -> None:
@@ -77,7 +77,7 @@ def mic_loop(ingest_settings: IngestSettings) -> None:
 
     # TODO: Implement microphone monitoring and sending to hearing server
 
-    audio_placeholder()
+    record_and_forward(ingest_settings)
 
     # Set up ssl Context if tls is used
     # create context with microphone and hearing server connection
