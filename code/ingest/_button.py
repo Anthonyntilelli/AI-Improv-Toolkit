@@ -1,7 +1,5 @@
-"""
-Ingest role module.
-Use the start function to start the ingest process.
-"""
+"""Button input device handling using evdev library."""
+
 # evdev API reference: https://python-evdev.readthedocs.io/en/latest/usage.html
 
 import asyncio
