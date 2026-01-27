@@ -5,7 +5,7 @@ import sounddevice as sd
 import numpy as np  # noqa: F401  # Required for type hints and sounddevice's NumPy-backed buffers
 
 from ._config import AudioDataType, IngestSettings
-from common.dataTypes import SlidingQueue, AudioQueueData, EMPTY
+from common.dataTypes import SlidingQueue, AudioQueueData
 
 
 class DeviceInformation(NamedTuple):
@@ -165,8 +165,6 @@ def consume_audio_queue(
         try:
             while True:
                 audio_data = output_queue.get()
-                if audio_data is EMPTY:
-                    continue
                 # Process the audio data as needed
                 # For example, send it to a speech recognition module
                 print(
