@@ -4,7 +4,10 @@ Use the start function to start the ingest process.
 """
 
 import asyncio
+from typing import Final
+from concurrent.futures import ThreadPoolExecutor
 
+from common.dataTypes import AudioQueueData, SlidingQueue
 import common.config as cfg
 import common.nats as nats
 
@@ -13,7 +16,7 @@ from ._config import (
     IngestSettings,
 )
 from ._button import button_init, monitor_input_events
-from ._audio import record_and_forward
+from ._audio import stream_audio_to_queue, consume_audio_queue
 
 
 def start(config: cfg.Config) -> None:
@@ -75,9 +78,14 @@ def mic_loop(ingest_settings: IngestSettings) -> None:
     """Loop to monitor microphone and send to hearing server (not NATS)."""
     print("Ingest Mic Loop Started.")
 
-    # TODO: Implement microphone monitoring and sending to hearing server
+    AUDIO_QUEUE_MAXSIZE: Final[int] = 128
+    OutputAudioQueue: Final[SlidingQueue[AudioQueueData]] = SlidingQueue(
+        maxsize=AUDIO_QUEUE_MAXSIZE
+    )
 
-    record_and_forward(ingest_settings)
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        executor.submit(stream_audio_to_queue, ingest_settings, OutputAudioQueue)
+        executor.submit(consume_audio_queue, ingest_settings, OutputAudioQueue)
 
     # Set up ssl Context if tls is used
     # create context with microphone and hearing server connection

@@ -10,6 +10,7 @@
       "ecodes",
       "evdev",
       "Fira",
+      "frombuffer",
       "fscrypt",
       "GOBIN",
       "Improbotics",
@@ -41,11 +42,14 @@
       "sounddevice",
       "syncthing",
       "timonwong",
+      "tobytes",
       "trixie",
       "ungrab",
       "virtualenv",
       "webrtcvad",
-      "whois"
+      "whois",
+      "XRUN",
+      "xruns"
     ],
     "python.defaultInterpreterPath": "${workspaceFolder}/code/.venv/bin/python",
     "python.analysis.typeCheckingMode": "standard",

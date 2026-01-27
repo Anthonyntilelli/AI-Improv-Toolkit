@@ -15,7 +15,7 @@ import sounddevice as sd
 
 from common import KeyOptions as KO
 
-AudioDataType =  Literal['float32', 'int32', 'int16', 'int8', 'uint8']
+AudioDataType = Literal["float32", "int32", "int16", "int8", "uint8"]
 
 INTERNAL_CONFIG_PATH: Final[str] = (
     f"{Path(__file__).resolve().parent / 'internal.toml'}"
@@ -38,8 +38,8 @@ class AudioSubSettings(NamedTuple):
     Chunk_size_ms: PositiveInt
     Vad_aggressiveness: Literal[0, 1, 2, 3]
     Vad_frame_ms: Literal[10, 20, 30]
-    Sample_rate: PositiveInt = 16000 # preferred sample rate for whisper model
-    Dtype: AudioDataType = "int16" # preferred dtype for whisper model
+    Sample_rate: PositiveInt = 16000  # preferred sample rate for whisper model
+    Dtype: AudioDataType = "int16"  # preferred dtype for whisper model
 
 
 class Button(NamedTuple):
@@ -147,7 +147,9 @@ class IngestSettings(BaseModel):
         actor_mics = self.ActorMics
         for actor_id, mic in enumerate(actor_mics):
             try:
-                sd.check_input_settings(device=mic.Mic_name, dtype=self.Audio.Dtype, channels=1)
+                sd.check_input_settings(
+                    device=mic.Mic_name, dtype=self.Audio.Dtype, channels=1
+                )
             except Exception as e:
                 raise ValueError(
                     f"Audio device name {mic.Mic_name} for actor '{actor_id}' is not valid: {e}"
