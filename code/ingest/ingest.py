@@ -41,6 +41,7 @@ async def button_loop(ingest_settings: IngestSettings) -> None:
     print("Ingest Button Loop started.")
     device_lock = asyncio.Lock()
     nats_queue: asyncio.PriorityQueue[nats.QueueRequest] = asyncio.PriorityQueue()
+    quit_event = asyncio.Event()  # TODO: set this event to quit the loop
 
     # Initialize NATS connection and button devices
     nats_network = nats.NatsConnectionSettings(
@@ -63,7 +64,9 @@ async def button_loop(ingest_settings: IngestSettings) -> None:
             for device in avatar_devices.values()
         ]
         tasks.append(
-            asyncio.create_task(nats.nats_publish(nc, "INTERFACE", nats_queue))
+            asyncio.create_task(
+                nats.nats_publish(nc, "INTERFACE", nats_queue, quit_event)
+            )
         )
         try:
             await asyncio.gather(*tasks)
@@ -84,7 +87,7 @@ def mic_loop(ingest_settings: IngestSettings) -> None:
     )
 
     with ThreadPoolExecutor(max_workers=2) as executor:
-        executor.submit(stream_audio_to_queue, ingest_settings, OutputAudioQueue)
+        executor.submit(stream_audio_to_queue, ingest_settings, OutputAudioQueue, 0) # MVP Limited to 1 mic
         executor.submit(consume_audio_queue, ingest_settings, OutputAudioQueue)
 
     # Set up ssl Context if tls is used

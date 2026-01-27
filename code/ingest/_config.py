@@ -48,6 +48,7 @@ class Button(NamedTuple):
     device_path: str
     key: dict[KO, cfg.AllowedActions]  # key with action name
     grab: bool
+    avatar_id: int  # -1 is control button, 0..n are avatar buttons
 
 
 class ButtonSubSettings(NamedTuple):
@@ -187,12 +188,18 @@ def load_internal_config(
         device_path=config.Buttons.Reset.Path,
         key={config.Buttons.Reset.Key: "reset"},
         grab=config.Buttons.Reset.grab,
+        avatar_id=-1,
     )
 
     avatar_buttons: list[Button] = []
-    for btn in config.Buttons.Avatars:
+    for avatar_id, btn in enumerate(config.Buttons.Avatars):
         avatar_buttons.append(
-            Button(device_path=btn.Path, key={btn.Speak: "speak"}, grab=btn.grab)
+            Button(
+                device_path=btn.Path,
+                key={btn.Speak: "speak"},
+                grab=btn.grab,
+                avatar_id=avatar_id,
+            )
         )
 
     # Derive settings from the main config

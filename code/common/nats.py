@@ -16,6 +16,9 @@ import json
 from common import config as cfg
 
 
+NatsSubjects = Literal["INTERFACE"]
+
+
 class QueuePriority(Enum):
     """Defines priority levels for the PriorityQueue."""
 
@@ -29,7 +32,7 @@ class QueuePriority(Enum):
 class ButtonData(NamedTuple):
     """Represents Button event data for a Queue."""
 
-    device_path: str
+    avatar_id: int
     # action = button press, status = device connect/disconnect
     message_type: Literal["action", "status"]
     action: cfg.AllowedActions | None
@@ -51,9 +54,6 @@ class QueueRequest:
     # This method is what the PriorityQueue uses to compare two objects
     def __lt__(self, other: "QueueRequest") -> bool:
         return self.priority < other.priority
-
-
-NatsSubjects = Literal["INTERFACE"]
 
 
 class NatsConnectionSettings(NamedTuple):
@@ -108,18 +108,21 @@ async def nats_init(network_settings: NatsConnectionSettings) -> AsyncIterator[N
 
 
 async def nats_publish(
-    nc: NATS, subject: NatsSubjects, output_queue: asyncio.PriorityQueue[QueueRequest]
+    nc: NATS,
+    subject: NatsSubjects,
+    output_queue: asyncio.PriorityQueue[QueueRequest],
+    quit_event: asyncio.Event,
 ) -> None:
     """Publish a message to a NATS subject from the output queue."""
     try:
-        while True:
+        while not quit_event.is_set():
             item = await output_queue.get()
             try:
                 payload = json.dumps(item.request_data._asdict()).encode("utf-8")
                 await nc.publish(subject, payload)
             finally:
                 output_queue.task_done()
-    except (
-        asyncio.CancelledError
-    ):  # Allow task to be cancelled cleanly during shutdown.
+
+    # Allow task to be cancelled cleanly during shutdown.
+    except asyncio.CancelledError:
         return

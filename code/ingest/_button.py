@@ -23,6 +23,7 @@ class ControlDevice(NamedTuple):
     device: evdev.InputDevice
     settings: Button
     debounce_ms: int
+    avatar_id: int  # -1 is control button, 0..n are avatar buttons
 
 
 @contextlib.asynccontextmanager
@@ -40,12 +41,14 @@ async def button_init(
                     button.grab()
                 except OSError as e:
                     button.close()
-                    print(
+                    raise RuntimeError(
                         f"Unable to grab {settings.device_path}, device unavailable: {e}"
-                    )
-                    raise
+                    ) from e
             buttons[settings.device_path] = ControlDevice(
-                device=button, settings=settings, debounce_ms=debounce_ms
+                device=button,
+                settings=settings,
+                debounce_ms=debounce_ms,
+                avatar_id=settings.avatar_id,
             )
         yield buttons
     finally:
@@ -83,7 +86,7 @@ def event_filter(event, path: str, allowed_keys: list[cfg.KeyOptions]) -> bool:
 
 
 async def reconnect_device(
-    path: str, settings: Button, debounce_ms: int
+    path: str, settings: Button, debounce_ms: int, avatar_id: int
 ) -> ControlDevice:
     """Attempt to reconnect to a disconnected device."""
     while True:
@@ -94,7 +97,10 @@ async def reconnect_device(
                 new_device.grab()
             print(f"Reconnected to device: {path}")
             return ControlDevice(
-                device=new_device, settings=settings, debounce_ms=debounce_ms
+                device=new_device,
+                settings=settings,
+                debounce_ms=debounce_ms,
+                avatar_id=avatar_id,
             )
         except OSError as e:
             print(
@@ -118,7 +124,7 @@ async def monitor_input_events(
             nats.QueueRequest(
                 priority=nats.QueuePriority.Medium.value,
                 request_data=nats.ButtonData(
-                    device_path=interface.path,
+                    avatar_id=device.avatar_id,
                     message_type="status",
                     action=None,
                     status="connected",
@@ -145,7 +151,7 @@ async def monitor_input_events(
             )
             if key_action:
                 data = nats.ButtonData(
-                    device_path=interface.path,
+                    avatar_id=device.avatar_id,
                     message_type="action",
                     action=key_action,
                     status=None,
@@ -172,7 +178,7 @@ async def monitor_input_events(
             nats.QueueRequest(
                 priority=nats.QueuePriority.High.value,
                 request_data=nats.ButtonData(
-                    device_path=interface.path,
+                    avatar_id=device.avatar_id,
                     message_type="status",
                     action=None,
                     status="disconnected",
@@ -190,7 +196,7 @@ async def monitor_input_events(
             nats.QueueRequest(
                 priority=nats.QueuePriority.High.value,
                 request_data=nats.ButtonData(
-                    device_path=interface.path,
+                    avatar_id=device.avatar_id,
                     message_type="status",
                     action=None,
                     status="dead",
@@ -201,7 +207,7 @@ async def monitor_input_events(
     if disconnected:
         async with device_lock:
             device_list[interface.path] = await reconnect_device(
-                interface.path, device.settings, device.debounce_ms
+                interface.path, device.settings, device.debounce_ms, device.avatar_id
             )
         # Restart event listening
         asyncio.create_task(

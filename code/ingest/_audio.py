@@ -8,16 +8,16 @@ from ._config import AudioDataType, IngestSettings
 from common.dataTypes import SlidingQueue, AudioQueueData
 
 
+RECONNECT_TIMEOUT_SECONDS: Final[int] = 2
+MAX_DEVICE_CHECKS: Final[int] = 5
+XRUN_RESTART_THRESHOLD: Final[int] = 3
+
+
 class DeviceInformation(NamedTuple):
     device_id: int
     sample_rate: float
     dtype: AudioDataType  # preferred for whisper 'int16'
     resample_required: bool
-
-
-RECONNECT_TIMEOUT_SECONDS: Final[int] = 2
-MAX_DEVICE_CHECKS: Final[int] = 5
-XRUN_RESTART_THRESHOLD: Final[int] = 3
 
 
 class CallbackTimeInfo(Protocol):
@@ -80,7 +80,7 @@ def set_up_audio_devices(
 
 
 def stream_audio_to_queue(
-    config: IngestSettings, output_queue: SlidingQueue[AudioQueueData]
+    config: IngestSettings, output_queue: SlidingQueue[AudioQueueData], actor_id: int
 ) -> None:
     """Records audio from the configured input device and forwards it to the defined output device."""
 
@@ -113,6 +113,7 @@ def stream_audio_to_queue(
         # Forward the audio data to the output queue
         output_queue.put(
             AudioQueueData(
+                actor_id=actor_id,
                 pcm_bytes=indata.tobytes(),
                 timestamp_monotonic=call_back_time.currentTime,
                 sample_rate=config.Audio.Sample_rate,
@@ -171,7 +172,7 @@ def consume_audio_queue(
                 # Process the audio data as needed
                 # For example, send it to a speech recognition module
                 print(
-                    f"Received audio data of length {len(audio_data.pcm_bytes)} bytes at timestamp {audio_data.timestamp_monotonic}"
+                    f"Processing audio data for actor {audio_data.actor_id} at {audio_data.timestamp_monotonic}"
                 )
 
         except Exception as e:
