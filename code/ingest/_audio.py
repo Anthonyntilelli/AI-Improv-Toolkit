@@ -107,6 +107,9 @@ def stream_audio_to_queue(
         else:  # reset consecutive xrun counter
             xruns_consecutive = 0
         stream_heart_beat = time.monotonic()
+        # Drop frames that are entirely silence (typical when hardware mute zeros the buffer)
+        if not np.any(indata):
+            return
         # Forward the audio data to the output queue
         output_queue.put(
             AudioQueueData(
