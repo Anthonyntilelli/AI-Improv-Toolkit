@@ -6,12 +6,12 @@ The `infra` directory contains the infrastructure as code to deploy the overall 
 
 ## Components
 
-TODO
+- Ingest - handles button and audio input and forwards to the backend components
 
 ## Extra files
 
 - `cheat_sheet.md` - A cheat sheet with useful commands for development.
-- `Dockerfile` - A Dockerfile to build a container image for the application. (Not currently stable or used)
+- `Dockerfile` - A Dockerfile to build a container image for the application.
 
 ## Dependencies
 
@@ -22,6 +22,15 @@ TODO
   - libasound2-dev
   - build-essential
   - openssl
+
+## Build
+
+Run the docker build command from this directory:
+Currently devcontainer cannot building the image.
+
+```bash
+docker build -t local/ai-improv-toolkit .
+```
 
 ## Running the code
 

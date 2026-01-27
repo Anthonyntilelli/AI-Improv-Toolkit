@@ -64,4 +64,3 @@ Interval_seconds = 5
 
 [[Actors.Mics]]
 Mic_name = "USB Composite Device"  # Find Mic_name using the /opt/show/ingest/sound_list_name.sh
-Sample_rate = 48000.0

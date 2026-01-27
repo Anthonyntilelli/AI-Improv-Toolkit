@@ -3,7 +3,7 @@
 	"build": {
 		"dockerfile": "Dockerfile"
 	},
-  "runArgs": [ "--volume", "/home/tony/.gitconfig:/home/vscode/.gitconfig:ro" ],
+  "runArgs": [],
   "postCreateCommand": ".devcontainer/post-install.sh",
 	"customizations": {
 		"vscode": {

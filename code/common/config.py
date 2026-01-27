@@ -4,7 +4,7 @@ Validated configuration model for the AI Improv Toolkit. Makes use of pydantic f
 
 import logging
 from typing import NamedTuple, Literal, Any
-from pydantic import BaseModel, ConfigDict, PositiveInt, model_validator, PositiveFloat
+from pydantic import BaseModel, ConfigDict, PositiveInt, model_validator
 import tomllib
 
 AllowedActions = Literal["reset", "speak"]
@@ -216,7 +216,6 @@ class MicsSubSettings(NamedTuple):
     """Holds microphone specific settings."""
 
     Mic_name: str
-    Sample_rate: PositiveFloat
 
 
 class ActorSettings(NamedTuple):

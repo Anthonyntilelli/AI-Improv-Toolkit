@@ -1,6 +1,7 @@
 # AI Improv ToolKit
 
 Toolkit/Software use to run the AI power show for my local community improv team.
+Project is targeting small community theaters.
 
 ## Description
 
@@ -8,8 +9,8 @@ TODO
 
 ## Ethics Statement
 
-This project is committed to upholding strict ethical standards regarding the
-use of AI in live improvisational theater.
+This project is committed to upholding strict ethical standards regarding the use of AI
+in live improvisational theater.
 
 Please see [Ethics.md](Ethics.md) for our ethics statement regarding the use of AI in improv performances.
 
@@ -28,7 +29,6 @@ __NOTE__: Detect-secrets with pre-commit is used to reduce the risk of committin
 - `infra/` - Infrastructure as code for deploying the system.
 - `secrets/` - holds most secrets for the project, most file in this directory
 will be ignored by git.
-- `ethics/` - holds the ethics statement for the project.
 - `code/` - holds the code for the for the overall system.
 
 ## Deploy
@@ -36,24 +36,10 @@ will be ignored by git.
 See [infra/README.md](infra/README.md) for more info.
 Note: The steps may change as the project is under active development.
 
-## Development
+## Development and Build (Application)
 
 See [code/README.md](code/README.md) for more info.
 Note: The steps may change as the project is under active development.
-
-## Build
-
-Run the docker build command from code directory:
-
-```bash
-cd code
-docker build -t local/ai-improv-toolkit .
-```
-
-## Dev Container
-
-A dev container is provided; it should automatically install all the needed items to deploy or develop this project.
-See [.devcontainer/](.devcontainer/) for more info.
 
 ## Pre-commit
 

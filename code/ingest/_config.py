@@ -15,6 +15,8 @@ import sounddevice as sd
 
 from common import KeyOptions as KO
 
+AudioDataType =  Literal['float32', 'int32', 'int16', 'int8', 'uint8']
+
 INTERNAL_CONFIG_PATH: Final[str] = (
     f"{Path(__file__).resolve().parent / 'internal.toml'}"
 )
@@ -29,17 +31,15 @@ class ShowSubSettings(NamedTuple):
 
 
 class AudioSubSettings(NamedTuple):
-    """
-    Audio settings configuration. Channels is not part of the internal.toml file,
-    it need to be derived from the main configuration file, at from config.Show["Actors_count"].
-    """
+    """Audio settings configuration."""
 
-    Sample_rate: PositiveInt
     Pre_roll_ms: PositiveInt
     Post_roll_ms: PositiveInt
     Chunk_size_ms: PositiveInt
     Vad_aggressiveness: Literal[0, 1, 2, 3]
     Vad_frame_ms: Literal[10, 20, 30]
+    Sample_rate: PositiveInt = 16000 # preferred sample rate for whisper model
+    Dtype: AudioDataType = "int16" # preferred dtype for whisper model
 
 
 class Button(NamedTuple):
@@ -147,13 +147,10 @@ class IngestSettings(BaseModel):
         actor_mics = self.ActorMics
         for actor_id, mic in enumerate(actor_mics):
             try:
-                sd.check_input_settings(device=mic.Mic_name, samplerate=mic.Sample_rate)
+                sd.check_input_settings(device=mic.Mic_name, dtype=self.Audio.Dtype, channels=1)
             except Exception as e:
-                correct_rates = sd.query_devices(mic.Mic_name).get(
-                    "default_samplerate", "unknown"
-                )
                 raise ValueError(
-                    f"Audio device name {mic.Mic_name} for actor '{actor_id}' is not valid, sample rate: {mic.Sample_rate}, correct rates: {correct_rates}: Error: {e}"
+                    f"Audio device name {mic.Mic_name} for actor '{actor_id}' is not valid: {e}"
                 ) from e
         return self
 
