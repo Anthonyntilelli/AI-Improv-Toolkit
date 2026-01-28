@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 ################ Script metadata ###############################################
-#: Title        : sound_list_name
+#: Title        : silence_threshold.sh
 #: Author       : Anthony Tilelli
-#: Description  : Lists available audio input devices using the sounddevice Python library.
-#:              : This outout can be used to set the Actor.mic section in the config.toml
+#: Description  : Listen to the audio input and determine the silence threshold.
+#:              : This output can be used to set the silence_threshold value in
+#:              : the config.toml.
+#: Usage        : ./silence_threshold.sh
 #: Requirements : BASH 5.0+
 #:              : Apt Packages: portaudio19-dev, libasound2-dev
 #:              : pip
@@ -84,7 +86,7 @@ env_check() {
   return 0
 }
 
-set_up_venv_and_list_devices() {
+set_up_venv_and_find_rms() {
   #@ DESCRIPTION:  Sets up a virtualenv in .venv
   #@ USAGE:  setup_venv
   #@ REQUIREMENTS: virtualenv installed
@@ -94,53 +96,36 @@ set_up_venv_and_list_devices() {
   cd "$directory" || die 5 "Could not change tmp directory."
   virtualenv --no-setuptools  -p python3 venv > /dev/null || die 5 "Could not create virtualenv."
   . ./venv/bin/activate || die 5 "Could not activate virtualenv."
-  pip --no-cache-dir install sounddevice > /dev/null || die 5 "Could not install sounddevice package"
+
+  output "This script lists average RMS values for audio input to help determine a suitable silence threshold."
+  output "RMS can vary based on microphone sensitivity and environment."
+  output "Mic must be connected and available when running this script."
+  output "Working to install packages sounddevice and numpy. stand by..."
+  pip --no-cache-dir install sounddevice numpy > /dev/null || die 5 "Could not install sounddevice and or numpy package"
+  find_rms || die 5 "Could not find RMS values."
   cd - > /dev/null || die 5 "Could not return to previous directory."
-  list_audio_devices || die 5 "Could not list audio devices."
+
   deactivate || die 5 "Could not deactivate virtualenv."
   rm -rf "$directory"
   return 0
 }
 
-list_audio_devices() {
-  #@ DESCRIPTION:  Lists audio input devices using sounddevice
-  #@ USAGE:  list_audio_devices
+find_rms() {
+  #@ DESCRIPTION:  finds RMS values for audio input
+  #@ USAGE:  find_rms
   #@ REQUIREMENTS: sounddevice package installed in active virtualenv
-  output "This script lists available audio input devices using the sounddevice Python library."
-  output "Devices listed here can be used to set the Actor.mic section in the config.toml"
-  output "Devices must be connected and available when running this script."
   output "------------------------------------------------------------"
   python3 - <<'EOF'
-import sounddevice as sd
-in_count = 0
-out_count = 0
-deny = ("default", "sysdefault", "dmix", "front", "surround", "iec958", "spdif")
-print("Input devices (PortAudio/sounddevice):")
-for i, d in enumerate(sd.query_devices()):
-    if d["max_input_channels"] <= 0:
-        continue
-    name = d["name"]
-    name_l = name.lower()
-    if any(x in name_l for x in deny):
-        continue
-    print(f'- "{name}", sample_rate={d["default_samplerate"]}, max_input_channels={d["max_input_channels"]}')
-    in_count += 1
-if in_count == 0:
-    print("No input devices found. Check /dev/snd permissions and audio group membership.")
-
-print("\nOutput devices (PortAudio/sounddevice):")
-for i, d in enumerate(sd.query_devices()):
-    if d["max_output_channels"] <= 0:
-        continue
-    name = d["name"]
-    name_l = name.lower()
-    if any(x in name_l for x in deny):
-        continue
-    print(f'- "{name}", sample_rate={d["default_samplerate"]}, max_output_channels={d["max_output_channels"]}')
-    out_count += 1
-
-if out_count == 0:
-    print("No output devices found. Check /dev/snd permissions and audio group membership.")
+import sounddevice as sd, numpy as np
+print("Recording audio for RMS calculation (using default mic), please be silent...")
+try:
+  d = sd.rec(int(16000*2), samplerate=16000, channels=1, dtype='float32'); sd.wait()
+  print(f"Average RMS after 2 seconds: {np.sqrt(np.mean(d**2))}")
+  d = sd.rec(int(16000*5), samplerate=16000, channels=1, dtype='float32'); sd.wait()
+  print(f"Average RMS after 5 seconds: {np.sqrt(np.mean(d**2))}")
+  print("Done. You can adjust the silence_threshold value in config.toml based on these RMS values.")
+except Exception as e:
+  print(f"An error occurred while recording audio: {e}")
 EOF
   output "------------------------------------------------------------"
   return 0
@@ -152,7 +137,7 @@ main() {
   #@ REQUIREMENTS: NONE
 
   env_check
-  set_up_venv_and_list_devices
+  set_up_venv_and_find_rms
 
   return 0
 }

@@ -9,7 +9,7 @@ from pathlib import Path
 import tomllib
 from typing import Final, Literal, Any, NamedTuple, Optional
 
-from pydantic import BaseModel, PositiveInt, model_validator
+from pydantic import BaseModel, PositiveFloat, PositiveInt, model_validator
 from common import config as cfg
 import sounddevice as sd
 
@@ -38,6 +38,7 @@ class AudioSubSettings(NamedTuple):
     Chunk_size_ms: PositiveInt
     Vad_aggressiveness: Literal[0, 1, 2, 3]
     Vad_frame_ms: Literal[10, 20, 30]
+    silence_threshold: PositiveFloat
     Sample_rate: PositiveInt = 16000  # preferred sample rate for whisper model
     Dtype: AudioDataType = "int16"  # preferred dtype for whisper model
 
@@ -202,10 +203,10 @@ def load_internal_config(
             )
         )
 
-    # Derive settings from the main config
+    # Derive settings from the main config and internal config
     setting: IngestSettings = IngestSettings(
         Show=ShowSubSettings(Avatar_count=config.Show.Avatar_count),
-        Audio=AudioSubSettings(**unverified_internal_config.get("Audio", {})),
+        Audio=AudioSubSettings(**unverified_internal_config.get("Audio", {}), silence_threshold=config.Show.Silence_threshold),
         Buttons=ButtonSubSettings(
             buttons=[reset_button] + avatar_buttons,
             Debounce_ms=unverified_internal_config.get("Button", {}).get(

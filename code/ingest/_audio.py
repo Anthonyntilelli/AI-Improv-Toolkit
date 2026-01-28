@@ -89,10 +89,22 @@ def stream_audio_to_queue(
     xruns_consecutive: int = 0
     device_checks: int = 0
 
+    def is_silence(indata: np.ndarray, threshold: float = 1e-4) -> bool:
+      """
+      Returns True if the RMS of the input audio buffer is below the given threshold.
+      Handles int16 and float input types.
+      NOTE: The threshold is set for "true silence" and will need adjustment based on environment.
+      """
+      arr = indata
+      if arr.dtype == np.int16:
+          arr = arr.astype(np.float32) / 32768.0
+      rms = np.sqrt(np.mean(arr ** 2))
+      return rms < threshold
+
     def callback(
         indata: np.ndarray,
         frames: int,
-        call_back_time: CallbackTimeInfo,
+        callback_time: CallbackTimeInfo,
         status: sd.CallbackFlags,
     ) -> None:
         """Audio callback function to process input and output audio data."""
@@ -107,15 +119,14 @@ def stream_audio_to_queue(
         else:  # reset consecutive xrun counter
             xruns_consecutive = 0
         stream_heart_beat = time.monotonic()
-        # Drop frames that are entirely silence (typical when hardware mute zeros the buffer)
-        if not np.any(indata):
+        if is_silence(indata, config.Audio.silence_threshold):
             return
         # Forward the audio data to the output queue
         output_queue.put(
             AudioQueueData(
                 actor_id=actor_id,
                 pcm_bytes=indata.tobytes(),
-                timestamp_monotonic=call_back_time.currentTime,
+                timestamp_monotonic=callback_time.currentTime,
                 sample_rate=config.Audio.Sample_rate,
             )
         )

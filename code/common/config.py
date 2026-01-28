@@ -4,7 +4,7 @@ Validated configuration model for the AI Improv Toolkit. Makes use of pydantic f
 
 import logging
 from typing import NamedTuple, Literal, Any
-from pydantic import BaseModel, ConfigDict, PositiveInt, model_validator
+from pydantic import BaseModel, ConfigDict, PositiveFloat, PositiveInt, model_validator
 import tomllib
 
 AllowedActions = Literal["reset", "speak"]
@@ -160,6 +160,7 @@ class ShowSettings(NamedTuple):
         "none", "short", "full"
     ]  # Note: must be short or full in Ethic mode.
     Command_keyword: str  # Keyword to activate voice commands.
+    Silence_threshold: PositiveFloat  # Threshold for detecting silence (RMS)
 
 
 class AISettings(NamedTuple):
@@ -303,6 +304,12 @@ class Config(BaseModel):
 
         return self
 
+    @model_validator(mode="after")
+    def validate_silence_threshold(self) -> "Config":
+        """Validate that the silence threshold is within a reasonable range."""
+        if not (0.0 < self.Show.Silence_threshold < 1.0):
+            raise ValueError("Show.Silence_threshold must be between 0.0 and 1.0.")
+        return self
 
 def generate_config(configPath: str) -> Config:
     """
