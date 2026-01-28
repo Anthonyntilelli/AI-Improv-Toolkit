@@ -2,7 +2,8 @@ import time
 from typing import Final, NamedTuple, Protocol
 
 import sounddevice as sd
-import numpy as np  # noqa: F401  # Required for type hints and sounddevice's NumPy-backed buffers
+import scipy.signal as signal
+import numpy as np
 
 from ._config import AudioDataType, IngestSettings
 from common.dataTypes import SlidingQueue, AudioQueueData
@@ -194,3 +195,36 @@ def consume_audio_queue(
             print(f"Error in audio consumer, trying to reconnect: {e}")
             device_checks += 1
             time.sleep(RECONNECT_TIMEOUT_SECONDS)
+
+
+def audio_pre_processing_middleware(config: IngestSettings, input_queue: SlidingQueue[AudioQueueData], output_queue: SlidingQueue[AudioQueueData]):
+    """Processed audio data from input_queue and forwards to output_queue.""" # untested
+
+    def resample_audio(pcm_bytes: bytes, original_rate: int, target_rate: int) -> bytes:
+        """Resample audio from original_rate to target_rate.""" # Need to make configurable later
+        # Convert bytes to numpy array (assume int16 PCM)
+        audio_np = np.frombuffer(pcm_bytes, dtype=np.int16)
+        num_samples = int(len(audio_np) * (target_rate / original_rate))
+        resampled = signal.resample(audio_np, num_samples)
+        # Convert back to int16 and then to bytes
+        resampled_int16 = np.clip(np.round(resampled), -32768, 32767).astype(np.int16)
+        return resampled_int16.tobytes()
+
+    while True:
+        audio_data = input_queue.get()
+        # Placeholder for actual pre-processing logic
+        # For example, normalization, noise reduction, etc.
+        processed_pcm_bytes = resample_audio(
+            audio_data.pcm_bytes,
+            audio_data.sample_rate,
+            config.Audio.Sample_rate,
+        )
+
+        output_queue.put(
+            AudioQueueData(
+                actor_id=audio_data.actor_id,
+                pcm_bytes=processed_pcm_bytes,
+                timestamp_monotonic=audio_data.timestamp_monotonic,
+                sample_rate=config.Audio.Sample_rate,
+            )
+        )

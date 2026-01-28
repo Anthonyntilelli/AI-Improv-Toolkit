@@ -19,7 +19,6 @@ The `infra` directory contains the infrastructure as code to deploy the overall 
 - Docker
 - Apt packages:
   - portaudio19-dev  # for SoundDevice
-  - libasound2-dev
   - build-essential
   - openssl
 
