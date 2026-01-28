@@ -26,7 +26,6 @@ These instructions summarize the essential architecture, workflows, and conventi
 	# or from repo root
 	python code/main.py
 	```
-- Ingest smoke (buttons/audio scaffold): set `Mode.Role="ingest"` in [code/testing/good_config.toml](code/testing/good_config.toml).
 
 
 ## Deployment & Infra
