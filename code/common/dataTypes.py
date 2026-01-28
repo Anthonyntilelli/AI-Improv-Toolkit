@@ -4,6 +4,8 @@ from queue import Queue
 import threading
 from typing import NamedTuple, Optional, TypeVar, Generic
 
+import numpy as np
+
 QueueItem = TypeVar("QueueItem")
 
 
@@ -11,9 +13,9 @@ class AudioQueueData(NamedTuple):
     """Data structure for audio data in the queue."""
 
     actor_id: int  # 0..n for actors in MVP (currently only 0)
-    pcm_bytes: bytes
+    pcm_bytes: np.ndarray
     timestamp_monotonic: float
-    sample_rate: int
+    sample_rate: float
 
 
 class SlidingQueue(Generic[QueueItem]):

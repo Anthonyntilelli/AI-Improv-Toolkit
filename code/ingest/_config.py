@@ -15,7 +15,6 @@ import sounddevice as sd
 
 from common import KeyOptions as KO
 
-AudioDataType = Literal["float32", "int32", "int16", "int8", "uint8"]
 
 INTERNAL_CONFIG_PATH: Final[str] = (
     f"{Path(__file__).resolve().parent / 'internal.toml'}"
@@ -39,8 +38,8 @@ class AudioSubSettings(NamedTuple):
     Vad_aggressiveness: Literal[0, 1, 2, 3]
     Vad_frame_ms: Literal[10, 20, 30]
     silence_threshold: PositiveFloat
+    Dtype: str = "int16"  # int16 preferred dtype for whisper model
     Sample_rate: PositiveInt = 16000  # preferred sample rate for whisper model
-    Dtype: AudioDataType = "int16"  # preferred dtype for whisper model
 
 
 class Button(NamedTuple):
@@ -206,7 +205,10 @@ def load_internal_config(
     # Derive settings from the main config and internal config
     setting: IngestSettings = IngestSettings(
         Show=ShowSubSettings(Avatar_count=config.Show.Avatar_count),
-        Audio=AudioSubSettings(**unverified_internal_config.get("Audio", {}), silence_threshold=config.Show.Silence_threshold),
+        Audio=AudioSubSettings(
+            **unverified_internal_config.get("Audio", {}),
+            silence_threshold=config.Show.Silence_threshold,
+        ),
         Buttons=ButtonSubSettings(
             buttons=[reset_button] + avatar_buttons,
             Debounce_ms=unverified_internal_config.get("Button", {}).get(

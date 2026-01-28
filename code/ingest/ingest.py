@@ -4,7 +4,6 @@ Use the start function to start the ingest process.
 """
 
 import asyncio
-from typing import Final
 from concurrent.futures import ThreadPoolExecutor
 
 from common.dataTypes import AudioQueueData, SlidingQueue
@@ -16,7 +15,7 @@ from ._config import (
     IngestSettings,
 )
 from ._button import button_init, monitor_input_events
-from ._audio import stream_audio_to_queue, consume_audio_queue
+from ._audio import stream_audio_to_queue, consume_audio_queue, audio_middleware
 
 
 def start(config: cfg.Config) -> None:
@@ -80,15 +79,14 @@ async def button_loop(ingest_settings: IngestSettings) -> None:
 def mic_loop(ingest_settings: IngestSettings) -> None:
     """Loop to monitor microphone and send to hearing server (not NATS)."""
     print("Ingest Mic Loop Started.")
+    pre_queue = SlidingQueue[AudioQueueData](maxsize=128)
+    post_queue = SlidingQueue[AudioQueueData](maxsize=128)
 
-    AUDIO_QUEUE_MAXSIZE: Final[int] = 128
-    OutputAudioQueue: Final[SlidingQueue[AudioQueueData]] = SlidingQueue(
-        maxsize=AUDIO_QUEUE_MAXSIZE
-    )
-
-    with ThreadPoolExecutor(max_workers=2) as executor:
-        executor.submit(stream_audio_to_queue, ingest_settings, OutputAudioQueue, 0) # MVP Limited to 1 mic
-        executor.submit(consume_audio_queue, ingest_settings, OutputAudioQueue)
+    with ThreadPoolExecutor(max_workers=3) as executor:
+        # MVP Limited to 1 mic/actor for now
+        executor.submit(stream_audio_to_queue, ingest_settings, pre_queue, 0)
+        executor.submit(audio_middleware, ingest_settings, pre_queue, post_queue)
+        executor.submit(consume_audio_queue, ingest_settings, post_queue)
 
     # Set up ssl Context if tls is used
     # create context with microphone and hearing server connection

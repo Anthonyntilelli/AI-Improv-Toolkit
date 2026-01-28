@@ -311,6 +311,7 @@ class Config(BaseModel):
             raise ValueError("Show.Silence_threshold must be between 0.0 and 1.0.")
         return self
 
+
 def generate_config(configPath: str) -> Config:
     """
     Generates a Config object from a TOML configuration file.

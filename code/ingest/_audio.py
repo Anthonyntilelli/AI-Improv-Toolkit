@@ -5,20 +5,21 @@ import sounddevice as sd
 import scipy.signal as signal
 import numpy as np
 
-from ._config import AudioDataType, IngestSettings
+from ._config import IngestSettings
 from common.dataTypes import SlidingQueue, AudioQueueData
 
 
 RECONNECT_TIMEOUT_SECONDS: Final[int] = 2
 MAX_DEVICE_CHECKS: Final[int] = 5
 XRUN_RESTART_THRESHOLD: Final[int] = 3
+INT16_MAX: Final[float] = 32768.0
+INT16_MIN: Final[float] = -32768.0
 
 
 class DeviceInformation(NamedTuple):
     device_id: int
     sample_rate: float
-    dtype: AudioDataType  # preferred for whisper 'int16'
-    resample_required: bool
+    dtype: np.dtype
 
 
 class CallbackTimeInfo(Protocol):
@@ -36,15 +37,14 @@ class RestartStreamException(Exception):
 
 def set_up_audio_devices(
     device_name: str,
-    default_sample_rate: float,
-    default_data_type: AudioDataType,
+    sample_rate: float,
+    default_data_type: np.dtype,
     input_device: bool,
 ) -> DeviceInformation:
     """Find the device ID and sample rate for the given device name, attempts default_sample_rate first."""
     devices = sd.query_devices()
     id: int = -1
     rate: float = -1.0
-    resample_required: bool = False
     for idx, device in enumerate(devices):
         if device_name in device["name"]:
             id = idx
@@ -52,30 +52,28 @@ def set_up_audio_devices(
                 if input_device:
                     sd.check_input_settings(
                         device=id,
-                        samplerate=default_sample_rate,
+                        samplerate=sample_rate,
                         channels=1,
                         dtype=default_data_type,
                     )
                 else:
                     sd.check_output_settings(
                         device=id,
-                        samplerate=default_sample_rate,
+                        samplerate=sample_rate,
                         channels=1,
                         dtype=default_data_type,
                     )
-                rate = default_sample_rate
+                rate = sample_rate
             except sd.PortAudioError:
                 print(
-                    f"Device '{device_name}' does not support the default sample rate of {default_sample_rate} Hz. Using device's default sample rate of {device['default_samplerate']} Hz instead."
+                    f"Device '{device_name}' does not support the sample rate of {sample_rate} Hz. Using device's default sample rate of {device['default_samplerate']} Hz instead."
                 )
                 print("Resampling will be required.")
                 rate = device["default_samplerate"]
-                resample_required = True
             return DeviceInformation(
                 device_id=id,
                 sample_rate=rate,
                 dtype=default_data_type,
-                resample_required=resample_required,
             )
     raise ValueError(f"Input device '{device_name}' not found among available devices.")
 
@@ -91,16 +89,16 @@ def stream_audio_to_queue(
     device_checks: int = 0
 
     def is_silence(indata: np.ndarray, threshold: float = 1e-4) -> bool:
-      """
-      Returns True if the RMS of the input audio buffer is below the given threshold.
-      Handles int16 and float input types.
-      NOTE: The threshold is set for "true silence" and will need adjustment based on environment.
-      """
-      arr = indata
-      if arr.dtype == np.int16:
-          arr = arr.astype(np.float32) / 32768.0
-      rms = np.sqrt(np.mean(arr ** 2))
-      return rms < threshold
+        """
+        Returns True if the RMS of the input audio buffer is below the given threshold.
+        Handles int16 and float input types.
+        NOTE: The threshold is set for "true silence" and will need adjustment based on environment.
+        """
+        arr = indata
+        if arr.dtype == np.int16:
+            arr = arr.astype(np.float32) / INT16_MAX
+        rms = np.sqrt(np.mean(arr**2))
+        return rms < threshold
 
     def callback(
         indata: np.ndarray,
@@ -126,9 +124,9 @@ def stream_audio_to_queue(
         output_queue.put(
             AudioQueueData(
                 actor_id=actor_id,
-                pcm_bytes=indata.tobytes(),
+                pcm_bytes=indata,
                 timestamp_monotonic=callback_time.currentTime,
-                sample_rate=config.Audio.Sample_rate,
+                sample_rate=input_stream.samplerate,
             )
         )
 
@@ -137,7 +135,7 @@ def stream_audio_to_queue(
             input_device = set_up_audio_devices(
                 config.ActorMics[0].Mic_name,
                 config.Audio.Sample_rate,
-                config.Audio.Dtype,
+                np.dtype(config.Audio.Dtype),
                 True,
             )
             device_checks = 0  # Reset device checks on successful setup
@@ -175,56 +173,62 @@ def consume_audio_queue(
     config: IngestSettings, output_queue: SlidingQueue[AudioQueueData]
 ) -> None:
     """Consume audio data from the output queue and process it."""
-
-    device_checks: int = 0
-    while True:
-        try:
-            while True:
-                audio_data = output_queue.get()
-                # Process the audio data as needed
-                # For example, send it to a speech recognition module
-                print(
-                    f"Processing audio data for actor {audio_data.actor_id} at {audio_data.timestamp_monotonic}"
-                )
-
-        except Exception as e:
-            if device_checks >= MAX_DEVICE_CHECKS:
-                raise RuntimeError(
-                    f"Maximum device check attempts ({MAX_DEVICE_CHECKS}) reached. Exiting audio consumer."
-                )
-            print(f"Error in audio consumer, trying to reconnect: {e}")
-            device_checks += 1
-            time.sleep(RECONNECT_TIMEOUT_SECONDS)
-
-
-def audio_pre_processing_middleware(config: IngestSettings, input_queue: SlidingQueue[AudioQueueData], output_queue: SlidingQueue[AudioQueueData]):
-    """Processed audio data from input_queue and forwards to output_queue.""" # untested
-
-    def resample_audio(pcm_bytes: bytes, original_rate: int, target_rate: int) -> bytes:
-        """Resample audio from original_rate to target_rate.""" # Need to make configurable later
-        # Convert bytes to numpy array (assume int16 PCM)
-        audio_np = np.frombuffer(pcm_bytes, dtype=np.int16)
-        num_samples = int(len(audio_np) * (target_rate / original_rate))
-        resampled = signal.resample(audio_np, num_samples)
-        # Convert back to int16 and then to bytes
-        resampled_int16 = np.clip(np.round(resampled), -32768, 32767).astype(np.int16)
-        return resampled_int16.tobytes()
-
-    while True:
-        audio_data = input_queue.get()
-        # Placeholder for actual pre-processing logic
-        # For example, normalization, noise reduction, etc.
-        processed_pcm_bytes = resample_audio(
-            audio_data.pcm_bytes,
-            audio_data.sample_rate,
+    device: DeviceInformation
+    try:
+        device = set_up_audio_devices(
+            "HDA Intel PCH: SN6140 Analog",
             config.Audio.Sample_rate,
+            np.dtype(config.Audio.Dtype),
+            False,
         )
+    except ValueError as e:
+        print(f"Output device not found: {e}")
+        return
+    with sd.OutputStream(
+        device=device.device_id,
+        samplerate=device.sample_rate,
+        channels=1,
+        dtype=device.dtype,
+    ) as output_stream:
+        print("Playing audio...")
+        while True:
+            audio_data = output_queue.get()
+            output_stream.write(audio_data.pcm_bytes)
 
-        output_queue.put(
-            AudioQueueData(
-                actor_id=audio_data.actor_id,
-                pcm_bytes=processed_pcm_bytes,
-                timestamp_monotonic=audio_data.timestamp_monotonic,
-                sample_rate=config.Audio.Sample_rate,
-            )
-        )
+
+def audio_middleware(
+    config: IngestSettings,
+    pre_queue: SlidingQueue[AudioQueueData],
+    post_queue: SlidingQueue[AudioQueueData],
+):
+    """Processed audio data from input_queue and forwards to output_queue."""
+
+    def resample_audio(
+        pcm_bytes: np.ndarray, original_rate: float, target_rate: float
+    ) -> np.ndarray:
+        """Resample audio from original_rate to target_rate."""
+        num_samples = int(len(pcm_bytes) * (target_rate / original_rate))
+        resampled = signal.resample(pcm_bytes, num_samples)
+        rounded = np.round(resampled)  # typing: ignore
+        resampled_int16 = np.clip(rounded, INT16_MIN, INT16_MAX).astype(np.int16)
+        return resampled_int16
+
+    while True:
+        audio_data = pre_queue.get()
+        post_queue.put(audio_data)
+
+        # audio_data = pre_queue.get()
+        # processed_pcm_bytes = resample_audio(
+        #     audio_data.pcm_bytes,
+        #     audio_data.sample_rate,
+        #     config.Audio.Sample_rate,
+        # )
+
+        # post_queue.put(
+        #     AudioQueueData(
+        #         actor_id=audio_data.actor_id,
+        #         pcm_bytes=processed_pcm_bytes,
+        #         timestamp_monotonic=audio_data.timestamp_monotonic,
+        #         sample_rate=config.Audio.Sample_rate,
+        #     )
+        # )
