@@ -30,6 +30,7 @@
       "NOPASSWD",
       "numpy",
       "passwordless",
+      "polyphase",
       "portaudio",
       "pycache",
       "pydantic",

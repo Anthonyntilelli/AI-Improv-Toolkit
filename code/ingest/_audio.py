@@ -173,28 +173,10 @@ def consume_audio_queue(
     config: IngestSettings, output_queue: SlidingQueue[AudioQueueData]
 ) -> None:
     """Consume audio data from the output queue and process it."""
-    device: DeviceInformation
-    try:
-        device = set_up_audio_devices(
-            "HDA Intel PCH: SN6140 Analog",
-            config.Audio.Sample_rate,
-            np.dtype(config.Audio.Dtype),
-            False,
-        )
-    except ValueError as e:
-        print(f"Output device not found: {e}")
-        return
-    with sd.OutputStream(
-        device=device.device_id,
-        samplerate=device.sample_rate,
-        channels=1,
-        dtype=device.dtype,
-    ) as output_stream:
-        print("Playing audio...")
-        while True:
-            audio_data = output_queue.get()
-            output_stream.write(audio_data.pcm_bytes)
-
+    while True:
+        _ = output_queue.get()
+        # Placeholder for processing logic
+        pass
 
 def audio_middleware(
     config: IngestSettings,
@@ -206,29 +188,35 @@ def audio_middleware(
     def resample_audio(
         pcm_bytes: np.ndarray, original_rate: float, target_rate: float
     ) -> np.ndarray:
-        """Resample audio from original_rate to target_rate."""
-        num_samples = int(len(pcm_bytes) * (target_rate / original_rate))
-        resampled = signal.resample(pcm_bytes, num_samples)
-        rounded = np.round(resampled)  # typing: ignore
-        resampled_int16 = np.clip(rounded, INT16_MIN, INT16_MAX).astype(np.int16)
+        """Resample audio from original_rate to target_rate using polyphase filtering."""
+        arr = pcm_bytes.squeeze()
+        if original_rate == target_rate:
+            return arr.astype(np.int16) if arr.dtype != np.int16 else arr
+        from math import gcd
+        up = int(target_rate)
+        down = int(original_rate)
+        factor = gcd(up, down)
+        up //= factor
+        down //= factor
+        resampled = signal.resample_poly(arr, up, down)
+        resampled_int16 = np.clip(np.round(resampled), INT16_MIN, INT16_MAX).astype(np.int16)
         return resampled_int16
 
     while True:
         audio_data = pre_queue.get()
-        post_queue.put(audio_data)
-
-        # audio_data = pre_queue.get()
-        # processed_pcm_bytes = resample_audio(
-        #     audio_data.pcm_bytes,
-        #     audio_data.sample_rate,
-        #     config.Audio.Sample_rate,
-        # )
-
-        # post_queue.put(
-        #     AudioQueueData(
-        #         actor_id=audio_data.actor_id,
-        #         pcm_bytes=processed_pcm_bytes,
-        #         timestamp_monotonic=audio_data.timestamp_monotonic,
-        #         sample_rate=config.Audio.Sample_rate,
-        #     )
-        # )
+        processed_pcm_bytes = resample_audio(
+            audio_data.pcm_bytes,
+            audio_data.sample_rate,
+            config.Audio.Sample_rate,
+        )
+        if processed_pcm_bytes.ndim > 1:
+            processed_pcm_bytes = processed_pcm_bytes.squeeze()
+        processed_pcm_bytes = processed_pcm_bytes.astype(np.int16)
+        post_queue.put(
+            AudioQueueData(
+                actor_id=audio_data.actor_id,
+                pcm_bytes=processed_pcm_bytes,
+                timestamp_monotonic=audio_data.timestamp_monotonic,
+                sample_rate=config.Audio.Sample_rate,
+            )
+        )
