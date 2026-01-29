@@ -39,7 +39,7 @@ repos:
     stages: [pre-push]
 
 - repo: https://github.com/AleksaC/terraform-py
-  rev: v1.14.3
+  rev: v1.14.4
   hooks:
   - id: tf-fmt
   - id: tf-validate
