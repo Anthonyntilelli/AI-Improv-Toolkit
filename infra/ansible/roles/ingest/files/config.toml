@@ -1,71 +1,40 @@
-# Example configuration file for AI Improv Toolkit
-# MVP limitations:
-# - Languages supported: English (en-US)
-# - Show types supported: mono-scene
-# - Actors supported: 1
-# - Avatar types supported: 1
-
-# Note: This configuration is for an Ingest component.
-# Adjust the [Mode] and [Network] section accordingly for other component roles.
-
-[Show]
-Name = "Show Name"
-Language = "en-US"
-Actors_count = 1  # Each actor will need a mic channel.
-Avatar_count = 1
-Show_length = 22 # in minutes
-Type = "mono-scene"
-Show_rating = "pg-13" # options: [g, pg, pg-13, r, nc-17] Note: limited to pg-13 in Ethic mode.
-Disclaimer = "short" # options: [none, short, full] Note: must be short or full in Ethic mode.
-Command_keyword = "hay ai" # Keyword to activate voice commands.
-# Can be found using the /opt/show/ingest/silence_threshold.sh Be careful with this value.
-
-[Audio]
-Silence_threshold = 0.02 # RMS threshold that the mic will ignore Don't make too large.
-Use_noise_reducer = true # When true, will apply noise reduction to incoming audio.
-
-# All instructions will be passed to the respective AI components as-is.
-[AI]
-Introduction_instructions = "Ask for a location that will fit on stage." # Instructions for introduction generation
-General_instructions = "" # General instructions for all AI components
-show_watcher_instructions = "" # Instructions for show watcher component
-
-# Count of Avatar must match Show.Avatar_count
-[[AI.Avatars]]
-Instructions = ""
+# Example configuration file for AI Improv Toolkit, each Role has its own section.
 
 [Mode]
-Ethic = false # When true, will have ethic mode limits applied
-Debug_level = "INFO" #  In Ethics mode mode must be "Error" or "Critical"
-Role = "ingest" # options: [ingest, vision, hearing, brain, output, health_check] Role of the component
+ethics = false # When true, will have ethic mode limits applied
+debug_level = "INFO" #  In Ethics mode mode must be "Error" or "Critical"
+role = "ingest" # options: [ingest, vision, hearing, brain, output, health_check] role of the component
 
-[Buttons]
+# NOTE: Localhost does not work in a containerized environment. Use service names instead.
+[Network]
+nats_server = "tls://nats_server:4222"
+connection_timeout_s = 2
+retry_attempts = 5
+retry_backoff_ms = 500
 
-[Buttons.Reset]
-Path = "/dev/show/reset"
-Key = "KEY_SPACE"
+# TLS/SSL certificate paths
+ca_cert_path = "/etc/ai-show/pki/ca_cert.pem"
+client_cert_path = "/etc/ai-show/pki/client_cert.pem"
+client_key_path = "/etc/ai-show/pki/client_key.pem"
+
+[Ingest]
+audio_chunks_ms = 10  # options [10, 20, 30]
+vad_aggressiveness = 1  # 0-3; higher = more aggressive (fewer false positives)
+button_debounce_ms = 500
+# Can be found using the /opt/show/ingest/silence_threshold.sh. Be careful with this value.
+silence_threshold = 0.02 # RMS threshold that the mic will ignore Don't make too large.
+hearing_server = "hearing_server:8100"
+
+[Ingest.reset]
+path = "/dev/show/reset"
+key = "KEY_SPACE"
 grab = true
 
-# Count of Avatars must match Show.Avatar_count
-[[Buttons.Avatars]]
-Path = "/dev/show/avatar"
-Speak = "KEY_SPACE"
+[[Ingest.actor_mics]]
+mic_name = "USB Composite Device"  # Find Mic_name using the /opt/show/ingest/sound_list_name.sh
+use_noise_reducer = true # When true, will apply noise reduction to incoming audio.
+
+[[Ingest.avatar_controllers]]
+path = "/dev/show/avatar"
+speak = "KEY_SPACE"
 grab = true
-
-[Network]  # NOTE: Localhost does not work in a container
-Nats_server = "nats_server:4222"
-Hearing_server = "hearing_server:8100"
-Connection_timeout_s = 2
-Retry_attempts = 5
-Retry_backoff_ms = 500
-Use_tls = false
-Ca_cert_path = "/etc/ai-show/ca_cert.pem"
-
-[Health_Check]
-Enabled = true
-Interval_seconds = 5
-
-[Actors]
-
-[[Actors.Mics]]
-Mic_name = "USB Composite Device"  # Find Mic_name using the /opt/show/ingest/sound_list_name.sh
