@@ -9,6 +9,7 @@ from common.config import NetworkConfig, ModeConfig, get_logging_level
 
 logger = logging.getLogger(__name__)
 
+
 def main() -> None:
     CONFIG_FILE: Final[str] = "/etc/ai-show/config.toml"
 
@@ -21,10 +22,9 @@ def main() -> None:
         network_config = NetworkConfig(**unverified_config.get("Network", {}))
         mode_config = ModeConfig(**unverified_config.get("Mode", {}))
 
-
     logging.basicConfig(
         stream=sys.stdout,
-        level=get_logging_level(mode_config.debug_level), # pyright: ignore[reportAttributeAccessIssue]
+        level=get_logging_level(mode_config.debug_level),  # pyright: ignore[reportAttributeAccessIssue]
         format="[%(asctime)s] {%(filename)s:%(lineno)d} %(levelname)s - %(message)s",
     )
 
@@ -33,9 +33,11 @@ def main() -> None:
     logger.info(f"Application has been set to the role of {mode_config.role}")  # pyright: ignore[reportAttributeAccessIssue]
 
     try:
-        match mode_config.role: # pyright: ignore[reportAttributeAccessIssue]
+        match mode_config.role:  # pyright: ignore[reportAttributeAccessIssue]
             case "ingest":
-                importlib.import_module("ingest").start(network_config, mode_config, unverified_config.get("Ingest", {}))
+                importlib.import_module("ingest").start(
+                    network_config, mode_config, unverified_config.get("Ingest", {})
+                )
             case "vision":
                 raise NotImplementedError("This is not yet implemented")  # TODO: implement
             case "hearing":

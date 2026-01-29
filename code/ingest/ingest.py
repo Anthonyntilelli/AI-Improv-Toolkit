@@ -4,7 +4,9 @@ Use the start function to start the ingest process.
 """
 
 import time
+from ._config import IngestSettings
 from common.config import NetworkConfig, ModeConfig
+from typing import Any
 
 # import asyncio
 # from concurrent.futures import ThreadPoolExecutor
@@ -82,9 +84,10 @@ from common.config import NetworkConfig, ModeConfig
 #             await asyncio.gather(*tasks, return_exceptions=True)
 #     print("Ingest Button loop completed.")
 
-def start(network_config: NetworkConfig, mode_config: ModeConfig, ingest_config) -> None:
+
+def start(network_config: NetworkConfig, mode_config: ModeConfig, raw_ingest_config: dict[str, Any]) -> None:
     """Function to start the ingest role."""
     print("Ingest role started.")
-    # Placeholder implementation
+    ingest_config = IngestSettings(**raw_ingest_config)
     time.sleep(2)  # Simulate some processing time
     print("Ingest role completed.")

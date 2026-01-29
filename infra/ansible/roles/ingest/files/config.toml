@@ -31,10 +31,10 @@ key = "KEY_SPACE"
 grab = true
 
 [[Ingest.actor_mics]]
-mic_name = "USB Composite Device"  # Find Mic_name using the /opt/show/ingest/sound_list_name.sh
+name = "USB Composite Device"  # Find Mic_name using the /opt/show/ingest/sound_list_name.sh
 use_noise_reducer = true # When true, will apply noise reduction to incoming audio.
 
 [[Ingest.avatar_controllers]]
 path = "/dev/show/avatar"
-speak = "KEY_SPACE"
+key = "KEY_SPACE"
 grab = true

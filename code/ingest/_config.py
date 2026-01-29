@@ -4,115 +4,166 @@ Ingests general configuration from config.Config to create IngestSettings.
 All setting needed for ingestion are defined here.
 """
 
+from typing import Literal, NamedTuple
+import re
 import os
 from pathlib import Path
-import tomllib
-from typing import Final, Literal, Any, NamedTuple, Optional
 
-from pydantic import BaseModel, PositiveFloat, PositiveInt, model_validator
-from common import config as cfg
+from pydantic import dataclasses, PositiveFloat, PositiveInt, ConfigDict, model_validator
 import sounddevice as sd
 
-from common import KeyOptions as KO
+# Define the valid key options (as seen by evdev)
+# Limited to Us English keyboard keys without modifiers.
+KeyOptions = Literal[
+    "KEY_ESC",
+    "KEY_1",
+    "KEY_2",
+    "KEY_3",
+    "KEY_4",
+    "KEY_5",
+    "KEY_6",
+    "KEY_7",
+    "KEY_8",
+    "KEY_9",
+    "KEY_0",
+    "KEY_MINUS",
+    "KEY_EQUAL",
+    "KEY_BACKSPACE",
+    "KEY_TAB",
+    "KEY_Q",
+    "KEY_W",
+    "KEY_E",
+    "KEY_R",
+    "KEY_T",
+    "KEY_Y",
+    "KEY_U",
+    "KEY_I",
+    "KEY_O",
+    "KEY_P",
+    "KEY_LEFTBRACE",
+    "KEY_RIGHTBRACE",
+    "KEY_ENTER",
+    "KEY_A",
+    "KEY_S",
+    "KEY_D",
+    "KEY_F",
+    "KEY_G",
+    "KEY_H",
+    "KEY_J",
+    "KEY_K",
+    "KEY_L",
+    "KEY_SEMICOLON",
+    "KEY_APOSTROPHE",
+    "KEY_GRAVE",
+    "KEY_BACKSLASH",
+    "KEY_Z",
+    "KEY_X",
+    "KEY_C",
+    "KEY_V",
+    "KEY_B",
+    "KEY_N",
+    "KEY_M",
+    "KEY_COMMA",
+    "KEY_DOT",
+    "KEY_SLASH",
+    "KEY_SPACE",
+    "KEY_F1",
+    "KEY_F2",
+    "KEY_F3",
+    "KEY_F4",
+    "KEY_F5",
+    "KEY_F6",
+    "KEY_F7",
+    "KEY_F8",
+    "KEY_F9",
+    "KEY_F10",
+    "KEY_F11",
+    "KEY_F12",
+    "KEY_HOME",
+    "KEY_UP",
+    "KEY_PAGEUP",
+    "KEY_LEFT",
+    "KEY_RIGHT",
+    "KEY_END",
+    "KEY_DOWN",
+    "KEY_PAGEDOWN",
+    "KEY_INSERT",
+    "KEY_DELETE",
+    "KEY_KP0",
+    "KEY_KP1",
+    "KEY_KP2",
+    "KEY_KP3",
+    "KEY_KP4",
+    "KEY_KP5",
+    "KEY_KP6",
+    "KEY_KP7",
+    "KEY_KP8",
+    "KEY_KP9",
+    "KEY_KPDOT",
+    "KEY_KPENTER",
+    "KEY_KPMINUS",
+    "KEY_KPPLUS",
+    "KEY_KPASTERISK",
+    "KEY_KPSLASH",
+]
 
 
-INTERNAL_CONFIG_PATH: Final[str] = f"{Path(__file__).resolve().parent / 'internal.toml'}"
+class ResetButtonConfig(NamedTuple):
+    """Configuration settings for the reset button."""
 
-
-class ShowSubSettings(NamedTuple):
-    """
-    Show settings configuration.
-    """
-
-    Avatar_count: PositiveInt
-
-
-class AudioSubSettings(NamedTuple):
-    """Audio settings configuration."""
-
-    Vad_aggressiveness: Literal[0, 1, 2, 3]
-    Vad_frame_ms: Literal[10, 20, 30]
-    silence_threshold: PositiveFloat
-    Use_noise_reducer: bool
-    Dtype: str = "int16"  # int16 preferred dtype for whisper model
-    Sample_rate: PositiveInt = 16000  # preferred sample rate for whisper model
-
-
-class Button(NamedTuple):
-    """Represents a button configuration."""
-
-    device_path: str
-    key: dict[KO, cfg.AllowedActions]  # key with action name
+    path: str
+    key: KeyOptions
     grab: bool
-    avatar_id: int  # -1 is control button, 0..n are avatar buttons
+    action: Literal["reset"] = "reset"
 
 
-class ButtonSubSettings(NamedTuple):
-    """Settings for all buttons."""
+class AvatarButtonConfig(NamedTuple):
+    """Configuration settings for the avatar button."""
 
-    buttons: list[Button]
-    Debounce_ms: PositiveInt
-
-
-class NetworkSubSettings(NamedTuple):
-    """
-    Network settings configuration.
-    """
-
-    Nats_server: str
-    Hearing_server: str
-    Connection_timeout_s: PositiveInt
-    Retry_attempts: PositiveInt
-    Retry_backoff_ms: PositiveInt
-    Use_tls: bool
-    Ca_cert_path: Optional[str] = None
-    Client_cert_path: Optional[str] = None
-    Client_key_path: Optional[str] = None
+    path: str
+    key: KeyOptions
+    grab: bool
+    action: Literal["speak"] = "speak"
 
 
-class HealthCheckSubSettings(NamedTuple):
-    Enabled: bool
-    Interval_seconds: PositiveInt
+class ActorMicsConfig(NamedTuple):
+    """Configuration settings for the actor microphones."""
+
+    name: str
+    use_noise_reducer: bool
 
 
-class IngestSettings(BaseModel):
-    """
-    Audio settings configuration. Channels is not part of the internal.toml file,
-    it need to be derived from the main configuration file, at from config.Show["Actors_count"].
-    """
+@dataclasses.dataclass(frozen=True)
+class IngestSettings:
+    """Configuration settings for the ingestion role portion of the configuration."""
 
-    Show: ShowSubSettings
-    Audio: AudioSubSettings
-    Buttons: ButtonSubSettings
-    Network: NetworkSubSettings
-    HealthCheck: HealthCheckSubSettings
-    Ethics_mode: bool
-    ActorMics: list[cfg.MicsSubSettings]
+    model_config = ConfigDict(extra="forbid")
+    audio_chunks_ms: Literal[10, 20, 30]
+    vad_aggressiveness: Literal[0, 1, 2, 3]
+    button_debounce_ms: PositiveInt
+    silence_threshold: PositiveFloat
+    hearing_server: str
+    reset: ResetButtonConfig
+    avatar_controllers: list[AvatarButtonConfig]
+    actor_mics: list[ActorMicsConfig]
 
     @model_validator(mode="after")
-    def validate_ethics_mode(self):
-        if self.Ethics_mode and not self.Network.Use_tls:
-            raise ValueError("Ethics mode requires TLS to be enabled in network settings.")
-        return self
+    def validate_hearing_server(cls, values):
+        """Validate that the hearing server is properly formatted."""
+        server = values.hearing_server
+        hearing_pattern = re.compile(r"^[a-zA-Z0-9.-_]+:\d{1,5}$")
+        if not hearing_pattern.match(server):
+            raise ValueError(f"Hearing server '{server}' is not in the correct format 'hostname:port'")
+        return values
 
     @model_validator(mode="after")
-    def validate_network_settings(self):
-        if self.Network.Use_tls:
-            for file in [
-                self.Network.Ca_cert_path,
-                self.Network.Client_cert_path,
-                self.Network.Client_key_path,
-            ]:
-                if file is None:
-                    raise ValueError("TLS is enabled, but file paths are not all provided.")
-                if not (Path(file).is_file() and os.access(file, os.R_OK)):
-                    raise ValueError(f"TLS is enabled, but certificate/key file {file} is not accessible.")
-        return self
-
-    @model_validator(mode="after")
-    def validate_buttons(self):
-        for button in self.Buttons.buttons:
-            p = Path(button.device_path)
+    def validate_avatar_buttons(cls, values):
+        buttons_paths = [values.reset.path] + [button.path for button in values.avatar_controllers]
+        button_set = set(buttons_paths)
+        if len(button_set) != len(buttons_paths):
+            raise ValueError("Duplicate button device paths found in reset and avatar buttons.")
+        for button in buttons_paths:
+            p = Path(button)
             if not p.exists():
                 raise ValueError(f"Button device path {p} does not exist.")
             if not p.is_char_device():
@@ -120,92 +171,30 @@ class IngestSettings(BaseModel):
 
             flags = os.O_RDONLY | os.O_NONBLOCK  # Open in non-blocking read-only mode (to avoid blocking if grabbed)
             try:
-                fd = os.open(button.device_path, flags)
+                fd = os.open(button, flags)
                 os.close(fd)
             except OSError as e:
-                raise ValueError(f"Button device path {button.device_path} is not accessible: {e}") from e
-        return self
+                raise ValueError(f"Button device path {button} is not accessible: {e}")
+        return values
 
     @model_validator(mode="after")
-    def validate_audio_device(self):
-        actor_mics = self.ActorMics
-        for actor_id, mic in enumerate(actor_mics):
+    def validate_actor_mics(cls, values):
+        mic_names = set([mic.name for mic in values.actor_mics])
+        if len(mic_names) != len(values.actor_mics):
+            raise ValueError("Duplicate microphone names found in actor microphones.")
+
+        for mic in values.actor_mics:
             try:
-                sd.check_input_settings(device=mic.Mic_name, dtype=self.Audio.Dtype, channels=1)
-            except Exception as e:
-                raise ValueError(f"Audio device name {mic.Mic_name} for actor '{actor_id}' is not valid: {e}") from e
-        return self
+                sd.check_input_settings(device=mic.name)
+            except sd.PortAudioError as e:
+                raise ValueError(f"Microphone device '{mic.name}' is not accessible: {e}")
+        return values
 
-    # TODO Enable audio validation when needed
-    # @model_validator(mode="after")
-    # def validate_audio(self):
-    #     if self.Audio.Pre_roll_ms + self.Audio.Post_roll_ms < self.Audio.Chunk_size_ms:
-    #         raise ValueError("Pre_roll_ms + Post_roll_ms must be at least Chunk_size_ms.")
-    #     if self.Audio.Pre_roll_ms < self.Audio.Chunk_size_ms:
-    #         raise ValueError("Pre_roll_ms must be at least Chunk_size_ms.")
-    #     return self
-
-
-def load_internal_config(config: cfg.Config) -> IngestSettings:
-    """
-    Load and validate the internal.toml configuration file.
-    """
-
-    unverified_internal_config: dict[str, Any]
-
-    with open(INTERNAL_CONFIG_PATH, mode="rb") as fp:
-        try:
-            unverified_internal_config = tomllib.load(fp)
-        except Exception as e:
-            raise RuntimeError(f"Failed to load internal configuration from {INTERNAL_CONFIG_PATH}: {e}") from e
-
-    reset_button: Button = Button(
-        device_path=config.Buttons.Reset.Path,
-        key={config.Buttons.Reset.Key: "reset"},
-        grab=config.Buttons.Reset.grab,
-        avatar_id=-1,
-    )
-
-    avatar_buttons: list[Button] = []
-    for avatar_id, btn in enumerate(config.Buttons.Avatars):
-        avatar_buttons.append(
-            Button(
-                device_path=btn.Path,
-                key={btn.Speak: "speak"},
-                grab=btn.grab,
-                avatar_id=avatar_id,
-            )
-        )
-
-    # Derive settings from the main config and internal config
-    setting: IngestSettings = IngestSettings(
-        Show=ShowSubSettings(Avatar_count=config.Show.Avatar_count),
-        Audio=AudioSubSettings(
-            **unverified_internal_config.get("Audio", {}),
-            silence_threshold=config.Audio.Silence_threshold,
-            Use_noise_reducer=config.Audio.Use_noise_reducer,
-        ),
-        Buttons=ButtonSubSettings(
-            buttons=[reset_button] + avatar_buttons,
-            Debounce_ms=unverified_internal_config.get("Button", {}).get("Debounce_ms", -99),
-        ),
-        Network=NetworkSubSettings(
-            Client_cert_path=unverified_internal_config.get("Network", {}).get("Client_cert_path", None),
-            Client_key_path=unverified_internal_config.get("Network", {}).get("Client_key_path", None),
-            Nats_server=config.Network.Nats_server,
-            Hearing_server=config.Network.Hearing_server,
-            Ca_cert_path=config.Network.Ca_cert_path,
-            Connection_timeout_s=config.Network.Connection_timeout_s,
-            Retry_attempts=config.Network.Retry_attempts,
-            Retry_backoff_ms=config.Network.Retry_backoff_ms,
-            Use_tls=config.Network.Use_tls,
-        ),
-        HealthCheck=HealthCheckSubSettings(
-            Enabled=config.Health_Check.Enabled,
-            Interval_seconds=config.Health_Check.Interval_seconds,
-        ),
-        Ethics_mode=config.Mode.Ethic,
-        ActorMics=config.Actors.Mics,
-    )
-
-    return setting
+    @model_validator(mode="after")
+    def mvp_limitations(cls, values):
+        """Validate settings against MVP limitations."""
+        if not values.avatar_controllers or len(values.avatar_controllers) != 1:
+            raise ValueError("MVP limitation: Only one avatar button is supported.")
+        if not values.actor_mics or len(values.actor_mics) != 1:
+            raise ValueError("MVP limitation: Exactly 1 actor microphone is required.")
+        return values
