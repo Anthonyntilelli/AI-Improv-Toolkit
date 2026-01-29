@@ -5,8 +5,9 @@ Use the start function to start the ingest process.
 
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
+import copy
 
-from common.dataTypes import AudioQueueData, SlidingQueue
+from common.dataTypes import SlidingQueue
 import common.config as cfg
 import common.nats as nats
 
@@ -23,20 +24,31 @@ def start(config: cfg.Config) -> None:
     print("Ingest role started.")
     try:
         # TODO: REMOVE skip_button_validation
-        ingest_settings: IngestSettings = load_internal_config(
-            config, skip_button_validation=True
-        )
+        ingest_settings: IngestSettings = load_internal_config(config)
         print("Loaded ingest config")
     except Exception as e:
         print(f"Failed to load ingest configuration: {e}")
         return
-    # asyncio.run(button_loop(ingest_settings)) # TODO: RE-ENABLE button_loop and stick in own thread or process ??
-    mic_loop(ingest_settings)
+
+    audio_pre_queue = SlidingQueue(maxsize=128)
+    audio_post_queue = SlidingQueue(maxsize=128)
+
+    with ThreadPoolExecutor() as executor:
+        executor.submit(asyncio.run, button_loop(ingest_settings))
+        executor.submit(stream_audio_to_queue, ingest_settings, audio_pre_queue, 0)
+        executor.submit(audio_middleware, ingest_settings, audio_pre_queue, audio_post_queue)
+        executor.submit(consume_audio_queue, ingest_settings, audio_post_queue)
+
     print("Ingest role completed.")
 
 
-async def button_loop(ingest_settings: IngestSettings) -> None:
+async def button_loop(ingest_config: IngestSettings) -> None:
     """Loop to monitor button inputs and send events to NATS."""
+
+    # Temporary workaround to avoid mutating the original config (will need to move to frozen dataclass later)
+    ingest_settings: IngestSettings = copy.deepcopy(ingest_config)
+    # Now use ingest_settings safely in this coroutine
+
     print("Ingest Button Loop started.")
     device_lock = asyncio.Lock()
     nats_queue: asyncio.PriorityQueue[nats.QueueRequest] = asyncio.PriorityQueue()
@@ -51,22 +63,14 @@ async def button_loop(ingest_settings: IngestSettings) -> None:
         client_key_path=ingest_settings.Network.Client_key_path,
     )
     async with (
-        button_init(
-            ingest_settings.Buttons, ingest_settings.Buttons.Debounce_ms
-        ) as avatar_devices,
+        button_init(ingest_settings.Buttons, ingest_settings.Buttons.Debounce_ms) as avatar_devices,
         nats.nats_init(nats_network) as nc,
     ):
         tasks = [
-            asyncio.create_task(
-                monitor_input_events(device, avatar_devices, nats_queue, device_lock, 0)
-            )
+            asyncio.create_task(monitor_input_events(device, avatar_devices, nats_queue, device_lock, 0))
             for device in avatar_devices.values()
         ]
-        tasks.append(
-            asyncio.create_task(
-                nats.nats_publish(nc, "INTERFACE", nats_queue, quit_event)
-            )
-        )
+        tasks.append(asyncio.create_task(nats.nats_publish(nc, "INTERFACE", nats_queue, quit_event)))
         try:
             await asyncio.gather(*tasks)
         finally:
@@ -74,24 +78,3 @@ async def button_loop(ingest_settings: IngestSettings) -> None:
                 t.cancel()
             await asyncio.gather(*tasks, return_exceptions=True)
     print("Ingest Button loop completed.")
-
-
-def mic_loop(ingest_settings: IngestSettings) -> None:
-    """Loop to monitor microphone and send to hearing server (not NATS)."""
-    print("Ingest Mic Loop Started.")
-    pre_queue = SlidingQueue[AudioQueueData](maxsize=128)
-    post_queue = SlidingQueue[AudioQueueData](maxsize=128)
-
-    with ThreadPoolExecutor(max_workers=3) as executor:
-        # MVP Limited to 1 mic/actor for now
-        executor.submit(stream_audio_to_queue, ingest_settings, pre_queue, 0)
-        executor.submit(audio_middleware, ingest_settings, pre_queue, post_queue)
-        executor.submit(consume_audio_queue, ingest_settings, post_queue)
-
-    # Set up ssl Context if tls is used
-    # create context with microphone and hearing server connection
-    # Create hearing server and microphone connection tasks
-    # Gather tasks and handle cancellation
-
-    print("Ingest Mic Loop Completed.")
-    return

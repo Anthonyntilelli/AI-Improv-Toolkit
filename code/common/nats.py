@@ -76,9 +76,7 @@ async def nats_init(network_settings: NatsConnectionSettings) -> AsyncIterator[N
             if network_settings.ca_cert_path is None:
                 raise ValueError("CA certificate path is required when TLS is enabled.")
             if network_settings.client_cert_path is None:
-                raise ValueError(
-                    "Client certificate path is required when TLS is enabled."
-                )
+                raise ValueError("Client certificate path is required when TLS is enabled.")
             if network_settings.client_key_path is None:
                 raise ValueError("Client key path is required when TLS is enabled")
             print("Attempting Nats connection with TLS.")
@@ -93,9 +91,7 @@ async def nats_init(network_settings: NatsConnectionSettings) -> AsyncIterator[N
                 keyfile=network_settings.client_key_path,
                 password=network_settings.key_password,
             )
-            nc = await nats.connect(
-                servers=f"tls://{network_settings.nats_server}", tls=context
-            )
+            nc = await nats.connect(servers=f"tls://{network_settings.nats_server}", tls=context)
         else:
             print("Attempting Nats connection without TLS.")
             nc = await nats.connect(f"nats://{network_settings.nats_server}")

@@ -19,7 +19,10 @@ Show_rating = "pg-13" # options: [g, pg, pg-13, r, nc-17] Note: limited to pg-13
 Disclaimer = "short" # options: [none, short, full] Note: must be short or full in Ethic mode.
 Command_keyword = "hay ai" # Keyword to activate voice commands.
 # Can be found using the /opt/show/ingest/silence_threshold.sh Be careful with this value.
+
+[Audio]
 Silence_threshold = 0.02 # RMS threshold that the mic will ignore Don't make too large.
+Use_noise_reducer = true # When true, will apply noise reduction to incoming audio.
 
 # All instructions will be passed to the respective AI components as-is.
 [AI]

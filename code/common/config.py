@@ -153,14 +153,18 @@ class ShowSettings(NamedTuple):
     Avatar_count: PositiveInt
     Show_length: PositiveInt  # in minutes
     Type: Literal["mono-scene"]
-    Show_rating: Literal[
-        "g", "pg", "pg-13", "r", "nc-17"
-    ]  # Note: limited to pg-13 in Ethic mode.
-    Disclaimer: Literal[
-        "none", "short", "full"
-    ]  # Note: must be short or full in Ethic mode.
+    Show_rating: Literal["g", "pg", "pg-13", "r", "nc-17"]  # Note: limited to pg-13 in Ethic mode.
+    Disclaimer: Literal["none", "short", "full"]  # Note: must be short or full in Ethic mode.
     Command_keyword: str  # Keyword to activate voice commands.
-    Silence_threshold: PositiveFloat  # Threshold for detecting silence (RMS)
+
+
+class AudioSettings(NamedTuple):
+    """
+    Settings related to audio processing.
+    """
+
+    Silence_threshold: PositiveFloat  # RMS threshold that the mic will ignore
+    Use_noise_reducer: bool  # When true, will apply noise reduction to incoming audio.
 
 
 class AISettings(NamedTuple):
@@ -240,6 +244,7 @@ class Config(BaseModel):
     Network: NetworkSettings
     Health_Check: HealthCheckSettings
     Actors: ActorSettings
+    Audio: AudioSettings
 
     @model_validator(mode="after")
     def validate_mvp_limits(self) -> "Config":
@@ -270,9 +275,7 @@ class Config(BaseModel):
             if self.Show.Disclaimer not in ["short", "full"]:
                 raise ValueError("In Ethic mode, Disclaimer must be short or full.")
             if self.Mode.Debug_level in ["DEBUG", "INFO", "WARNING"]:
-                raise ValueError(
-                    "In Ethics mode, Debug_level cannot be DEBUG, INFO, or WARNING."
-                )
+                raise ValueError("In Ethics mode, Debug_level cannot be DEBUG, INFO, or WARNING.")
             if self.Network.Use_tls is not True:
                 raise ValueError("TLS must be enabled in Ethics mode.")
         return self
@@ -307,8 +310,8 @@ class Config(BaseModel):
     @model_validator(mode="after")
     def validate_silence_threshold(self) -> "Config":
         """Validate that the silence threshold is within a reasonable range."""
-        if not (0.0 < self.Show.Silence_threshold < 1.0):
-            raise ValueError("Show.Silence_threshold must be between 0.0 and 1.0.")
+        if not (0.0 < self.Audio.Silence_threshold < 1.0):
+            raise ValueError("Audio.Silence_threshold must be between 0.0 and 1.0.")
         return self
 
 

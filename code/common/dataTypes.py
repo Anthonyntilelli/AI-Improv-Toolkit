@@ -1,60 +1,53 @@
 """Common data types used throughout the codebase."""
 
-from queue import Queue
+from queue import Queue, Empty
 import threading
-from typing import NamedTuple, Optional, TypeVar, Generic
+from typing import Literal, NamedTuple, Optional
 
 import numpy as np
 
-QueueItem = TypeVar("QueueItem")
+
+VadState = Literal["start", "stop", "continue", "n/a"]
 
 
-class AudioQueueData(NamedTuple):
-    """Data structure for audio data in the queue."""
+class AudioFrame(NamedTuple):
+    """Data structure for audio frame in the queue."""
 
     actor_id: int  # 0..n for actors in MVP (currently only 0)
     pcm_bytes: np.ndarray
-    timestamp_monotonic: float
+    wall_time: float  # Wall-clock timestamp (UTC seconds since epoch) time.time()
     sample_rate: float
+    dtype: str
 
 
-class SlidingQueue(Generic[QueueItem]):
-    """Automatic FIFO Queue that drops the oldest item when full. Backed by queue.Queue. Emits Standard queue exceptions."""
+class TaggedAudioFrame(NamedTuple):
+    """Data structure for tagged audio frame in the queue."""
 
-    def __init__(self, maxsize: int = 0):
-        self.queue: Queue[QueueItem] = Queue(maxsize)
-        self.lock = threading.Lock()
+    frame: AudioFrame
+    is_de_noised: bool  # True if frame has been de_noised
+    is_silence: bool  # True if frame RMS is below silence threshold
+    is_voice: bool  # True if voice activity is detected in this frame
+    vad_state: VadState  # VAD segment boundaries
+    rms_db: float  # Root Mean Square level in dBFS for the frame
+    sequence_num: int  # Sequence number for ordering or loss detection
 
-    def put(
-        self, item: QueueItem, block: bool = True, timeout: Optional[float] = None
-    ) -> None:
+
+class SlidingQueue(Queue):
+    """FIFO Queue that drops the oldest item when full."""
+
+    def __init__(self, maxsize: int):
+        if maxsize <= 0:
+            raise ValueError("SlidingQueue requires a positive maxsize")
+        super().__init__(maxsize)
+        self._lock = threading.Lock()
+
+    def put(self, item, block: bool = True, timeout: Optional[float] = None) -> None:
         """Put an item into the queue, dropping the oldest item if full."""
-        with self.lock:
-            if self.queue.full():
-                # Remove the oldest item without blocking to maintain sliding semantics
-                self.queue.get_nowait()
-            self.queue.put(item, block, timeout)
-
-    def get(self, block: bool = True, timeout: Optional[float] = None) -> QueueItem:
-        """Get an item from the queue."""
-        return self.queue.get(block, timeout)
-
-    def qsize(self) -> int:
-        """Return the current size of the queue."""
-        return self.queue.qsize()
-
-    def empty(self) -> bool:
-        """Check if the queue is empty."""
-        return self.queue.empty()
-
-    def full(self) -> bool:
-        """Check if the queue is full."""
-        return self.queue.full()
-
-    def shutdown(self, immediate: bool = False) -> None:
-        """Shut down the queue, making put and get operations raise SHUTDOWN exception."""
-        with self.lock:
-            self.shutdown_flag = True
-            shutdown_method = getattr(self.queue, "shutdown", None)
-            if callable(shutdown_method):
-                shutdown_method(immediate)
+        with self._lock:
+            if self.full():
+                try:
+                    self.get(block=False)
+                except Empty:
+                    pass
+                print("SlidingQueue: Dropped oldest item to make space.")
+            super().put(item, block=block, timeout=timeout)

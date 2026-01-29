@@ -1,6 +1,6 @@
 {
     "editor.rulers": [
-      80
+      80, 120
     ],
     "cSpell.words": [
       "cafile",

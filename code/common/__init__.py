@@ -27,7 +27,7 @@ from .nats import (
     nats_publish,
 )
 
-from .dataTypes import QueueItem, SlidingQueue, AudioQueueData
+from .dataTypes import SlidingQueue, VadState, AudioFrame, TaggedAudioFrame
 
 __all__ = [
     "AllowedActions",
@@ -53,7 +53,8 @@ __all__ = [
     "nats_publish",
     "ActorSettings",
     "MicsSubSettings",
-    "QueueItem",
     "SlidingQueue",
-    "AudioQueueData",
+    "VadState",
+    "AudioFrame",
+    "TaggedAudioFrame",
 ]

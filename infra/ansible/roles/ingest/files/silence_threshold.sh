@@ -123,7 +123,7 @@ try:
   print(f"Average RMS after 2 seconds: {np.sqrt(np.mean(d**2))}")
   d = sd.rec(int(16000*5), samplerate=16000, channels=1, dtype='float32'); sd.wait()
   print(f"Average RMS after 5 seconds: {np.sqrt(np.mean(d**2))}")
-  print("Done. You can adjust the silence_threshold value in config.toml based on these RMS values.")
+  print("Done. You can adjust the silence_threshold value in config.toml based on these RMS values, Be sure to round down.")
 except Exception as e:
   print(f"An error occurred while recording audio: {e}")
 EOF

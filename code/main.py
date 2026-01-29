@@ -35,29 +35,17 @@ def main() -> None:
             case "ingest":
                 importlib.import_module("ingest").start(config)
             case "vision":
-                raise NotImplementedError(
-                    "This is not yet implemented"
-                )  # TODO: implement
+                raise NotImplementedError("This is not yet implemented")  # TODO: implement
             case "hearing":
-                raise NotImplementedError(
-                    "This is not yet implemented"
-                )  # TODO: implement
+                raise NotImplementedError("This is not yet implemented")  # TODO: implement
             case "brain":
-                raise NotImplementedError(
-                    "This is not yet implemented"
-                )  # TODO: implement
+                raise NotImplementedError("This is not yet implemented")  # TODO: implement
             case "output":
-                raise NotImplementedError(
-                    "This is not yet implemented"
-                )  # TODO: implement
+                raise NotImplementedError("This is not yet implemented")  # TODO: implement
             case "health_check":
-                raise NotImplementedError(
-                    "This is not yet implemented"
-                )  # TODO: implement
+                raise NotImplementedError("This is not yet implemented")  # TODO: implement
             case _:
-                logger.error(
-                    f"Unknown role specified in configuration: {config.Mode.Role}"
-                )
+                logger.error(f"Unknown role specified in configuration: {config.Mode.Role}")
                 sys.exit(1)
     except Exception as e:
         logger.exception(f"An error occurred while running the application: {e}")

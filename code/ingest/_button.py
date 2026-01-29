@@ -41,9 +41,7 @@ async def button_init(
                     button.grab()
                 except OSError as e:
                     button.close()
-                    raise RuntimeError(
-                        f"Unable to grab {settings.device_path}, device unavailable: {e}"
-                    ) from e
+                    raise RuntimeError(f"Unable to grab {settings.device_path}, device unavailable: {e}") from e
             buttons[settings.device_path] = ControlDevice(
                 device=button,
                 settings=settings,
@@ -85,9 +83,7 @@ def event_filter(event, path: str, allowed_keys: list[cfg.KeyOptions]) -> bool:
     return True
 
 
-async def reconnect_device(
-    path: str, settings: Button, debounce_ms: int, avatar_id: int
-) -> ControlDevice:
+async def reconnect_device(path: str, settings: Button, debounce_ms: int, avatar_id: int) -> ControlDevice:
     """Attempt to reconnect to a disconnected device."""
     while True:
         try:
@@ -103,9 +99,7 @@ async def reconnect_device(
                 avatar_id=avatar_id,
             )
         except OSError as e:
-            print(
-                f"Connection failed for device {path}, retrying in {RECONNECTION_DELAY_S} seconds: {e}"
-            )
+            print(f"Connection failed for device {path}, retrying in {RECONNECTION_DELAY_S} seconds: {e}")
             await asyncio.sleep(RECONNECTION_DELAY_S)
 
 
@@ -134,9 +128,7 @@ async def monitor_input_events(
 
         async for event in interface.async_read_loop():
             # Skip non-key events or non-configured keys
-            if not event_filter(
-                event, interface.path, list(device.settings.key.keys())
-            ):
+            if not event_filter(event, interface.path, list(device.settings.key.keys())):
                 continue
             # Debounce logic
             if (time_stamp + device.debounce_ms) > time_stamp_ms():
