@@ -10,19 +10,12 @@ from annotated_types import Gt
 import re
 from typing import Annotated, Literal
 
-from pydantic import ConfigDict, dataclasses, model_validator
+from pydantic import ConfigDict, BaseModel, model_validator
 
 
 NonZeroPositiveInt = Annotated[int, Gt(0)]
 
-ComponentRole = Literal[
-    "ingest",
-    "vision",
-    "hearing",
-    "brain",
-    "output",
-    "health_check",
-]
+ComponentRole = Literal["ingest", "vision", "hearing", "brain", "output", "health_check"]
 
 
 def get_logging_level(level: debug_level_options) -> int:
@@ -52,9 +45,8 @@ def check_server(host: str, port: int) -> bool:
         return False
 
 
-@dataclasses.dataclass(frozen=True)
-class ModeConfig:
-    model_config = ConfigDict(extra="forbid")
+class ModeConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
     ethics: bool
     debug_level: debug_level_options
     role: ComponentRole
@@ -66,9 +58,8 @@ class ModeConfig:
         return self
 
 
-@dataclasses.dataclass(frozen=True)
-class NetworkConfig:
-    model_config = ConfigDict(extra="forbid")
+class NetworkConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
     nats_server: str
     connection_timeout_s: NonZeroPositiveInt
     retry_attempts: NonZeroPositiveInt

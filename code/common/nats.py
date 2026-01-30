@@ -3,57 +3,34 @@ NATS connection and publishing utilities.
 """
 
 import asyncio
+from asyncio import Queue
 import contextlib
-from dataclasses import dataclass, field
-from enum import Enum
+from pydantic import BaseModel, ConfigDict, Field
 import ssl
 import time
-from typing import Any, Literal, NamedTuple, AsyncIterator, Optional
+from typing import Literal, NamedTuple, AsyncIterator, Optional
 import nats
 from nats.aio.client import Client as NATS
-import json
 
-from common import config as cfg
+from common.dataTypes import ButtonActions
 
 
 NatsSubjects = Literal["INTERFACE"]
 
 
-class QueuePriority(Enum):
-    """Defines priority levels for the PriorityQueue."""
-
-    Emergency = 1
-    High = 10
-    Medium = 20
-    Standard = 30
-    Low = 40
-
-
-class ButtonData(NamedTuple):
+class ButtonData(BaseModel):
     """Represents Button event data for a Queue."""
 
+    model_config = ConfigDict(extra="forbid", frozen=True)
     avatar_id: int
     # action = button press, status = device connect/disconnect
     message_type: Literal["action", "status"]
-    action: cfg.AllowedActions | None
+    action: Optional[ButtonActions]
     # status: dead = device failed permanently
     status: Optional[Literal["connected", "disconnected", "dead"]]
     version: int = 1
     object_type: str = "ButtonData"
-    time_stamp: int = round(time.time())
-
-
-@dataclass(order=False)  # Important: order=False prevents automatic comparison methods
-class QueueRequest:
-    """Represents a prioritized request for the PriorityQueue."""
-
-    # Priority level (lower number = higher priority)
-    priority: int = field(compare=False)
-    request_data: Any = field(compare=False)  # Actual request data
-
-    # This method is what the PriorityQueue uses to compare two objects
-    def __lt__(self, other: "QueueRequest") -> bool:
-        return self.priority < other.priority
+    time_stamp: float = Field(default_factory=lambda: time.time())
 
 
 class NatsConnectionSettings(NamedTuple):
@@ -91,10 +68,11 @@ async def nats_init(network_settings: NatsConnectionSettings) -> AsyncIterator[N
                 keyfile=network_settings.client_key_path,
                 password=network_settings.key_password,
             )
-            nc = await nats.connect(servers=f"tls://{network_settings.nats_server}", tls=context)
+            nc = await nats.connect(servers=network_settings.nats_server, tls=context)
         else:
             print("Attempting Nats connection without TLS.")
-            nc = await nats.connect(f"nats://{network_settings.nats_server}")
+            stripped_tls = network_settings.nats_server.replace("tls://", "nats://")
+            nc = await nats.connect(servers=stripped_tls)
         yield nc
     finally:
         if nc and nc.is_connected:
@@ -103,21 +81,17 @@ async def nats_init(network_settings: NatsConnectionSettings) -> AsyncIterator[N
             await nc.close()
 
 
-async def nats_publish(
-    nc: NATS,
-    subject: NatsSubjects,
-    output_queue: asyncio.PriorityQueue[QueueRequest],
-    quit_event: asyncio.Event,
-) -> None:
+async def nats_publish(nc: NATS, subject: NatsSubjects, queue: Queue[BaseModel], quit_event: asyncio.Event) -> None:
     """Publish a message to a NATS subject from the output queue."""
     try:
         while not quit_event.is_set():
-            item = await output_queue.get()
+            item = await queue.get()
             try:
-                payload = json.dumps(item.request_data._asdict()).encode("utf-8")
+                payload = item.model_dump_json().encode("utf-8")
+
                 await nc.publish(subject, payload)
             finally:
-                output_queue.task_done()
+                queue.task_done()
 
     # Allow task to be cancelled cleanly during shutdown.
     except asyncio.CancelledError:

@@ -4,12 +4,13 @@ Ingests general configuration from config.Config to create IngestSettings.
 All setting needed for ingestion are defined here.
 """
 
-from typing import Literal, NamedTuple
+from typing import Any, Literal, NamedTuple
 import re
 import os
 from pathlib import Path
+from common.dataTypes import ButtonActions
 
-from pydantic import dataclasses, PositiveFloat, PositiveInt, ConfigDict, model_validator
+from pydantic import BaseModel, PositiveFloat, PositiveInt, ConfigDict, model_validator
 import sounddevice as sd
 
 # Define the valid key options (as seen by evdev)
@@ -108,22 +109,13 @@ KeyOptions = Literal[
 ]
 
 
-class ResetButtonConfig(NamedTuple):
-    """Configuration settings for the reset button."""
+class ButtonConfig(NamedTuple):
+    """Configuration settings for input buttons (reset or avatar)."""
 
     path: str
     key: KeyOptions
     grab: bool
-    action: Literal["reset"] = "reset"
-
-
-class AvatarButtonConfig(NamedTuple):
-    """Configuration settings for the avatar button."""
-
-    path: str
-    key: KeyOptions
-    grab: bool
-    action: Literal["speak"] = "speak"
+    action: ButtonActions
 
 
 class ActorMicsConfig(NamedTuple):
@@ -133,18 +125,17 @@ class ActorMicsConfig(NamedTuple):
     use_noise_reducer: bool
 
 
-@dataclasses.dataclass(frozen=True)
-class IngestSettings:
+class IngestSettings(BaseModel):
     """Configuration settings for the ingestion role portion of the configuration."""
 
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid", frozen=True)
     audio_chunks_ms: Literal[10, 20, 30]
     vad_aggressiveness: Literal[0, 1, 2, 3]
     button_debounce_ms: PositiveInt
     silence_threshold: PositiveFloat
     hearing_server: str
-    reset: ResetButtonConfig
-    avatar_controllers: list[AvatarButtonConfig]
+    reset: ButtonConfig
+    avatar_controllers: list[ButtonConfig]
     actor_mics: list[ActorMicsConfig]
 
     @model_validator(mode="after")
@@ -156,8 +147,46 @@ class IngestSettings:
             raise ValueError(f"Hearing server '{server}' is not in the correct format 'hostname:port'")
         return values
 
+    @model_validator(mode="before")
+    @classmethod
+    def set_button_actions(cls, values: dict[str, Any]) -> dict[str, Any]:
+        """Set button actions based on their role in the configuration."""
+        if not isinstance(values, dict):
+            raise ValueError("set_button_actions function failed: values must be a dictionary.")
+
+        reset = values.get("reset")
+        if reset:
+            values["reset"] = ButtonConfig(
+                path=reset.get("path"),
+                key=reset.get("key"),
+                grab=reset.get("grab"),
+                action="reset",  # computed or derived
+            )
+        avatar_controllers = values.get("avatar_controllers")
+        if avatar_controllers:
+            values["avatar_controllers"] = [
+                ButtonConfig(
+                    path=button.get("path"),
+                    key=button.get("key"),
+                    grab=button.get("grab"),
+                    action="speak",
+                )
+                for button in avatar_controllers
+            ]
+        return values
+
     @model_validator(mode="after")
-    def validate_avatar_buttons(cls, values):
+    def validate_button_actions(cls, values):
+        """Validate that button actions are correctly assigned."""
+        for button in values.avatar_controllers:
+            if button.action != "speak":
+                raise ValueError(f"Avatar controller button at path {button.path} does not have action 'speak'.")
+        if values.reset.action != "reset":
+            raise ValueError(f"Reset button at path {values.reset.path} does not have action 'reset'.")
+        return values
+
+    @model_validator(mode="after")
+    def validate_buttons(cls, values):
         buttons_paths = [values.reset.path] + [button.path for button in values.avatar_controllers]
         button_set = set(buttons_paths)
         if len(button_set) != len(buttons_paths):
