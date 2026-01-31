@@ -5,61 +5,55 @@
 import asyncio
 import contextlib
 import time
-from typing import Final, NamedTuple, AsyncIterator, Optional
+from typing import NamedTuple, AsyncIterator
+import pydantic
+
 import evdev
 
-import common.config as cfg
-import common.nats as nats
-from ._config import Button, ButtonSubSettings
+from common.dataTypes import ButtonActions
 
 
-MAX_RECONNECT_ATTEMPTS: Final[int] = 5
-RECONNECTION_DELAY_S: Final[int] = 2
+from ._config import ButtonConfig, KeyOptions
+from common.nats import ButtonData
 
 
-class ControlDevice(NamedTuple):
-    """Represents an avatar device with its evdev device and settings."""
+class Button(NamedTuple):
+    """Represents a button with its evdev device and settings."""
 
     device: evdev.InputDevice
-    settings: Button
+    settings: ButtonConfig
     debounce_ms: int
-    avatar_id: int  # -1 is control button, 0..n are avatar buttons
 
 
 @contextlib.asynccontextmanager
-async def button_init(
-    buttons_settings: ButtonSubSettings,
-    debounce_ms: int,
-) -> AsyncIterator[dict[str, ControlDevice]]:
-    """Async context manager to initialize and cleanup button devices."""
-    buttons: dict[str, ControlDevice] = {}
+async def button_init(buttons_settings: list[ButtonConfig], debounce_ms: int) -> AsyncIterator[dict[str, Button]]:
+    """Async context manager to initialize and cleanup buttons."""
+    button_dict: dict[str, Button] = {}
+    print("Initializing button devices...")
     try:
-        for settings in buttons_settings.buttons:
-            button = evdev.InputDevice(settings.device_path)
-            if settings.grab:
+        for button in buttons_settings:
+            device = evdev.InputDevice(button.path)
+            if button.grab:
                 try:
-                    button.grab()
+                    device.grab()
                 except OSError as e:
-                    button.close()
-                    raise RuntimeError(f"Unable to grab {settings.device_path}, device unavailable: {e}") from e
-            buttons[settings.device_path] = ControlDevice(
-                device=button,
-                settings=settings,
-                debounce_ms=debounce_ms,
-                avatar_id=settings.avatar_id,
-            )
-        yield buttons
+                    device.close()
+                    raise RuntimeError(f"Unable to grab {button.path}, device unavailable: {e}") from e
+            button_dict[button.path] = Button(device=device, settings=button, debounce_ms=debounce_ms)
+        yield button_dict
     finally:
-        for device in buttons.values():
-            print(f"Cleaning up device:{device.device.path}")
-            try:
-                if device.settings.grab:
-                    device.device.ungrab()
-            except OSError as e:
-                print(f"Unable to ungrab {device.device.path}, device unavailable: {e}")
-            finally:
-                with contextlib.suppress(OSError):
-                    device.device.close()
+        print("Cleaning up button devices...")
+        if len(button_dict) != 0:
+            for button in button_dict.values():
+                print(f"Cleaning up device: {button.settings.path}")
+                try:
+                    if button.settings.grab:
+                        button.device.ungrab()
+                except OSError as e:
+                    print(f"Unable to ungrab {button.settings.path}, device unavailable: {e}")
+                finally:
+                    with contextlib.suppress(OSError):
+                        button.device.close()
 
 
 def time_stamp_ms() -> int:
@@ -67,147 +61,130 @@ def time_stamp_ms() -> int:
     return round(time.time() * 1000)
 
 
-def event_filter(event, path: str, allowed_keys: list[cfg.KeyOptions]) -> bool:
-    """Filter to allow only key events."""
-    ## Filter only key events
-    if event.type != evdev.ecodes.EV_KEY:
-        print(f"{path}: Ignored non-key event: {event}")
-        return False
-    # Skip key releases and repeats
-    if event.value != 1:  # 1=down, 0=up, 2=repeat
-        return False
-    key: evdev.KeyEvent = evdev.categorize(event)  # type: ignore
-    if key.keycode and key.keycode not in allowed_keys:
+def return_allowed_keys(event: evdev.InputEvent, path: str, allowed_keys: list[KeyOptions]) -> KeyOptions | None:
+    """Filter to allow only key events, return key if allowed or None."""
+    key_event = evdev.categorize(event)
+    if not isinstance(key_event, evdev.KeyEvent):
+        print(f"{path}: Ignored non-key event after categorization: {event}")
+        return None
+    if key_event.keystate != evdev.KeyEvent.key_down:
+        print(f"{path}: Ignored key event that is not key down: {event}")
+        return None
+    # Filter only allowed keys
+    if key_event.keycode and key_event.keycode not in allowed_keys:
         print(f"{path}: Ignored Non-configured key event: {event}")
-        return False
-    return True
+        return None
+    print(f"{path}: Allowed key event: {key_event.keycode}")
+    return key_event.keycode  # type: ignore
 
 
-async def reconnect_device(path: str, settings: Button, debounce_ms: int, avatar_id: int) -> ControlDevice:
+async def reconnect_device(settings: ButtonConfig, debounce_ms: int, reconnection_delay_s: int) -> Button:
     """Attempt to reconnect to a disconnected device."""
     while True:
         try:
-            print(f"Attempting to reconnect to device: {path}")
-            new_device = evdev.InputDevice(path)
+            print(f"Attempting to reconnect to device: {settings.path}")
+            new_device = evdev.InputDevice(settings.path)
             if settings.grab:
                 new_device.grab()
-            print(f"Reconnected to device: {path}")
-            return ControlDevice(
-                device=new_device,
-                settings=settings,
-                debounce_ms=debounce_ms,
-                avatar_id=avatar_id,
-            )
+            print(f"Reconnected to device: {settings.path}")
+            return Button(device=new_device, settings=settings, debounce_ms=debounce_ms)
         except OSError as e:
-            print(f"Connection failed for device {path}, retrying in {RECONNECTION_DELAY_S} seconds: {e}")
-            await asyncio.sleep(RECONNECTION_DELAY_S)
+            print(f"Connection failed for device {settings.path}, retrying in {reconnection_delay_s} seconds: {e}")
+            await asyncio.sleep(reconnection_delay_s)
 
 
-async def monitor_input_events(
-    device: ControlDevice,
-    device_list: dict[str, ControlDevice],
-    output_queue: asyncio.PriorityQueue[nats.QueueRequest],
+async def monitor_input_event(
+    device: Button,
+    device_list: dict[str, Button],
+    output_queue: asyncio.Queue[str],
     device_lock: asyncio.Lock,
+    reconnect_attempts_max: int,
+    reconnection_delay_s: int,
     reconnect_count: int,
 ) -> None:
-    interface = device.device  # type: evdev.InputDevice
+    """Monitor input events from a button device and send to output queue."""
+    print(f"Started monitoring device for actor {device.settings.avatar_id} at path: {device.device.path}")
     time_stamp: int = 0  # Initial timestamp for debounce
     disconnected: bool = False
     try:
-        output_queue.put_nowait(
-            nats.QueueRequest(
-                priority=nats.QueuePriority.Medium.value,
-                request_data=nats.ButtonData(
-                    avatar_id=device.avatar_id,
-                    message_type="status",
-                    action=None,
-                    status="connected",
-                ),
-            )
+        button_connected_event = ButtonData(
+            avatar_id=device.settings.avatar_id,
+            message_type="status",
+            action=None,
+            status="connected",
         )
+        dumped_event = button_connected_event.model_dump_json()
+        output_queue.put_nowait(dumped_event)
+        print(f"Sent connected status for device {device.device.path} to output queue.")
 
-        async for event in interface.async_read_loop():
+        async for event in device.device.async_read_loop():
             # Skip non-key events or non-configured keys
-            if not event_filter(event, interface.path, list(device.settings.key.keys())):
+            key = return_allowed_keys(event, device.device.path, list(device.settings.keys.keys()))
+            if not key:
                 continue
             # Debounce logic
             if (time_stamp + device.debounce_ms) > time_stamp_ms():
-                print(interface.path, "Button press ignored due to debounce.", sep=": ")
+                print(f"{device.device.path}: Button press ignored due to debounce.")
                 continue
 
             time_stamp = time_stamp_ms()
-            key: evdev.KeyEvent = evdev.categorize(event)  # type: ignore
-            print(interface.path, key, sep=": ")
-            key_action: Optional[cfg.AllowedActions] = device.settings.key.get(
-                key.keycode  # type: ignore
+            print(f"Button pressed. {device.device.path}: {key}")
+            key_action: ButtonActions = device.settings.keys.get(key, "unset")
+
+            if key_action == "unset":
+                print(f"{device.device.path}: Key {key} has no assigned action, ignoring.")
+                continue
+            button_event = ButtonData(
+                avatar_id=device.settings.avatar_id,
+                message_type="action",
+                action=key_action,
+                status=None,
             )
-            if key_action:
-                data = nats.ButtonData(
-                    avatar_id=device.avatar_id,
-                    message_type="action",
-                    action=key_action,
-                    status=None,
-                )
-                p_request = nats.QueueRequest(
-                    priority=nats.QueuePriority.High.value
-                    if key_action == "reset"
-                    else nats.QueuePriority.Standard.value,
-                    request_data=data,
-                )
-                output_queue.put_nowait(p_request)
-                print(f"Action for {key.keycode}: {key_action} sent to output queue.")
-            else:
-                print(f"No action configured for key: {key.keycode}")
+            dumped_event = button_event.model_dump_json()
+            output_queue.put_nowait(dumped_event)
+            print(f"Action for {key}: {key_action} sent to output queue.")
     except asyncio.CancelledError:
         raise
+    except pydantic.ValidationError as e:
+        print(f"Validation error in button event data for device {device.device.path}: {e}")
     except OSError as e:
-        print(f"Device {interface.path} disconnected, stopping listener: {e}")
+        print(f"Device {device.device.path} disconnected, stopping listener: {e}")
         device.device.close()
         async with device_lock:
-            device_list.pop(interface.path)  # remove closed device from list
+            device_list.pop(device.device.path)  # remove closed device from list
             disconnected = True
-        output_queue.put_nowait(
-            nats.QueueRequest(
-                priority=nats.QueuePriority.High.value,
-                request_data=nats.ButtonData(
-                    avatar_id=device.avatar_id,
-                    message_type="status",
-                    action=None,
-                    status="disconnected",
-                ),
-            )
+        button_event = ButtonData(
+            avatar_id=device.settings.avatar_id, message_type="status", action=None, status="disconnected"
         )
+        dumped_event = button_event.model_dump_json()
+        output_queue.put_nowait(dumped_event)
     except Exception as e:
-        print(f"Error in print_events for device {interface.path}: {e}")
+        print(f"Error in print_events for device {device.device.path}: {e}")
 
     # If disconnected, attempt to reconnect and restart event listening with new device
-    # Limits reconnection to MAX_RECONNECT_ATTEMPTS to prevent unbound recursions
-    if reconnect_count >= MAX_RECONNECT_ATTEMPTS:
-        print(f"Stopped monitoring device: {interface.path} device failed permanently.")
-        output_queue.put_nowait(
-            nats.QueueRequest(
-                priority=nats.QueuePriority.High.value,
-                request_data=nats.ButtonData(
-                    avatar_id=device.avatar_id,
-                    message_type="status",
-                    action=None,
-                    status="dead",
-                ),
-            )
+    # Limits reconnection to reconnect_attempts_max to prevent unbound recursions
+    if reconnect_count >= reconnect_attempts_max:
+        print(f"Stopped monitoring device: {device.device.path} device failed permanently.")
+        button_event = ButtonData(
+            avatar_id=device.settings.avatar_id, message_type="status", action=None, status="dead"
         )
+        dumped_event = button_event.model_dump_json()
+        output_queue.put_nowait(dumped_event)
         return  # exit without reconnecting
     if disconnected:
         async with device_lock:
-            device_list[interface.path] = await reconnect_device(
-                interface.path, device.settings, device.debounce_ms, device.avatar_id
+            device_list[device.device.path] = await reconnect_device(
+                device.settings, device.debounce_ms, reconnection_delay_s
             )
         # Restart event listening
         asyncio.create_task(
-            monitor_input_events(
-                device_list[interface.path],
+            monitor_input_event(
+                device_list[device.device.path],
                 device_list,
                 output_queue,
                 device_lock,
+                reconnect_attempts_max,
+                reconnection_delay_s,
                 reconnect_count + 1,
             )
         )

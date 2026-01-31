@@ -109,13 +109,26 @@ KeyOptions = Literal[
 ]
 
 
+class _ResetButton(BaseModel):
+    path: str
+    reset: KeyOptions
+    grab: bool
+
+
+class _AvatarButton(BaseModel):
+    path: str
+    speak: KeyOptions
+    exit: KeyOptions
+    grab: bool
+
+
 class ButtonConfig(NamedTuple):
     """Configuration settings for input buttons (reset or avatar)."""
 
     path: str
-    key: KeyOptions
+    keys: dict[KeyOptions, ButtonActions]
     grab: bool
-    action: ButtonActions
+    avatar_id: int  # -1 is control button, 0..n are avatar buttons
 
 
 class ActorMicsConfig(NamedTuple):
@@ -154,35 +167,20 @@ class IngestSettings(BaseModel):
         if not isinstance(values, dict):
             raise ValueError("set_button_actions function failed: values must be a dictionary.")
 
-        reset = values.get("reset")
-        if reset:
-            values["reset"] = ButtonConfig(
-                path=reset.get("path"),
-                key=reset.get("key"),
-                grab=reset.get("grab"),
-                action="reset",  # computed or derived
+        pre_reset = _ResetButton(**values.get("reset", {}))
+        pre_avatar_buttons = [_AvatarButton(**btn) for btn in values.get("avatar_controllers", [])]
+        values["reset"] = ButtonConfig(
+            path=pre_reset.path,
+            keys={pre_reset.reset: "reset"},
+            grab=pre_reset.grab,
+            avatar_id=-1,
+        )
+        values["avatar_controllers"] = []
+        for idx, btn in enumerate(pre_avatar_buttons):
+            btn_config = ButtonConfig(
+                path=btn.path, keys={btn.speak: "speak", btn.exit: "exit"}, grab=btn.grab, avatar_id=idx
             )
-        avatar_controllers = values.get("avatar_controllers")
-        if avatar_controllers:
-            values["avatar_controllers"] = [
-                ButtonConfig(
-                    path=button.get("path"),
-                    key=button.get("key"),
-                    grab=button.get("grab"),
-                    action="speak",
-                )
-                for button in avatar_controllers
-            ]
-        return values
-
-    @model_validator(mode="after")
-    def validate_button_actions(cls, values):
-        """Validate that button actions are correctly assigned."""
-        for button in values.avatar_controllers:
-            if button.action != "speak":
-                raise ValueError(f"Avatar controller button at path {button.path} does not have action 'speak'.")
-        if values.reset.action != "reset":
-            raise ValueError(f"Reset button at path {values.reset.path} does not have action 'reset'.")
+            values["avatar_controllers"].append(btn_config)
         return values
 
     @model_validator(mode="after")

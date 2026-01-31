@@ -81,14 +81,16 @@ async def nats_init(network_settings: NatsConnectionSettings) -> AsyncIterator[N
             await nc.close()
 
 
-async def nats_publish(nc: NATS, subject: NatsSubjects, queue: Queue[BaseModel], quit_event: asyncio.Event) -> None:
+async def nats_publish(nc: NATS, subject: NatsSubjects, queue: Queue[str], quit_event: asyncio.Event) -> None:
     """Publish a message to a NATS subject from the output queue."""
     try:
         while not quit_event.is_set():
             item = await queue.get()
             try:
-                payload = item.model_dump_json().encode("utf-8")
-
+                if not isinstance(item, str):
+                    print("Invalid message, skipping publishing to NATS.")
+                    continue
+                payload = item.encode("utf-8")
                 await nc.publish(subject, payload)
             finally:
                 queue.task_done()

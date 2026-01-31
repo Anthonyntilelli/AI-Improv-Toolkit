@@ -4,7 +4,7 @@ import tomllib
 from typing import Any, Final
 import logging
 
-from common.config import NetworkConfig, ModeConfig, get_logging_level
+from common.config import NetworkConfig, ModeConfig, ShowConfig, get_logging_level
 
 
 logger = logging.getLogger(__name__)
@@ -19,6 +19,7 @@ def main() -> None:
 
     with open(CONFIG_FILE, mode="rb") as fp:
         unverified_config = tomllib.load(fp)
+        show_config = ShowConfig(**unverified_config.get("Show", {}))
         network_config = NetworkConfig(**unverified_config.get("Network", {}))
         mode_config = ModeConfig(**unverified_config.get("Mode", {}))
 
@@ -36,7 +37,7 @@ def main() -> None:
         match mode_config.role:  # pyright: ignore[reportAttributeAccessIssue]
             case "ingest":
                 importlib.import_module("ingest").start(
-                    network_config, mode_config, unverified_config.get("Ingest", {})
+                    show_config, network_config, mode_config, unverified_config.get("Ingest", {})
                 )
             case "vision":
                 raise NotImplementedError("This is not yet implemented")  # TODO: implement

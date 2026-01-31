@@ -12,12 +12,15 @@ from typing import Annotated, Literal
 
 from pydantic import ConfigDict, BaseModel, model_validator
 
-
+# Types
 NonZeroPositiveInt = Annotated[int, Gt(0)]
 
 ComponentRole = Literal["ingest", "vision", "hearing", "brain", "output", "health_check"]
 
+debug_level_options = Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
 
+
+# Helper Functions
 def get_logging_level(level: debug_level_options) -> int:
     """Get the logging level based on the Debug_level setting."""
     level_mapping = {
@@ -31,9 +34,6 @@ def get_logging_level(level: debug_level_options) -> int:
     return level_mapping.get(level, logging.CRITICAL)
 
 
-debug_level_options = Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
-
-
 def check_server(host: str, port: int) -> bool:
     """Check if a TCP server is reachable at the given host and port."""
     try:
@@ -43,6 +43,25 @@ def check_server(host: str, port: int) -> bool:
             return True
     except socket.error:
         return False
+
+
+# Configuration Models
+
+
+class ShowConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+    name: str
+    description: str
+    actor_count: NonZeroPositiveInt
+    avatar_count: NonZeroPositiveInt
+
+    @model_validator(mode="after")
+    def mvp_limits(cls, self):
+        if self.actor_count != 1:
+            raise ValueError("MVP supports only 1 actor for now.")
+        if self.avatar_count != 1:
+            raise ValueError("MVP supports only 1 avatar for now.")
+        return self
 
 
 class ModeConfig(BaseModel):

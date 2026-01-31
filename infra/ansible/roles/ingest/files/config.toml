@@ -1,4 +1,9 @@
 # Example configuration file for AI Improv Toolkit, each Role has its own section.
+[Show]
+name = "8-Bit Players"
+description = "An AI-powered improv show that combine classic improv with AI-driven characters."
+actor_count = 1 # MVP supports only 1 actor for now
+avatar_count = 1 # MVP supports only 1 avatar for now
 
 [Mode]
 ethics = false # When true, will have ethic mode limits applied
@@ -27,7 +32,7 @@ hearing_server = "hearing_server:8100"
 
 [Ingest.reset]
 path = "/dev/show/reset"
-key = "KEY_SPACE"
+reset = "KEY_SPACE"
 grab = true
 
 [[Ingest.actor_mics]]
@@ -36,5 +41,6 @@ use_noise_reducer = true # When true, will apply noise reduction to incoming aud
 
 [[Ingest.avatar_controllers]]
 path = "/dev/show/avatar"
-key = "KEY_SPACE"
+speak = "KEY_SPACE"
+exit = "KEY_ENTER"
 grab = true

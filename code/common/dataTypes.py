@@ -7,7 +7,7 @@ from typing import Literal, NamedTuple, Optional
 import numpy as np
 
 
-ButtonActions = Literal["speak", "reset", "unset"]
+ButtonActions = Literal["speak", "reset", "unset", "exit"]
 
 
 VadState = Literal["start", "stop", "continue", "n/a"]
