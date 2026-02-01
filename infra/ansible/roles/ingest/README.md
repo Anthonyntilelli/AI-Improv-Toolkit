@@ -37,6 +37,12 @@ Example Playbook
       ingest_pki_ca_path: "/path/to/ca.pem"
 ```
 
+Tools Included
+--------------
+
+The role includes several utilities to assist with configuration of the ingest role.
+They can be found in "/opt/show/ingest/tools/".
+
 License
 -------
 

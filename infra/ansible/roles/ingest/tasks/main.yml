@@ -108,38 +108,37 @@
     owner: "show"
     group: "show"
 
+- name: Creating the tools directory
+  ansible.builtin.file:
+    path: /opt/show/ingest/tools
+    state: directory
+    mode: '0700'
+    owner: "show"
+    group: "show"
+
 - name: Copy sound_list_name.sh to the ingest directory
   ansible.builtin.copy:
     src: sound_list_name.sh
-    dest: /opt/show/ingest/sound_list_name.sh
+    dest: /opt/show/ingest/tools/sound_list_name.sh
     mode: '0755'
     owner: "show"
     group: "show"
 
-- name: List sound devices on system for show.
-  ansible.builtin.command: bash /opt/show/ingest/sound_list_name.sh
-  register: ingest_sound_devices
-  changed_when: false
-
-- name: Show sound devices stdout (lines)
-  ansible.builtin.debug:
-    var: ingest_sound_devices.stdout_lines
+- name: Copy list_and_monitor_buttons.sh to the ingest directory
+  ansible.builtin.copy:
+    src: list_and_monitor_buttons.sh
+    dest: /opt/show/ingest/tools/list_and_monitor_buttons.sh
+    mode: '0755'
+    owner: "show"
+    group: "show"
 
 - name: Copy silence_threshold.sh to the ingest directory
   ansible.builtin.copy:
     src: silence_threshold.sh
-    dest: /opt/show/ingest/silence_threshold.sh
+    dest: /opt/show/ingest/tools/silence_threshold.sh
     mode: '0755'
     owner: "show"
     group: "show"
-
-- name: Provide instructions to determine silence threshold
-  ansible.builtin.debug:
-    msg: |
-      To determine a suitable silence threshold for your environment, run the following command on the target machine:
-      sudo -u show bash /opt/show/ingest/silence_threshold.sh
-      Follow the on-screen instructions and be silent during the recording periods.
-      Use the reported RMS values to set the 'Silence_threshold' in /opt/show/ingest/config.toml.
 
 # TODO: Uncomment and set the correct image name to run the ingest container
 # - name: Run and pull ingest container
