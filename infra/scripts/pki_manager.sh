@@ -756,7 +756,7 @@ function verify_all() {
     output "Root cert not present (ok if this is a rotate bundle)."
   fi
 
-  Validate Intermediate cert
+  # Validate Intermediate cert
   if [[ -f "$ROOT_CERT" && -f "$ROOT_CRL" ]]; then
     openssl verify -CAfile "$ROOT_CERT" -purpose any -checkend 0 -crl_check -CRLfile "$ROOT_CRL" "$INT_CERT" >/dev/null 2>&1 \
       || die 12 "Intermediate cert verification against Root with CRL failed: $INT_CERT"
@@ -832,8 +832,8 @@ function main() {
   fi
 
   cli_check
-  env_check
   declare -gra ALL_SERVERS=("${SERVERS[@]/%/.${SERVER_DOMAIN}}" "${DEVELOPMENT_SERVERS[@]}")
+  env_check
 
   if [[ "$mode" == "init" ]]; then
     local -r CWD="$(pwd)"
