@@ -60,6 +60,7 @@ then
   exit 3
 fi
 
+##################### Modify to Match your environment #########################
 
 # Modify the below constants to match your domain and information
 readonly COUNTRY="US"
@@ -80,7 +81,10 @@ declare -rA CLIENTS=(
 )
 readonly CLIENT_CERT_LIFE=375  # days
 readonly -a SERVERS=(nats vision hearing)
+readonly -a DEVELOPMENT_SERVERS=(nats_server vision_server hearing_server)
 readonly SERVER_CERT_LIFE=375  # days
+
+################################################################################
 
 # Global
 declare mode="unset"
@@ -118,7 +122,7 @@ function usage() {
   printf "pki_management (init | rotate)\\n"
   printf "    init        Generate root, intermediate, Server and Client CA\\n"
   printf "    rotate      Generate new client and Server CA, while revoking old ones\\n"
-  printf "    verify      Verify chain, CRLs, and all leaf certs\n"
+  printf "    verify      Verify chain, CRLs, and all leaf certs\\n"
   return 0
 }
 
@@ -478,38 +482,38 @@ function gen_server_ca() {
   #@ USAGE: gen_server_ca
   #@ REQUIREMENTS: openssl
 
-  for server in "${SERVERS[@]}" ; do
-    openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:4096 -out "intermediateCA/private/${server}.${SERVER_DOMAIN}.key.pem"  2>/dev/null
-    chmod 400 "intermediateCA/private/${server}.${SERVER_DOMAIN}.key.pem"
+    for server in "${ALL_SERVERS[@]}" ; do
+    openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:4096 -out "intermediateCA/private/${server}.key.pem"  2>/dev/null
+    chmod 400 "intermediateCA/private/${server}.key.pem"
 
     openssl req -config openssl_intermediate.cnf \
-      -key "intermediateCA/private/${server}.${SERVER_DOMAIN}.key.pem" \
-      -new -sha256 -out "intermediateCA/csr/${server}.${SERVER_DOMAIN}.csr.pem" \
-      -subj "/C=${COUNTRY}/ST=${STATE}/L=${LOCAL}/O=${ORG}/OU=${ORGUNIT}/CN=${server}.${SERVER_DOMAIN}"
-    chmod 444 "intermediateCA/csr/${server}.${SERVER_DOMAIN}.csr.pem"
+      -key "intermediateCA/private/${server}.key.pem" \
+      -new -sha256 -out "intermediateCA/csr/${server}.csr.pem" \
+      -subj "/C=${COUNTRY}/ST=${STATE}/L=${LOCAL}/O=${ORG}/OU=${ORGUNIT}/CN=${server}"
+    chmod 444 "intermediateCA/csr/${server}.csr.pem"
 
     openssl ca -config <(cat openssl_intermediate.cnf; cat <<EOF
 [ server_cert ]
 subjectAltName = @alt_names
 
 [ alt_names ]
-DNS.1 = ${server}.${SERVER_DOMAIN}
-DNS.2 = ${SERVER_DOMAIN}
+DNS.1 = ${server}
 EOF
 ) \
       -extensions server_cert -days "${SERVER_CERT_LIFE}" -notext -md sha256  -batch \
-      -in "intermediateCA/csr/${server}.${SERVER_DOMAIN}.csr.pem" \
+      -in "intermediateCA/csr/${server}.csr.pem" \
       -passin env:INTERMEDIATE_CA_PASSWORD \
-      -out "intermediateCA/certs/${server}.${SERVER_DOMAIN}.cert.pem" >/dev/null 2>&1
+      -out "intermediateCA/certs/${server}.cert.pem" >/dev/null 2>&1
 
-    chmod 444 "intermediateCA/certs/${server}.${SERVER_DOMAIN}.cert.pem"
-    verify_leaf_cert "intermediateCA/certs/${server}.${SERVER_DOMAIN}.cert.pem" "sslserver"
+    chmod 444 "intermediateCA/certs/${server}.cert.pem"
+    verify_leaf_cert "intermediateCA/certs/${server}.cert.pem" "sslserver"
 
     # SAN sanity check
-    openssl x509 -in "intermediateCA/certs/${server}.${SERVER_DOMAIN}.cert.pem" -noout -text | \
-      grep -q "DNS:${server}.${SERVER_DOMAIN}" \
-      || die 1 "Missing expected SAN on ${server}.${SERVER_DOMAIN}"
+    openssl x509 -in "intermediateCA/certs/${server}.cert.pem" -noout -text | \
+      grep -q "DNS:${server}" \
+      || die 1 "Missing expected SAN on ${server}"
   done
+
   return 0
 }
 
@@ -689,9 +693,9 @@ function verify_leaf_cert() {
     || die 1 "Verification failed ($PURPOSE): $CERT"
 }
 
-function Verify_INTERMEDIATE_CA_PASSWORD() {
+function verify_INTERMEDIATE_CA_PASSWORD() {
   #@ DESCRIPTION: Verifies INTERMEDIATE_CA_PASSWORD can decrypt the intermediate CA private key.
-  #@ USAGE: Verify_INTERMEDIATE_CA_PASSWORD
+  #@ USAGE: verify_INTERMEDIATE_CA_PASSWORD
   #@ REQUIREMENTS: openssl
 
   local -r KEY="intermediateCA/private/intermediate.key.pem"
@@ -723,7 +727,7 @@ function create_bundle(){
 
   output "The file PKI.tar.gz.enc contains the PKI bundle."
   output "Bundle password written to ${PASSFILE} (mode 600), store it securely."
-  output "Decryption can be done with below:"
+  output "Decryption can be done with the command below:"
   printf "%s\\n" "openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -md sha256 -pass file:${PASSFILE} -in PKI.tar.gz.enc -out PKI.tar.gz"
   printf "%s\\n" "tar -xzf PKI.tar.gz -C . # pki directory expected"
   return 0
@@ -752,6 +756,13 @@ function verify_all() {
     output "Root cert not present (ok if this is a rotate bundle)."
   fi
 
+  Validate Intermediate cert
+  if [[ -f "$ROOT_CERT" && -f "$ROOT_CRL" ]]; then
+    openssl verify -CAfile "$ROOT_CERT" -purpose any -checkend 0 -crl_check -CRLfile "$ROOT_CRL" "$INT_CERT" >/dev/null 2>&1 \
+      || die 12 "Intermediate cert verification against Root with CRL failed: $INT_CERT"
+    output "Intermediate cert verified against Root with CRL."
+  fi
+
   output "Verifying intermediate cert against chain"
   openssl verify -CAfile "$CHAIN" "$INT_CERT" >/dev/null 2>&1 \
     || die 12 "Intermediate cert verification failed: $INT_CERT"
@@ -765,17 +776,17 @@ function verify_all() {
   local failed=0
 
   # Servers
-  for server in "${SERVERS[@]}"; do
-    local cert="intermediateCA/certs/${server}.${SERVER_DOMAIN}.cert.pem"
+  for server in "${ALL_SERVERS[@]}"; do
+    local cert="intermediateCA/certs/${server}.cert.pem"
     [[ -f "$cert" ]] || die 12 "Missing server cert: $cert"
 
     # Chain + purpose + CRL
-    openssl verify -CAfile "$CHAIN" -purpose sslserver -crl_check -CRLfile "$INT_CRL" "$cert" >/dev/null 2>&1 \
+    openssl verify -CAfile "$CHAIN" -purpose sslserver -checkend 0 -crl_check -CRLfile "$INT_CRL" "$cert" >/dev/null 2>&1 \
       || { printf "FAIL sslserver: %s\n" "$cert" >&2; failed=1; }
 
     # SAN check (more stable than -text)
-    openssl x509 -in "$cert" -noout -ext subjectAltName 2>/dev/null | grep -q "DNS:${server}.${SERVER_DOMAIN}" \
-      || { printf "FAIL SAN missing DNS:%s.%s\n" "$server" "$SERVER_DOMAIN" >&2; failed=1; }
+    openssl x509 -in "$cert" -noout -ext subjectAltName 2>/dev/null | grep -q "DNS:${server}" \
+      || { printf "FAIL SAN missing DNS:%s\n" "$server" >&2; failed=1; }
 
     # Expiry
     openssl x509 -in "$cert" -noout -subject -enddate
@@ -786,7 +797,7 @@ function verify_all() {
     local cert="intermediateCA/certs/${key}.client.cert.pem"
     [[ -f "$cert" ]] || die 12 "Missing client cert: $cert"
 
-    openssl verify -CAfile "$CHAIN" -purpose sslclient -crl_check -CRLfile "$INT_CRL" "$cert" >/dev/null 2>&1 \
+    openssl verify -CAfile "$CHAIN" -purpose sslclient -checkend 0 -crl_check -CRLfile "$INT_CRL" "$cert" >/dev/null 2>&1 \
       || { printf "FAIL sslclient: %s\n" "$cert" >&2; failed=1; }
 
     # Email SAN check
@@ -816,12 +827,13 @@ function main() {
     init) mode=init ;;
     rotate) mode=rotate ;;
     verify) mode=verify ;;
-    *) die 8 "${1} is not a valid option (init | rotate)." ;;
+    *) die 8 "${1} is not a valid option (init | rotate | verify)." ;;
   esac
   fi
 
   cli_check
   env_check
+  declare -gra ALL_SERVERS=("${SERVERS[@]/%/.${SERVER_DOMAIN}}" "${DEVELOPMENT_SERVERS[@]}")
 
   if [[ "$mode" == "init" ]]; then
     local -r CWD="$(pwd)"
@@ -851,7 +863,7 @@ function main() {
 
   elif [[ "$mode" == "rotate" ]]; then
     require_existing_pki
-    Verify_INTERMEDIATE_CA_PASSWORD
+    verify_INTERMEDIATE_CA_PASSWORD
 
     output "Starting rotate process in $(pwd)"
     output "Archiving existing leaf material"
