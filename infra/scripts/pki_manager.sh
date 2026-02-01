@@ -758,7 +758,7 @@ function verify_all() {
 
   # Validate Intermediate cert
   if [[ -f "$ROOT_CERT" && -f "$ROOT_CRL" ]]; then
-    openssl verify -CAfile "$ROOT_CERT" -purpose any -checkend 0 -crl_check -CRLfile "$ROOT_CRL" "$INT_CERT" >/dev/null 2>&1 \
+    openssl verify -CAfile "$ROOT_CERT" -purpose any -crl_check -CRLfile "$ROOT_CRL" "$INT_CERT" >/dev/null 2>&1 \
       || die 12 "Intermediate cert verification against Root with CRL failed: $INT_CERT"
     output "Intermediate cert verified against Root with CRL."
   fi
@@ -781,7 +781,7 @@ function verify_all() {
     [[ -f "$cert" ]] || die 12 "Missing server cert: $cert"
 
     # Chain + purpose + CRL
-    openssl verify -CAfile "$CHAIN" -purpose sslserver -checkend 0 -crl_check -CRLfile "$INT_CRL" "$cert" >/dev/null 2>&1 \
+    openssl verify -CAfile "$CHAIN" -purpose sslserver -crl_check -CRLfile "$INT_CRL" "$cert" >/dev/null 2>&1 \
       || { printf "FAIL sslserver: %s\n" "$cert" >&2; failed=1; }
 
     # SAN check (more stable than -text)
@@ -797,7 +797,7 @@ function verify_all() {
     local cert="intermediateCA/certs/${key}.client.cert.pem"
     [[ -f "$cert" ]] || die 12 "Missing client cert: $cert"
 
-    openssl verify -CAfile "$CHAIN" -purpose sslclient -checkend 0 -crl_check -CRLfile "$INT_CRL" "$cert" >/dev/null 2>&1 \
+    openssl verify -CAfile "$CHAIN" -purpose sslclient -crl_check -CRLfile "$INT_CRL" "$cert" >/dev/null 2>&1 \
       || { printf "FAIL sslclient: %s\n" "$cert" >&2; failed=1; }
 
     # Email SAN check
