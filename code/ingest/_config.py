@@ -5,7 +5,6 @@ All setting needed for ingestion are defined here.
 """
 
 from typing import Any, Literal, NamedTuple
-import re
 import os
 from pathlib import Path
 from common.dataTypes import ButtonActions
@@ -138,27 +137,24 @@ class ActorMicsConfig(NamedTuple):
     use_noise_reducer: bool
 
 
+class RTPProxyConfig(NamedTuple):
+    """Configuration settings for RTP Proxy server."""
+
+    address: str
+    port: int
+
+
 class IngestSettings(BaseModel):
     """Configuration settings for the ingestion role portion of the configuration."""
 
     model_config = ConfigDict(extra="forbid", frozen=True)
-    audio_chunks_ms: Literal[10, 20, 30]
-    vad_aggressiveness: Literal[0, 1, 2, 3]
     button_debounce_ms: PositiveInt
     silence_threshold: PositiveFloat
-    hearing_server: str
     reset: ButtonConfig
     avatar_controllers: list[ButtonConfig]
     actor_mics: list[ActorMicsConfig]
+    rtp_proxy: RTPProxyConfig
 
-    @model_validator(mode="after")
-    def validate_hearing_server(cls, values):
-        """Validate that the hearing server is properly formatted."""
-        server = values.hearing_server
-        hearing_pattern = re.compile(r"^[a-zA-Z0-9.-_]+:\d{1,5}$")
-        if not hearing_pattern.match(server):
-            raise ValueError(f"Hearing server '{server}' is not in the correct format 'hostname:port'")
-        return values
 
     @model_validator(mode="before")
     @classmethod

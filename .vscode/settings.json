@@ -3,6 +3,7 @@
       80, 120
     ],
     "cSpell.words": [
+      "BBHII",
       "cafile",
       "chdir",
       "davidanson",
@@ -30,11 +31,13 @@
       "NONBLOCK",
       "NOPASSWD",
       "numpy",
+      "Packetizer",
       "passwordless",
       "polyphase",
       "portaudio",
       "pycache",
       "pydantic",
+      "pyogg",
       "pyproject",
       "RDONLY",
       "RIGHTBRACE",

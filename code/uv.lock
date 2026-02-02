@@ -11,6 +11,7 @@ dependencies = [
     { name = "nats-py" },
     { name = "numpy" },
     { name = "pydantic" },
+    { name = "pyogg" },
     { name = "sounddevice" },
 ]
 
@@ -26,6 +27,7 @@ requires-dist = [
     { name = "nats-py", specifier = ">=2.12.0" },
     { name = "numpy", specifier = ">=2.4.1" },
     { name = "pydantic", specifier = ">=2.12.5" },
+    { name = "pyogg", specifier = ">=0.6.14a1" },
     { name = "sounddevice", specifier = ">=0.5.5" },
 ]
 
@@ -248,6 +250,16 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/5c/96/5fb7d8c3c17bc8c62fdb031c47d77a1af698f1d7a406b0f79aaa1338f9ad/pydantic_core-2.41.5-cp314-cp314t-win32.whl", hash = "sha256:b4ececa40ac28afa90871c2cc2b9ffd2ff0bf749380fbdf57d165fd23da353aa", size = 1988906, upload-time = "2025-11-04T13:41:56.606Z" },
     { url = "https://files.pythonhosted.org/packages/22/ed/182129d83032702912c2e2d8bbe33c036f342cc735737064668585dac28f/pydantic_core-2.41.5-cp314-cp314t-win_amd64.whl", hash = "sha256:80aa89cad80b32a912a65332f64a4450ed00966111b6615ca6816153d3585a8c", size = 1981607, upload-time = "2025-11-04T13:41:58.889Z" },
     { url = "https://files.pythonhosted.org/packages/9f/ed/068e41660b832bb0b1aa5b58011dea2a3fe0ba7861ff38c4d4904c1c1a99/pydantic_core-2.41.5-cp314-cp314t-win_arm64.whl", hash = "sha256:35b44f37a3199f771c3eaa53051bc8a70cd7b54f333531c59e29fd4db5d15008", size = 1974769, upload-time = "2025-11-04T13:42:01.186Z" },
+]
+
+[[package]]
+name = "pyogg"
+version = "0.6.14a1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/1a/13/07358440dc3e94a71f3cd0f734e90b41392cc125de1571a99c4f8b594ccb/PyOgg-0.6.14a1.tar.gz", hash = "sha256:8294b34aa59c90200c4630c2cc4a5b84407209141e8e5d069d7a5be358e94262", size = 35091, upload-time = "2020-06-26T12:51:57.378Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/19/b8/aa50bedf5628dc66a88a3aa6554b91a3f931baf2b221ece3a8525278b667/PyOgg-0.6.14a1-py2.py3-none-win32.whl", hash = "sha256:794db340fb5833afb4f493b40f91e3e0f594606fd4b31aea0ebf5be2de9da964", size = 1037870, upload-time = "2020-06-26T12:51:52.764Z" },
+    { url = "https://files.pythonhosted.org/packages/52/14/34b6b82684f26e517f6947d9c1d43e64dbf1630954f284ffd9912f4c46c8/PyOgg-0.6.14a1-py2.py3-none-win_amd64.whl", hash = "sha256:40f79b288b3a667309890885f4cf53371163b7dae17eb17567fb24ab467eca26", size = 1099508, upload-time = "2020-06-26T12:51:55.912Z" },
 ]
 
 [[package]]

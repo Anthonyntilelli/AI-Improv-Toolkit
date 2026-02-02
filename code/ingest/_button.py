@@ -1,4 +1,7 @@
-"""Button input device handling using evdev library."""
+"""
+Captures button events using evdev and sends them to an an asyncio queue.
+For each button, a separate task is created to monitor its events. Use monitor_input_event() in a asyncio task.
+"""
 
 # evdev API reference: https://python-evdev.readthedocs.io/en/latest/usage.html
 

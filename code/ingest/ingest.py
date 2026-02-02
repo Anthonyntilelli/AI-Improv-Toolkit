@@ -7,38 +7,21 @@ import asyncio
 from typing import Any, Final
 
 from common.config import NetworkConfig, ModeConfig, ShowConfig
+from common.dataTypes import AsyncSlidingQueue
 from ._config import IngestSettings
 from ._button import button_init, monitor_input_event
+from ._mic_to_rtp import mic_to_queue, queue_to_rtp_sender, middleware_converter
 import common.nats as common_nats
+
 
 BUTTON_MAX_RECONNECT_ATTEMPTS: Final[int] = 5
 BUTTON_RECONNECTION_DELAY_S: Final[int] = 2
 
-
-# def start(config: cfg.Config) -> None:
-#     """Function to start the ingest role."""
-#     print("Ingest role started.")
-#     try:
-#         # TODO: REMOVE skip_button_validation
-#         ingest_settings: IngestSettings = load_internal_config(config)
-#         print("Loaded ingest config")
-#     except Exception as e:
-#         print(f"Failed to load ingest configuration: {e}")
-#         return
-
-#     audio_pre_queue = SlidingQueue(maxsize=128)
-#     audio_post_queue = SlidingQueue(maxsize=128)
-
-#     with ThreadPoolExecutor() as executor:
-#         executor.submit(asyncio.run, button_loop(ingest_settings))
-#         executor.submit(stream_audio_to_queue, ingest_settings, audio_pre_queue, 0)
-#         executor.submit(audio_middleware, ingest_settings, audio_pre_queue, audio_post_queue)
-#         executor.submit(consume_audio_queue, ingest_settings, audio_post_queue)
-
-#     print("Ingest role completed.")
+AUDIO_MAX_STREAM_RECONNECT_ATTEMPTS: Final[int] = 5
+AUDIO_STREAM_RECONNECTION_DELAY_S: Final[int] = 2
 
 
-async def button_loop(networking_settings: NetworkConfig, ingest_config: IngestSettings) -> None:
+async def _button_loop(networking_settings: NetworkConfig, ingest_config: IngestSettings) -> None:
     """Loop to monitor button inputs and send events to NATS."""
 
     print("Ingest Button Loop started.")
@@ -83,12 +66,56 @@ async def button_loop(networking_settings: NetworkConfig, ingest_config: IngestS
     print("Ingest Button loop completed.")
 
 
+async def _audio_loop(ingest_config: IngestSettings) -> None:
+    """Loop to handle audio streaming."""
+    print("Ingest Audio Loop started.")
+
+    sliding_window_size = 250  # Number of audio frames in the sliding window
+
+    frame_queue = AsyncSlidingQueue(maxsize=sliding_window_size)
+    packet_queue = AsyncSlidingQueue(maxsize=sliding_window_size)
+    exit_event = asyncio.Event()
+
+    async with asyncio.TaskGroup() as tg:
+        tg.create_task(
+            mic_to_queue(
+                ingest_config.actor_mics[0].name,
+                1,  # Mono channel
+                frame_queue,
+                AUDIO_MAX_STREAM_RECONNECT_ATTEMPTS,
+                AUDIO_STREAM_RECONNECTION_DELAY_S,
+                exit_event,
+            )
+        )
+        tg.create_task(
+            middleware_converter(
+                input_queue=frame_queue,
+                output_queue=packet_queue,
+                exit_event=exit_event,
+                mic_name=ingest_config.actor_mics[0].name,
+                channels=1,  # Mono channel
+            )
+        )
+        tg.create_task(
+            queue_to_rtp_sender(
+                input_queue=packet_queue,
+                destination=ingest_config.rtp_proxy.address,
+                port=ingest_config.rtp_proxy.port,
+                exit_event=exit_event,
+            )
+        )
+
+    print("Ingest Audio loop completed.")
+
+
 def start(
     show_config: ShowConfig, network_config: NetworkConfig, mode_config: ModeConfig, raw_ingest_config: dict[str, Any]
 ) -> None:
     """Function to start the ingest role."""
     print("Ingest role started.")
     ingest_config = IngestSettings(**raw_ingest_config)
+
+    # Validate configuration consistency
     if show_config.actor_count != len(ingest_config.actor_mics):
         raise ValueError(
             f"Actor count in Show config ({show_config.actor_count}) does not match number of actor mics in Ingest config ({len(ingest_config.actor_mics)})."
@@ -97,6 +124,7 @@ def start(
         raise ValueError(
             f"Avatar count in Show config ({show_config.avatar_count}) does not match number of avatar controllers in Ingest config ({len(ingest_config.avatar_controllers)})."
         )
-    asyncio.run(button_loop(network_config, ingest_config))
 
+    # asyncio.run(button_loop(network_config, ingest_config))
+    asyncio.run(_audio_loop(ingest_config))
     print("Ingest role completed.")

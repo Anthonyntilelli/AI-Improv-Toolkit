@@ -23,12 +23,13 @@ client_cert_path = "/etc/ai-show/pki/client_cert.pem"
 client_key_path = "/etc/ai-show/pki/client_key.pem"
 
 [Ingest]
-audio_chunks_ms = 10  # options [10, 20, 30]
-vad_aggressiveness = 1  # 0-3; higher = more aggressive (fewer false positives)
 button_debounce_ms = 500
 # Can be found using the /opt/show/ingest/silence_threshold.sh. Be careful with this value.
 silence_threshold = 0.02 # RMS threshold that the mic will ignore Don't make too large.
-hearing_server = "hearing_server:8100"
+
+[Ingest.rtp_proxy]
+address = "tony-pc"  # IP address of the RTP Proxy server
+port = 5004               # Port number for RTP streaming
 
 [Ingest.reset]
 path = "/dev/show/reset"

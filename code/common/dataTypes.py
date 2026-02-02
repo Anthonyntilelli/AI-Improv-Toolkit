@@ -1,6 +1,7 @@
 """Common data types used throughout the codebase."""
 
-from queue import Queue, Empty
+import asyncio
+import queue
 import threading
 from typing import Literal, NamedTuple, Optional
 
@@ -10,32 +11,14 @@ import numpy as np
 ButtonActions = Literal["speak", "reset", "unset", "exit"]
 
 
-VadState = Literal["start", "stop", "continue", "n/a"]
+class FrameData(NamedTuple):
+    """Data structure for audio frame data."""
+
+    data: np.ndarray
+    np_data_type: str  # e.g., 'int16', 'float32'
 
 
-class AudioFrame(NamedTuple):
-    """Data structure for audio frame in the queue."""
-
-    actor_id: int  # 0..n for actors in MVP (currently only 0)
-    pcm_bytes: np.ndarray
-    wall_time: float  # Wall-clock timestamp (UTC seconds since epoch) time.time()
-    sample_rate: float
-    dtype: str
-
-
-class TaggedAudioFrame(NamedTuple):
-    """Data structure for tagged audio frame in the queue."""
-
-    frame: AudioFrame
-    is_de_noised: bool  # True if frame has been de_noised
-    is_silence: bool  # True if frame RMS is below silence threshold
-    is_voice: bool  # True if voice activity is detected in this frame
-    vad_state: VadState  # VAD segment boundaries
-    rms_db: float  # Root Mean Square level in dBFS for the frame
-    sequence_num: int  # Sequence number for ordering or loss detection
-
-
-class SlidingQueue(Queue):
+class SlidingQueue(queue.Queue):
     """FIFO Queue that drops the oldest item when full."""
 
     def __init__(self, maxsize: int):
@@ -50,7 +33,51 @@ class SlidingQueue(Queue):
             if self.full():
                 try:
                     self.get(block=False)
-                except Empty:
+                except queue.Empty:
                     pass
                 print("SlidingQueue: Dropped oldest item to make space.")
             super().put(item, block=block, timeout=timeout)
+
+    def put_nowait(self, item) -> None:
+        """Put an item into the queue without blocking, dropping the oldest item if full."""
+        with self._lock:
+            if self.full():
+                try:
+                    self.get(block=False)
+                except queue.Empty:
+                    pass
+                print("SlidingQueue: Dropped oldest item to make space.")
+            super().put_nowait(item)
+
+
+class AsyncSlidingQueue(asyncio.Queue):
+    """Asynchronous FIFO Queue that drops the oldest item when full."""
+
+    def __init__(self, maxsize: int):
+        if maxsize <= 0:
+            raise ValueError("AsyncSlidingQueue requires a positive maxsize")
+        super().__init__(maxsize)
+        self._lock = asyncio.Lock()
+
+    async def put(self, item) -> None:
+        """Put an item into the queue, dropping the oldest item if full."""
+        async with self._lock:
+            if self.full():
+                try:
+                    self.get_nowait()
+                except asyncio.QueueEmpty:
+                    pass
+                print("AsyncSlidingQueue: Dropped oldest item to make space.")
+            await super().put(item)
+
+    def put_nowait(self, item) -> None:
+        """Put an item into the queue without blocking, dropping the oldest item if full."""
+        # Note: asyncio.Queue is not thread-safe, so this lock is only for async context.
+        # This method is synchronous, so we use the lock's synchronous context.
+        if self.full():
+            try:
+                self.get_nowait()
+            except asyncio.QueueEmpty:
+                pass
+            print("AsyncSlidingQueue: Dropped oldest item to make space.")
+        super().put_nowait(item)
