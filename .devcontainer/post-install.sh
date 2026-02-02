@@ -3,12 +3,11 @@ set -e
 
 echo "=== Devcontainer post-create: minimal setup ==="
 
-
 # Install pre-commit hooks
 if [ -f ".pre-commit-config.yaml" ]; then
   echo "=== Installing pre-commit hooks ==="
   pre-commit autoupdate
-  pre-commit install --install-hooks &
+  pre-commit install --install-hooks
 else
   echo "No .pre-commit-config.yaml found; skipping pre-commit install."
 fi
@@ -50,15 +49,7 @@ if ! grep -q "dsc" ~/.bash_aliases; then
     echo 'alias dsc-b="dsc build -t local/ai-improv-toolkit:latest ."'
     echo 'alias dsc-nats="dsc run --network dev_network --rm -d --name nats_server -p 4222:4222 -p 8222:8222 nats --http_port 8222" # Note: unencrypted'
     echo 'alias dsc-ingest="dsc run --network dev_network --rm -it --name ingest -v /dev/show/:/dev/show/ --device=/dev/input --device /dev/snd:/dev/snd -v /opt/show/ingest/:/etc/ai-show local/ai-improv-toolkit:latest"'
-    echo 'alias dsc-stop-all="dsc stop \$(dsc ps -q)"'
-
   } >> ~/.bash_aliases
-fi
-
-pids="$(jobs -pr || true)"
-if [ -n "$pids" ]; then
-  # shellcheck disable=SC2086
-  wait $pids
 fi
 
 echo "=== Devcontainer post-create: setup complete ==="

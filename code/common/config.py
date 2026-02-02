@@ -20,7 +20,7 @@ ComponentRole = Literal["ingest", "vision", "hearing", "brain", "output", "healt
 debug_level_options = Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
 
 
-# Helper Functions
+# Config Helper Functions
 def get_logging_level(level: debug_level_options) -> int:
     """Get the logging level based on the Debug_level setting."""
     level_mapping = {
@@ -34,7 +34,7 @@ def get_logging_level(level: debug_level_options) -> int:
     return level_mapping.get(level, logging.CRITICAL)
 
 
-def check_server(host: str, port: int) -> bool:
+def check_server_tcp(host: str, port: int) -> bool:
     """Check if a TCP server is reachable at the given host and port."""
     try:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -46,8 +46,6 @@ def check_server(host: str, port: int) -> bool:
 
 
 # Configuration Models
-
-
 class ShowConfig(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
     name: str
@@ -96,7 +94,7 @@ class NetworkConfig(BaseModel):
         # Validate that the server is reachable
         host, port_str = self.nats_server[len("tls://") :].rsplit(":", 1)
         port = int(port_str)
-        if not check_server(host, port):
+        if not check_server_tcp(host, port):
             raise ValueError(f"NATS server {self.nats_server} is not reachable")
         return self
 

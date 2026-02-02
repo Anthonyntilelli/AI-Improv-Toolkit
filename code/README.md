@@ -19,8 +19,6 @@ The `infra` directory contains the infrastructure as code to deploy the overall 
 - Docker
 - Apt packages:
   - portaudio19-dev  # for SoundDevice
-  - libopus-dev  # for Opus audio codec
-  - libogg-dev # for Opus audio codec
   - build-essential
   - openssl
 

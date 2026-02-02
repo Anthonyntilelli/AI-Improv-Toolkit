@@ -27,9 +27,9 @@ button_debounce_ms = 500
 # Can be found using the /opt/show/ingest/silence_threshold.sh. Be careful with this value.
 silence_threshold = 0.02 # RMS threshold that the mic will ignore Don't make too large.
 
-[Ingest.rtp_proxy]
-address = "tony-pc"  # IP address of the RTP Proxy server
-port = 5004               # Port number for RTP streaming
+[Ingest.peer]
+server = "tony-pc"       # IP address of the peer server
+port = 5004               # Port number for peer streaming
 
 [Ingest.reset]
 path = "/dev/show/reset"

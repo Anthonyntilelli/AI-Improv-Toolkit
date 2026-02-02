@@ -6,15 +6,24 @@ and relay to the appropriate destination.
 
 import asyncio
 import sys
-import socket
 import time
-from typing import Protocol
+from typing import Protocol, Optional
 
+import aiortc
+import av
 import numpy as np
 import sounddevice as sd
 
-from common.dataTypes import AsyncSlidingQueue, FrameData
-from common.helpers import OpusEncoder, RTPPacketizer, OPUS_FRAME_SAMPLES
+from common.dataTypes import AsyncSlidingQueue, AudioFrameSettings, FrameData
+
+
+# Constants
+WEBRTC_SETTINGS = AudioFrameSettings(
+    samplerate=48000,
+    channels=1,
+    blocksize=960,
+    dtype=np.dtype(np.float32).name,
+)
 
 
 # Data structures and functions
@@ -24,25 +33,40 @@ class CallbackTimeInfo(Protocol):
     outputBufferDacTime: float
 
 
-def _get_audio_devices(device_name: str, channel_count: int, input_device: bool) -> int:
-    """Check for the specified audio device and return its ID. (-1 if not found)"""
+def _get_audio_input(device_name: str) -> tuple[int, Optional[AudioFrameSettings]]:
+    """Check for the specified audio device and return its ID and audio frame settings. (-1 if not found)"""
     devices = sd.query_devices()
     for idx, device in enumerate(devices):
         if device_name in device["name"]:
             try:
-                if input_device:
-                    sd.check_input_settings(device=idx, channels=channel_count)
-                else:
-                    sd.check_output_settings(device=idx, channels=channel_count)
+                sd.check_input_settings(
+                    device=idx,
+                    channels=WEBRTC_SETTINGS.channels,
+                    samplerate=WEBRTC_SETTINGS.samplerate,
+                    dtype=WEBRTC_SETTINGS.dtype
+                )
+                print(f"Found device '{device_name}' (ID: {idx}) with webrtc settings")
+                return idx, WEBRTC_SETTINGS
             except sd.PortAudioError as e:
-                raise RuntimeError(f"Error checking device '{device_name}': error {e}.")
-            return idx
-    return -1  # Device not found
+                print(f"Found device '{device_name}' (ID: {idx}) but cannot open with webrtc settings: {e}")
+                try:
+                    sd.check_input_settings(device=idx,channels=WEBRTC_SETTINGS.channels,dtype=WEBRTC_SETTINGS.dtype)
+                    adjusted_settings = AudioFrameSettings(
+                        blocksize=WEBRTC_SETTINGS.blocksize,
+                        channels=WEBRTC_SETTINGS.channels,
+                        samplerate=device["default_samplerate"],
+                        dtype=WEBRTC_SETTINGS.dtype
+                    )
+                    print(f"Using adjusted samplerate {adjusted_settings.samplerate} Hz for device '{device_name}'")
+                    return idx, adjusted_settings
+                except sd.PortAudioError as e2:
+                    print(f"Cannot open device '{device_name}' with adjusted settings: {e2}")
+
+    return -1, None  # Device not found
 
 
 async def mic_to_queue(
     mic_name: str,
-    channel_count: int,
     output_queue: AsyncSlidingQueue,
     max_reconnect_attempts: int,
     reconnection_delay_s: float,
@@ -50,7 +74,7 @@ async def mic_to_queue(
 ) -> None:
     """Capture audio from the specified microphone and send it to the output queue."""
     XRUN_RESTART_THRESHOLD: int = 5  # Number of consecutive xruns to trigger a stream restart
-    device_id = _get_audio_devices(mic_name, channel_count, input_device=True)
+    device_id, device_settings = _get_audio_input(mic_name)
     if device_id == -1:
         raise RuntimeError(f"Microphone device '{mic_name}' not found.")
 
@@ -71,7 +95,10 @@ async def mic_to_queue(
             xruns_total, \
             xruns_consecutive, \
             XRUN_RESTART_THRESHOLD, \
-            xruns_healthy
+            xruns_healthy, \
+            device_settings
+        if device_settings is None:
+            raise RuntimeError("Device settings not initialized in callback.") # Should not happen
         stream_heart_beat = time.monotonic()  # Update heartbeat to indicate stream is active
         if status and (status.input_overflow or status.output_underflow):
             xruns_total += 1
@@ -84,19 +111,15 @@ async def mic_to_queue(
             xruns_consecutive = 0
             frame_data = FrameData(
                 data=indata.copy(),  # Ensure data is copied to avoid issues with the buffer being reused
-                np_data_type=str(indata.dtype),
+                settings=device_settings,
             )
             loop.call_soon_threadsafe(output_queue.put_nowait, frame_data)
 
+    if device_settings is None:
+        raise RuntimeError(f"Device settings could not be determined for microphone '{mic_name}'.") # Should not happen
     while not exit_event.is_set() and reconnection_attempts < max_reconnect_attempts:
         try:
-            with sd.InputStream(
-                device=device_id,
-                channels=channel_count,
-                callback=callback,
-                dtype=np.int16,
-                blocksize=OPUS_FRAME_SAMPLES,
-            ):
+            with sd.InputStream(device=device_id, channels=device_settings.channels, callback=callback, dtype=device_settings.dtype, samplerate=device_settings.samplerate):
                 print(f"Started capturing audio from microphone '{mic_name}'.")
                 while not exit_event.is_set():
                     await asyncio.sleep(0.5)  # Keep the stream alive
@@ -123,41 +146,34 @@ async def mic_to_queue(
         )
     print(f"Stopped capturing audio from microphone '{mic_name}'.")
 
-
-async def middleware_converter(
-    input_queue: AsyncSlidingQueue,
-    output_queue: AsyncSlidingQueue,
+async def prep_frame_for_webRTC(
+    input_queue: "AsyncSlidingQueue",
+    output_queue: "AsyncSlidingQueue",
     exit_event: asyncio.Event,
-    mic_name: str,
-    channels: int,
 ) -> None:
-    """Middleware function to convert audio frames from input queue and put them into output queue."""
 
-    mic_id = _get_audio_devices(mic_name, channels, input_device=True)
-    if mic_id == -1:
-        raise RuntimeError(f"Microphone device '{mic_name}' not found.")
-    sample_rate = int(sd.query_devices(mic_id)["default_samplerate"])
+    def convert_audio_to_webrtc_frame(frame_data: FrameData) -> av.AudioFrame:
+        """Convert SoundDevice frame to WebRTC compatible av.AudioFrame."""
 
-    encoder = OpusEncoder(sample_rate=sample_rate, channels=channels)
-    packetizer = RTPPacketizer(sample_rate=sample_rate, payload_type=111)
-    print("Middleware converter started.")
+        dtype_to_format = {
+            "float32": "flt32",
+            "int16": "s16",
+            "int32": "s32",
+            "uint8": "u8",
+        }
+        np_dtype_name = str(frame_data.data.dtype)
+        av_format = dtype_to_format.get(np_dtype_name)
+        if av_format is None:
+            raise ValueError(f"Unsupported audio dtype: {np_dtype_name}")
+        audio_frame = av.AudioFrame.from_ndarray(
+            frame_data.data,
+            format=av_format,
+            layout="mono" if frame_data.settings.channels == 1 else "stereo"
+        )
+        audio_frame.sample_rate = frame_data.settings.samplerate
+        return audio_frame
+
     while not exit_event.is_set():
         frame_data = await input_queue.get()
-        # Encode the PCM data to Opus
-        opus_payload = encoder.encode(frame_data.data)
-        # Build RTP packet
-        rtp_packet = packetizer.build(opus_payload, OPUS_FRAME_SAMPLES)
-        await output_queue.put(rtp_packet)
-    print("Middleware converter stopped.")
-
-
-async def queue_to_rtp_sender(
-    input_queue: AsyncSlidingQueue, destination: str, port: int, exit_event: asyncio.Event
-) -> None:
-    """Send RTP packets from the input queue to the destination over UDP."""
-    print("RTP sender started.")
-    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
-        while not exit_event.is_set():
-            packet = await input_queue.get()
-            sock.sendto(packet, (destination, port))
-    print("RTP sender stopped.")
+        webrtc_frame = convert_audio_to_webrtc_frame(frame_data)
+        await output_queue.put(webrtc_frame)

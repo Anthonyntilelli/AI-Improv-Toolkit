@@ -10,7 +10,7 @@ from common.config import NetworkConfig, ModeConfig, ShowConfig
 from common.dataTypes import AsyncSlidingQueue
 from ._config import IngestSettings
 from ._button import button_init, monitor_input_event
-from ._mic_to_rtp import mic_to_queue, queue_to_rtp_sender, middleware_converter
+from ._mic_to_webrtc import mic_to_queue, prep_frame_for_webRTC
 import common.nats as common_nats
 
 
@@ -79,28 +79,17 @@ async def _audio_loop(ingest_config: IngestSettings) -> None:
     async with asyncio.TaskGroup() as tg:
         tg.create_task(
             mic_to_queue(
-                ingest_config.actor_mics[0].name,
-                1,  # Mono channel
-                frame_queue,
-                AUDIO_MAX_STREAM_RECONNECT_ATTEMPTS,
-                AUDIO_STREAM_RECONNECTION_DELAY_S,
-                exit_event,
+                mic_name=ingest_config.actor_mics[0].name,
+                output_queue=frame_queue,
+                max_reconnect_attempts=AUDIO_MAX_STREAM_RECONNECT_ATTEMPTS,
+                reconnection_delay_s=AUDIO_STREAM_RECONNECTION_DELAY_S,
+                exit_event=exit_event,
             )
         )
         tg.create_task(
-            middleware_converter(
+           prep_frame_for_webRTC(
                 input_queue=frame_queue,
                 output_queue=packet_queue,
-                exit_event=exit_event,
-                mic_name=ingest_config.actor_mics[0].name,
-                channels=1,  # Mono channel
-            )
-        )
-        tg.create_task(
-            queue_to_rtp_sender(
-                input_queue=packet_queue,
-                destination=ingest_config.rtp_proxy.address,
-                port=ingest_config.rtp_proxy.port,
                 exit_event=exit_event,
             )
         )

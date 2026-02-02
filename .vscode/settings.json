@@ -3,9 +3,11 @@
       80, 120
     ],
     "cSpell.words": [
+      "aiortc",
       "BBHII",
       "cafile",
       "chdir",
+      "connectionstatechange",
       "davidanson",
       "debugpy",
       "ecodes",
@@ -40,6 +42,7 @@
       "pyogg",
       "pyproject",
       "RDONLY",
+      "resampler",
       "RIGHTBRACE",
       "rtype",
       "samplerate",
@@ -53,7 +56,9 @@
       "ungrab",
       "venv",
       "virtualenv",
+      "WEBRTC",
       "webrtcvad",
+      "WERTC",
       "whois",
       "XRUN",
       "xruns"

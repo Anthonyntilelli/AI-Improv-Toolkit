@@ -7,16 +7,23 @@ from typing import Literal, NamedTuple, Optional
 
 import numpy as np
 
-
+# Type Aliases
 ButtonActions = Literal["speak", "reset", "unset", "exit"]
+
+class AudioFrameSettings(NamedTuple):
+    """Setting Used by Sounddevice for the audio stream."""
+
+    blocksize: int
+    channels: int
+    samplerate: int
+    dtype: str
 
 
 class FrameData(NamedTuple):
     """Data structure for audio frame data."""
 
     data: np.ndarray
-    np_data_type: str  # e.g., 'int16', 'float32'
-
+    settings: AudioFrameSettings
 
 class SlidingQueue(queue.Queue):
     """FIFO Queue that drops the oldest item when full."""
@@ -58,6 +65,7 @@ class AsyncSlidingQueue(asyncio.Queue):
             raise ValueError("AsyncSlidingQueue requires a positive maxsize")
         super().__init__(maxsize)
         self._lock = asyncio.Lock()
+        self._sync_lock = threading.Lock()
 
     async def put(self, item) -> None:
         """Put an item into the queue, dropping the oldest item if full."""
@@ -74,10 +82,11 @@ class AsyncSlidingQueue(asyncio.Queue):
         """Put an item into the queue without blocking, dropping the oldest item if full."""
         # Note: asyncio.Queue is not thread-safe, so this lock is only for async context.
         # This method is synchronous, so we use the lock's synchronous context.
-        if self.full():
-            try:
-                self.get_nowait()
-            except asyncio.QueueEmpty:
-                pass
-            print("AsyncSlidingQueue: Dropped oldest item to make space.")
-        super().put_nowait(item)
+        with self._sync_lock:
+          if self.full():
+              try:
+                  self.get_nowait()
+              except asyncio.QueueEmpty:
+                  pass
+              print("AsyncSlidingQueue: Dropped oldest item to make space.")
+          super().put_nowait(item)

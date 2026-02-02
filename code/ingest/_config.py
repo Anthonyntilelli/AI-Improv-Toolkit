@@ -137,11 +137,17 @@ class ActorMicsConfig(NamedTuple):
     use_noise_reducer: bool
 
 
-class RTPProxyConfig(NamedTuple):
-    """Configuration settings for RTP Proxy server."""
+class PeerConfig(NamedTuple):
+    """Configuration settings for the Peer server."""
 
-    address: str
+    server: str
     port: int
+
+    @model_validator(mode="after")
+    def validate_port_num(cls, self):
+        if not (0 < self.port < 65536):
+            raise ValueError("Peer port must be between 1 and 65535.")
+        return self
 
 
 class IngestSettings(BaseModel):
@@ -153,7 +159,7 @@ class IngestSettings(BaseModel):
     reset: ButtonConfig
     avatar_controllers: list[ButtonConfig]
     actor_mics: list[ActorMicsConfig]
-    rtp_proxy: RTPProxyConfig
+    peer: PeerConfig
 
 
     @model_validator(mode="before")
