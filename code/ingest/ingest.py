@@ -10,7 +10,7 @@ from common.config import NetworkConfig, ModeConfig, ShowConfig
 from common.dataTypes import AsyncSlidingQueue
 from ._config import IngestSettings
 from ._button import button_init, monitor_input_event
-from ._mic_to_webrtc import mic_to_queue
+from ._mic_to_webrtc import mic_to_queue, prep_frame_for_webRTC
 import common.nats as common_nats
 
 
@@ -74,7 +74,7 @@ async def _audio_loop(ingest_config: IngestSettings) -> None:
     sliding_window_size = 250  # Number of audio frames in the sliding window
 
     frame_queue = AsyncSlidingQueue(maxsize=sliding_window_size)
-    # packet_queue = AsyncSlidingQueue(maxsize=sliding_window_size)
+    packet_queue = AsyncSlidingQueue(maxsize=sliding_window_size)
     exit_event = asyncio.Event()
 
     async def placeholder() -> None:
@@ -90,14 +90,14 @@ async def _audio_loop(ingest_config: IngestSettings) -> None:
                 exit_event=exit_event,
             )
         )
-        tg.create_task(placeholder())
-        # tg.create_task(
-        #     prep_frame_for_webRTC(
-        #         input_queue=frame_queue,
-        #         output_queue=packet_queue,
-        #         exit_event=exit_event,
-        #     )
-        # )
+        # tg.create_task(placeholder())
+        tg.create_task(
+            prep_frame_for_webRTC(
+                input_queue=frame_queue,
+                output_queue=packet_queue,
+                exit_event=exit_event,
+            )
+        )
 
     print("Ingest Audio loop completed.")
 

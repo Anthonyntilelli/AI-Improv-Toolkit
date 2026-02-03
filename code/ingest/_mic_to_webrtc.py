@@ -10,6 +10,7 @@ from typing import Protocol, Optional
 
 import aiortc
 import av
+from av.audio.resampler import AudioResampler
 import numpy as np
 import sounddevice as sd
 
@@ -167,19 +168,80 @@ async def prep_frame_for_webRTC(
     exit_event: asyncio.Event,
 ) -> None:
     """Convert microphone frames to WebRTC compatible frames."""
+
     # TODO: Buffer frame into correct blocksize
     # If the mic frame size is different from WEBRTC_SETTINGS.blocksize, implement buffering logic here.
+    resampler = AudioResampler(format='flt', layout='mono', rate=WEBRTC_SETTINGS.samplerate)
 
-    # TODO: If the mic frame dtype is different from WEBRTC_SETTINGS.dtype, implement conversion logic here.
-    # Handle Clipping/normalization: if converting from int to float, normalize; if converting from float to int, clip.
+    def downmix_to_mono(frame: np.ndarray, num_channels: int) -> np.ndarray:
+        """
+        Downmix multi-channel audio frame to mono by averaging channels.
+        Handles both interleaved (1D) and non-interleaved (2D) arrays.
+        """
+        if num_channels == 1:
+            return frame
+        if frame.ndim == 1:
+            # Interleaved: reshape to (samples, channels)
+            frame = frame.reshape(-1, num_channels)
+        # Now frame is (samples, channels)
+        return np.mean(frame, axis=1, keepdims=True)
 
-    # TODO: If mic is not mono, implement downmixing logic here.
+    def convert_to_float32(frame: np.ndarray, dtype: str) -> np.ndarray:
+        """Convert audio frame to float32 format."""
+        if frame.dtype != np.float32:
+            if np.issubdtype(frame.dtype, np.integer):
+                info = np.iinfo(frame.dtype)
+                frame = frame.astype(np.float32) / info.max
+            else:
+                frame = frame.astype(np.float32)
+        return frame
 
-    # TODO: Implement the conversion to av.AudioFrame
+    def create_av_frame(frame: np.ndarray, sample_rate: int) -> av.AudioFrame:
+        """Creates an audio frame from a sounddevice frame with given settings."""
+        # Transpose to (channels, frames) for av.AudioFrame compatibility
+        if frame.ndim == 2:
+            frame = frame.T  # (frames, channels) -> (channels, frames)
+        elif frame.ndim == 1:
+            frame = frame.reshape(1, -1)  # mono, ensure (1, frames)
+        audio_frame = av.AudioFrame.from_ndarray(frame, format='flt', layout='mono')
+        audio_frame.sample_rate = sample_rate
+        return audio_frame
 
-    # TODO: Resample if necessary
+    def resample_frame(frame: Optional[av.AudioFrame]) -> list[av.AudioFrame]:
+        """
+        Resample an av.AudioFrame to WebRTC settings.
+        Set frame to None to flush the resampler.
+        """
+        resampled = resampler.resample(frame)
+        return resampled
 
-    # TODO: Check frame blocksize and pad or trim as needed with buffering logic
 
     # Finally, put the converted frame into the output queue
-    pass
+    while not exit_event.is_set():
+        frame_data: FrameData = await input_queue.get()
+        data = frame_data.data
+        pre_settings = frame_data.settings
+        if not isinstance(pre_settings, AudioFrameSettings):
+            print("Invalid frame settings, skipping frame.")
+            continue  # Skip if settings are missing
+
+        # Downmix to mono if needed
+        if pre_settings.channels > 1:
+            data = downmix_to_mono(data, pre_settings.channels)
+
+        # Convert to float32 if needed
+        if pre_settings.dtype != WEBRTC_SETTINGS.dtype:
+          data = convert_to_float32(data, WEBRTC_SETTINGS.dtype)
+
+        # Create av.AudioFrame
+        converted_frame = create_av_frame(data, pre_settings.samplerate)
+
+    # TODO: Handle flushing the resampler on exit if needed
+    # TODO  Implement buffering logic for blocksize alignment if needed
+
+    # Resample to WebRTC settings
+        resampled_frames = resample_frame(converted_frame)
+        for converted_frame in resampled_frames:
+            await output_queue.put(converted_frame)
+
+    print("prep_frame_for_webRTC loop completed.")
