@@ -10,6 +10,7 @@ import numpy as np
 # Type Aliases
 ButtonActions = Literal["speak", "reset", "unset", "exit"]
 
+
 class AudioFrameSettings(NamedTuple):
     """Setting Used by Sounddevice for the audio stream."""
 
@@ -24,6 +25,7 @@ class FrameData(NamedTuple):
 
     data: np.ndarray
     settings: AudioFrameSettings
+
 
 class SlidingQueue(queue.Queue):
     """FIFO Queue that drops the oldest item when full."""
@@ -83,10 +85,10 @@ class AsyncSlidingQueue(asyncio.Queue):
         # Note: asyncio.Queue is not thread-safe, so this lock is only for async context.
         # This method is synchronous, so we use the lock's synchronous context.
         with self._sync_lock:
-          if self.full():
-              try:
-                  self.get_nowait()
-              except asyncio.QueueEmpty:
-                  pass
-              print("AsyncSlidingQueue: Dropped oldest item to make space.")
-          super().put_nowait(item)
+            if self.full():
+                try:
+                    self.get_nowait()
+                except asyncio.QueueEmpty:
+                    pass
+                print("AsyncSlidingQueue: Dropped oldest item to make space.")
+            super().put_nowait(item)

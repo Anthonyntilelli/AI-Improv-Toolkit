@@ -161,7 +161,6 @@ class IngestSettings(BaseModel):
     actor_mics: list[ActorMicsConfig]
     peer: PeerConfig
 
-
     @model_validator(mode="before")
     @classmethod
     def set_button_actions(cls, values: dict[str, Any]) -> dict[str, Any]:
