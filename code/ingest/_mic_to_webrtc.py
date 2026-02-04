@@ -10,24 +10,24 @@ from typing import Protocol, Optional
 
 import aiortc
 import av
-from av.audio.resampler import AudioResampler
+# from av.audio.resampler import AudioResampler
 import numpy as np
 import sounddevice as sd
 
-from common.dataTypes import AsyncSlidingQueue, AudioFrameSettings, FrameData
+from common.dataTypes import AsyncSlidingQueue, AudioFrameSettings #, FrameData
 
 
 assert aiortc  # for mypy type checking
 assert av  # for mypy type checking
 
 
-# Constants
-WEBRTC_SETTINGS = AudioFrameSettings(
-    samplerate=48000,
-    channels=1,
-    blocksize=960,
-    dtype=np.dtype(np.float32).name,
-)
+# # Constants
+# WEBRTC_SETTINGS = AudioFrameSettings(
+#     samplerate=48000,
+#     channels=1,
+#     blocksize=960,
+#     dtype=np.dtype(np.float32).name,
+# )
 
 
 # Data structures and functions
@@ -72,11 +72,7 @@ async def mic_to_queue(
                 print(f"xrun detected: total={self._xruns_total} consecutive={self._xruns_consecutive}")
             else:  # reset consecutive xrun counter
                 self.reset_xruns()
-                frame_data = FrameData(
-                    data=indata.copy(),  # Ensure data is copied to avoid issues with the buffer being reused
-                    settings=self._device_settings,
-                )
-                self._loop.call_soon_threadsafe(self._output_queue.put_nowait, frame_data)
+                self._loop.call_soon_threadsafe(self._output_queue.put_nowait, self.create_av_frame(indata))
 
         def is_stream_healthy(self) -> bool:
             """Check if the stream is healthy based on xruns and heartbeat."""
@@ -109,6 +105,27 @@ async def mic_to_queue(
             """Reset the stream health monitoring counters."""
             self.reset_xruns()
             self.update_heartbeat()
+
+        def create_av_frame(self, frame: np.ndarray) -> av.AudioFrame:
+            """
+            Creates an audio frame from a sounddevice frame with given settings.
+            Expects a numpy array of float32 and mono or stereo samples.
+            Can also do
+            """
+
+            # Transpose to (channels, frames) for av.AudioFrame compatibility
+            if frame.ndim == 2:
+                frame = frame.T  # (frames, channels) -> (channels, frames)
+            elif frame.ndim == 1:
+                frame = frame.reshape(1, -1)  # mono, ensure (1, frames)
+            audio_frame = av.AudioFrame.from_ndarray(
+                frame,
+                format='flt',
+                layout='mono' if self._device_settings.channels == 1 else 'stereo'
+            )
+            audio_frame.sample_rate = self._device_settings.samplerate
+            return audio_frame
+
 
     def _get_audio_input(device_name: str) -> tuple[int, Optional[AudioFrameSettings]]:
         """Check for the specified audio device and return its ID (check microphone with default settings)"""
@@ -162,86 +179,123 @@ async def mic_to_queue(
     print(f"Stopped capturing audio from microphone '{mic_name}'.")
 
 
-async def prep_frame_for_webRTC(
+async def queue_to_speaker(
     input_queue: AsyncSlidingQueue,
-    output_queue: AsyncSlidingQueue,
+    speaker_name: str,
     exit_event: asyncio.Event,
 ) -> None:
-    """Convert microphone frames to WebRTC compatible frames."""
+    """Play audio frames from the input queue to the specified speaker."""
 
-    # TODO: Buffer frame into correct blocksize
-    # If the mic frame size is different from WEBRTC_SETTINGS.blocksize, implement buffering logic here.
-    resampler = AudioResampler(format='flt', layout='mono', rate=WEBRTC_SETTINGS.samplerate)
+    def _get_audio_output(device_name: str) -> int:
+        """Check for the specified audio output device and return its ID."""
+        devices = sd.query_devices()
+        for idx, device in enumerate(devices):
+            if device_name in device["name"]:
+                try:
+                    sd.check_output_settings(device=idx)
+                    print(f"Found output device '{device_name}' (ID: {idx})")
+                    return idx
+                except sd.PortAudioError as e:
+                    print(f"Found output device '{device_name}' (ID: {idx}) but cannot open with default settings: {e}")
+        return -1  # Device not found
 
-    def downmix_to_mono(frame: np.ndarray, num_channels: int) -> np.ndarray:
-        """
-        Downmix multi-channel audio frame to mono by averaging channels.
-        Handles both interleaved (1D) and non-interleaved (2D) arrays.
-        """
-        if num_channels == 1:
-            return frame
-        if frame.ndim == 1:
-            # Interleaved: reshape to (samples, channels)
-            frame = frame.reshape(-1, num_channels)
-        # Now frame is (samples, channels)
-        return np.mean(frame, axis=1, keepdims=True)
+    device_id = _get_audio_output(speaker_name)
+    if device_id == -1:
+        raise RuntimeError(f"Speaker device '{speaker_name}' not found.")
 
-    def convert_to_float32(frame: np.ndarray, dtype: str) -> np.ndarray:
-        """Convert audio frame to float32 format."""
-        if frame.dtype != np.float32:
-            if np.issubdtype(frame.dtype, np.integer):
-                info = np.iinfo(frame.dtype)
-                frame = frame.astype(np.float32) / info.max
-            else:
-                frame = frame.astype(np.float32)
-        return frame
+    with sd.OutputStream(device=device_id, dtype=np.float32) as stream:
+        print(f"Started playing audio to speaker '{speaker_name}'.")
+        while not exit_event.is_set():
+            frame: av.AudioFrame = await input_queue.get()
+            # Convert av.AudioFrame to numpy array
+            frame_data = frame.to_ndarray()
+            # Transpose back to (frames, channels) for sounddevice
+            if frame_data.ndim == 2:
+                frame_data = frame_data.T  # (channels, frames) -> (frames, channels)
+            stream.write(frame_data)
+    print(f"Stopped playing audio to speaker '{speaker_name}'.")
 
-    def create_av_frame(frame: np.ndarray, sample_rate: int) -> av.AudioFrame:
-        """Creates an audio frame from a sounddevice frame with given settings."""
-        # Transpose to (channels, frames) for av.AudioFrame compatibility
-        if frame.ndim == 2:
-            frame = frame.T  # (frames, channels) -> (channels, frames)
-        elif frame.ndim == 1:
-            frame = frame.reshape(1, -1)  # mono, ensure (1, frames)
-        audio_frame = av.AudioFrame.from_ndarray(frame, format='flt', layout='mono')
-        audio_frame.sample_rate = sample_rate
-        return audio_frame
+# async def prep_frame_for_webRTC(
+#     input_queue: AsyncSlidingQueue,
+#     output_queue: AsyncSlidingQueue,
+#     exit_event: asyncio.Event,
+# ) -> None:
+#     """Convert microphone frames to WebRTC compatible frames."""
 
-    def resample_frame(frame: Optional[av.AudioFrame]) -> list[av.AudioFrame]:
-        """
-        Resample an av.AudioFrame to WebRTC settings.
-        Set frame to None to flush the resampler.
-        """
-        resampled = resampler.resample(frame)
-        return resampled
+#     # TODO: Buffer frame into correct blocksize
+#     # If the mic frame size is different from WEBRTC_SETTINGS.blocksize, implement buffering logic here.
+#     resampler = AudioResampler(format='flt', layout='mono', rate=WEBRTC_SETTINGS.samplerate)
+
+#     def downmix_to_mono(frame: np.ndarray, num_channels: int) -> np.ndarray:
+#         """
+#         Downmix multi-channel audio frame to mono by averaging channels.
+#         Handles both interleaved (1D) and non-interleaved (2D) arrays.
+#         """
+#         if num_channels == 1:
+#             return frame
+#         if frame.ndim == 1:
+#             # Interleaved: reshape to (samples, channels)
+#             frame = frame.reshape(-1, num_channels)
+#         # Now frame is (samples, channels)
+#         return np.mean(frame, axis=1, keepdims=True)
+
+#     def convert_to_float32(frame: np.ndarray, dtype: str) -> np.ndarray:
+#         """Convert audio frame to float32 format."""
+#         if frame.dtype != np.float32:
+#             if np.issubdtype(frame.dtype, np.integer):
+#                 info = np.iinfo(frame.dtype)
+#                 frame = frame.astype(np.float32) / info.max
+#             else:
+#                 frame = frame.astype(np.float32)
+#         return frame
+
+#     def create_av_frame(frame: np.ndarray, sample_rate: int) -> av.AudioFrame:
+#         """Creates an audio frame from a sounddevice frame with given settings."""
+#         # Transpose to (channels, frames) for av.AudioFrame compatibility
+#         if frame.ndim == 2:
+#             frame = frame.T  # (frames, channels) -> (channels, frames)
+#         elif frame.ndim == 1:
+#             frame = frame.reshape(1, -1)  # mono, ensure (1, frames)
+#         audio_frame = av.AudioFrame.from_ndarray(frame, format='flt', layout='mono')
+#         audio_frame.sample_rate = sample_rate
+#         return audio_frame
+
+#     def resample_frame(frame: Optional[av.AudioFrame]) -> list[av.AudioFrame]:
+#         """
+#         Resample an av.AudioFrame to WebRTC settings.
+#         Set frame to None to flush the resampler.
+#         """
+#         resampled = resampler.resample(frame)
+#         return resampled
 
 
-    # Finally, put the converted frame into the output queue
-    while not exit_event.is_set():
-        frame_data: FrameData = await input_queue.get()
-        data = frame_data.data
-        pre_settings = frame_data.settings
-        if not isinstance(pre_settings, AudioFrameSettings):
-            print("Invalid frame settings, skipping frame.")
-            continue  # Skip if settings are missing
+#     # Finally, put the converted frame into the output queue
+#     print("prep_frame_for_webRTC loop started.")
+#     while not exit_event.is_set():
+#         frame_data: FrameData = await input_queue.get()
+#         data = frame_data.data
+#         pre_settings = frame_data.settings
+#         if not isinstance(pre_settings, AudioFrameSettings):
+#             print("Invalid frame settings, skipping frame.")
+#             continue  # Skip if settings are missing
 
-        # Downmix to mono if needed
-        if pre_settings.channels > 1:
-            data = downmix_to_mono(data, pre_settings.channels)
+#         # Downmix to mono if needed
+#         if pre_settings.channels > 1:
+#             data = downmix_to_mono(data, pre_settings.channels)
 
-        # Convert to float32 if needed
-        if pre_settings.dtype != WEBRTC_SETTINGS.dtype:
-          data = convert_to_float32(data, WEBRTC_SETTINGS.dtype)
+#         # Convert to float32 if needed
+#         if pre_settings.dtype != WEBRTC_SETTINGS.dtype:
+#           data = convert_to_float32(data, WEBRTC_SETTINGS.dtype)
 
-        # Create av.AudioFrame
-        converted_frame = create_av_frame(data, pre_settings.samplerate)
+#         # Create av.AudioFrame
+#         converted_frame = create_av_frame(data, pre_settings.samplerate)
 
-    # TODO: Handle flushing the resampler on exit if needed
-    # TODO  Implement buffering logic for blocksize alignment if needed
+#     # TODO: Handle flushing the resampler on exit if needed
+#     # TODO  Implement buffering logic for blocksize alignment if needed
 
-    # Resample to WebRTC settings
-        resampled_frames = resample_frame(converted_frame)
-        for converted_frame in resampled_frames:
-            await output_queue.put(converted_frame)
+#     # Resample to WebRTC settings
+#         resampled_frames = resample_frame(converted_frame)
+#         for converted_frame in resampled_frames:
+#             await output_queue.put(converted_frame)
 
-    print("prep_frame_for_webRTC loop completed.")
+#     print("prep_frame_for_webRTC loop completed.")
