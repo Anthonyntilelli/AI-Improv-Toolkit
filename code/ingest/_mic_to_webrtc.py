@@ -212,6 +212,21 @@ async def queue_to_speaker(
             # Transpose back to (frames, channels) for sounddevice
             if frame_data.ndim == 2:
                 frame_data = frame_data.T  # (channels, frames) -> (frames, channels)
+                # Ensure frame_data matches stream.channels
+                expected_channels = stream.channels
+                actual_channels = frame_data.shape[1] if frame_data.ndim == 2 else 1
+                if actual_channels != expected_channels:
+                    # Downmix or duplicate channels as needed
+                    if actual_channels > expected_channels:
+                        # Downmix by averaging extra channels
+                        frame_data = frame_data[:, :expected_channels]
+                        if frame_data.shape[1] != expected_channels:
+                            # If still mismatched, average across all channels
+                            frame_data = np.mean(frame_data, axis=1, keepdims=True)
+                            frame_data = np.repeat(frame_data, expected_channels, axis=1)
+                    else:
+                        # Duplicate channels to match expected
+                        frame_data = np.repeat(frame_data, expected_channels, axis=1)
             stream.write(frame_data)
     print(f"Stopped playing audio to speaker '{speaker_name}'.")
 
