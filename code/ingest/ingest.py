@@ -10,7 +10,7 @@ from common.config import NetworkConfig, ModeConfig, ShowConfig
 from common.dataTypes import AsyncSlidingQueue
 from ._config import IngestSettings
 from ._button import button_init, monitor_input_event
-from ._mic_to_webrtc import mic_to_queue, queue_to_speaker
+from ._sound_hardware import mic_to_queue, queue_to_speaker
 import common.nats as common_nats
 
 

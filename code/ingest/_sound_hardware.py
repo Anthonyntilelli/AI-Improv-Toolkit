@@ -1,7 +1,5 @@
 """
-Captures microphone input and sends it as RTP packets.
-It is expected that a media proxy (like MediaMtx) will be in front of this rtp stream to handle security and authorization
-and relay to the appropriate destination.
+Capture audio from microphone and play to speaker using sounddevice. Expects queues of av.AudioFrame.
 """
 
 import asyncio
