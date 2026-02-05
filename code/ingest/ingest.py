@@ -14,7 +14,6 @@ from ._sound_hardware import mic_to_queue, queue_to_speaker
 import common.nats as common_nats
 
 
-
 BUTTON_MAX_RECONNECT_ATTEMPTS: Final[int] = 5
 BUTTON_RECONNECTION_DELAY_S: Final[int] = 2
 
@@ -91,11 +90,13 @@ async def _audio_loop(ingest_config: IngestSettings) -> None:
             )
         )
         # tg.create_task(placeholder())
-        tg.create_task(queue_to_speaker(
-            input_queue=frame_queue,
-            speaker_name="HDA Intel PCH: SN6140 Analog",
-            exit_event=exit_event,
-        ))
+        tg.create_task(
+            queue_to_speaker(
+                input_queue=frame_queue,
+                speaker_name="HDA Intel PCH: SN6140 Analog",
+                exit_event=exit_event,
+            )
+        )
 
         # tg.create_task(
         #     prep_frame_for_webRTC(

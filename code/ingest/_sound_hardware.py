@@ -8,11 +8,12 @@ from typing import Protocol, Optional
 
 import aiortc
 import av
+
 # from av.audio.resampler import AudioResampler
 import numpy as np
 import sounddevice as sd
 
-from common.dataTypes import AsyncSlidingQueue, AudioFrameSettings #, FrameData
+from common.dataTypes import AsyncSlidingQueue, AudioFrameSettings  # , FrameData
 
 
 assert aiortc  # for mypy type checking
@@ -117,13 +118,10 @@ async def mic_to_queue(
             elif frame.ndim == 1:
                 frame = frame.reshape(1, -1)  # mono, ensure (1, frames)
             audio_frame = av.AudioFrame.from_ndarray(
-                frame,
-                format='flt',
-                layout='mono' if self._device_settings.channels == 1 else 'stereo'
+                frame, format="flt", layout="mono" if self._device_settings.channels == 1 else "stereo"
             )
             audio_frame.sample_rate = self._device_settings.samplerate
             return audio_frame
-
 
     def _get_audio_input(device_name: str) -> tuple[int, Optional[AudioFrameSettings]]:
         """Check for the specified audio device and return its ID (check microphone with default settings)"""
@@ -227,6 +225,7 @@ async def queue_to_speaker(
                         frame_data = np.repeat(frame_data, expected_channels, axis=1)
             stream.write(frame_data)
     print(f"Stopped playing audio to speaker '{speaker_name}'.")
+
 
 # async def prep_frame_for_webRTC(
 #     input_queue: AsyncSlidingQueue,
