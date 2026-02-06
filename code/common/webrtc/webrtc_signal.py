@@ -17,11 +17,7 @@ import hashlib
 
 import pydantic
 
-from messages import (
-    ErrorMessage,
-    RegisterMessage,
-    RegisteredMessage,
-)  # This will need to .message when properly packaged
+from common.webrtc.messages import ErrorMessage, RegisterMessage, RegisteredMessage
 
 SECRET_KEY = b"potato"  # This would be set from configuration in a real application
 MAX_AGE_MS = 30_000  # 30 seconds
@@ -121,7 +117,7 @@ async def connection(websocket: ServerConnection):
             register_message = RegisterMessage(**message_data)
         except (json.JSONDecodeError, UnicodeDecodeError, pydantic.ValidationError) as e:
             print(f"{websocket.remote_address} sent invalid register message: {e}")
-            reply = ErrorMessage(message="Invalid register message format", version=1)
+            reply = ErrorMessage(type="error", message="Invalid register message format", version=1)
             await websocket.send(reply.model_dump_json().encode("utf-8"))
         register_message_tries -= 1
 
@@ -142,7 +138,7 @@ async def connection(websocket: ServerConnection):
         await old.close(1000, "Replaced by reconnect")
 
     # Send RegisteredMessage back to client
-    await websocket.send(RegisteredMessage(server_id=server_id, version=1).model_dump_json().encode("utf-8"))
+    await websocket.send(RegisteredMessage(type="registered", server_id=server_id, version=1).model_dump_json().encode("utf-8"))
 
     print(f"{websocket.remote_address} connected with id {server_id}")
     try:
@@ -172,10 +168,11 @@ async def signaling_client(uri: str, server_id: str, port: int):
         print(f"Connected to signaling server at {uri}")
         try:
             register_msg = RegisterMessage(
+                type="register",
                 server_id=server_id,
                 mic_stream_count=1,
                 cam_stream_count=1,
-                Accept_output_streams=True,
+                accept_output_streams=True,
                 roles="ingest-output",
                 version=1,
             )
@@ -193,21 +190,9 @@ async def example_server_usage():
     if websockets:
         try:
             await websockets.send(f"Hello from server to {name}!")
-        except websockets.exceptions.ConnectionClosed:
+        except (ConnectionClosedOK, ConnectionClosedError):
             print(f"Connection to {name} is closed, removing from connections list.")
             connections.pop(name, None)
     else:
         print(f"No active connection for {name}.")
     await asyncio.sleep(1)  # Prevent busy loop
-
-
-if __name__ == "__main__":
-    type = input("Run as server (s) or client (c)? ")
-    if type.lower() == "c":
-        server_id = input("Enter Server ID: ")
-        uri = input("Enter signaling server URI (e.g., ws://localhost:8443): ")
-        asyncio.run(signaling_client(uri, server_id, 8443))
-    elif type.lower() == "s":
-        asyncio.run(signaling_server("localhost", 8443))
-    else:
-        print("Invalid option. Please enter 's' for server or 'c' for client.")
