@@ -138,7 +138,9 @@ async def connection(websocket: ServerConnection):
         await old.close(1000, "Replaced by reconnect")
 
     # Send RegisteredMessage back to client
-    await websocket.send(RegisteredMessage(type="registered", server_id=server_id, version=1).model_dump_json().encode("utf-8"))
+    await websocket.send(
+        RegisteredMessage(type="registered", server_id=server_id, version=1).model_dump_json().encode("utf-8")
+    )
 
     print(f"{websocket.remote_address} connected with id {server_id}")
     try:

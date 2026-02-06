@@ -5,7 +5,9 @@ from pydantic import BaseModel, PositiveInt, model_validator
 
 from aiortc.rtcicetransport import RTCIceCandidate
 
-MessageType = Literal["error", "register", "registered", "offer", "pranswer", "answer", "rollback", "ice-candidate", "close-connection"]
+MessageType = Literal[
+    "error", "register", "registered", "offer", "pranswer", "answer", "rollback", "ice-candidate", "close-connection"
+]
 
 
 class WebRTCSignalMessage(BaseModel):
@@ -18,7 +20,7 @@ class WebRTCSignalMessage(BaseModel):
 class ErrorMessage(WebRTCSignalMessage):
     """Message for signaling errors."""
 
-    type  = "error"
+    type = "error"
     message: str
 
 
@@ -52,11 +54,13 @@ class RTCSessionDescriptionMessage(WebRTCSignalMessage):
             raise ValueError(f"Invalid SDP type: {sdp_type}")
         return cls
 
+
 class ICECandidateMessage(WebRTCSignalMessage):
     """Message for ICE candidates."""
 
     type = "ice-candidate"
     data: RTCIceCandidate
+
 
 class CloseConnectionMessage(WebRTCSignalMessage):
     """Message to close a WebRTC connection."""

@@ -95,18 +95,18 @@ class WebrtcConfig(BaseModel):
 
     @model_validator(mode="after")
     def validate_ice_servers(cls, self):
-        if  len(self.ice_servers) == 0:
+        if len(self.ice_servers) == 0:
             raise ValueError("At least one ICE server must be provided.")
         for server in self.ice_servers:
-          if not isinstance(server, str):
-            raise ValueError(f"ICE server entry must be a string: {server}")
-          _, port = server.split(":") if ":" in server else (server, None)
-          if port is None:
-              raise ValueError(f"ICE server entry must include port: {server}")
-          try:
-              port = int(port)
-          except ValueError:
-              raise ValueError(f"ICE server port must be must be convertible to an integer: {server}")
-          if not (1 <= int(port) <= 65535):
-              raise ValueError(f"ICE server port must be between 1 and 65535: {server}")
+            if not isinstance(server, str):
+                raise ValueError(f"ICE server entry must be a string: {server}")
+            _, port = server.split(":") if ":" in server else (server, None)
+            if port is None:
+                raise ValueError(f"ICE server entry must include port: {server}")
+            try:
+                port = int(port)
+            except ValueError:
+                raise ValueError(f"ICE server port must be must be convertible to an integer: {server}")
+            if not (1 <= int(port) <= 65535):
+                raise ValueError(f"ICE server port must be between 1 and 65535: {server}")
         return self

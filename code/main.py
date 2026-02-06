@@ -14,7 +14,6 @@ def main() -> None:
     CONFIG_FILE: Final[str] = "/etc/ai-show/config.toml"
     # CONFIG_FILE: Final[str] = "./config/config.toml"
 
-
     unverified_config: dict[str, Any]
     mode_config: ModeConfig
     webrtc_config: WebrtcConfig
@@ -24,8 +23,6 @@ def main() -> None:
         show_config = ShowConfig(**unverified_config.get("Show", {}))
         mode_config = ModeConfig(**unverified_config.get("Mode", {}))
         webrtc_config = WebrtcConfig(**unverified_config.get("Webrtc", {}))
-
-
 
     logging.basicConfig(
         stream=sys.stdout,
