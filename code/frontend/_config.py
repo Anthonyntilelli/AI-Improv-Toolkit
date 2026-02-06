@@ -9,7 +9,7 @@ import os
 from pathlib import Path
 from common.dataTypes import ButtonActions
 
-from pydantic import BaseModel, PositiveFloat, PositiveInt, ConfigDict, model_validator
+from pydantic import BaseModel, PositiveInt, ConfigDict, model_validator
 import sounddevice as sd
 
 # Define the valid key options (as seen by evdev)
@@ -114,11 +114,35 @@ class _ResetButton(BaseModel):
     grab: bool
 
 
-class _AvatarButton(BaseModel):
+class _ControllerConfig(BaseModel):
     path: str
     speak: KeyOptions
     exit: KeyOptions
     grab: bool
+
+
+class _MicConfig(BaseModel):
+    """Configuration settings for individual microphones."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+    name: str
+    channel_handling: Literal["mono", "split_all", "downmix_to_mono"]
+
+    @model_validator(mode="after")
+    def validate_channel_handling(cls, self):
+        device = sd.query_devices(self.name, "input", kind="input")  # Validate mic exists and is an input device
+        if device is None:
+            raise ValueError(f"Microphone device '{self.name}' not found.")
+        if self.channel_handling == "mono":
+            if device["max_input_channels"] != 1:
+                raise ValueError(f"Microphone '{self.name}' is not a mono device.")
+        elif self.channel_handling == "split_all":
+            if device["max_input_channels"] < 2:
+                raise ValueError(f"Microphone '{self.name}' does not have multiple channels to split.")
+        elif self.channel_handling == "downmix_to_mono":
+            if device["max_input_channels"] < 2:
+                raise ValueError(f"Microphone '{self.name}' does not have multiple channels to downmix.")
+        return self
 
 
 class ButtonConfig(NamedTuple):
@@ -130,63 +154,44 @@ class ButtonConfig(NamedTuple):
     avatar_id: int  # -1 is control button, 0..n are avatar buttons
 
 
-class ActorMicsConfig(NamedTuple):
-    """Configuration settings for the actor microphones."""
-
-    name: str
-    use_noise_reducer: bool
-
-
-class PeerConfig(NamedTuple):
-    """Configuration settings for the Peer server."""
-
-    server: str
-    port: int
-
-    @model_validator(mode="after")
-    def validate_port_num(cls, self):
-        if not (0 < self.port < 65536):
-            raise ValueError("Peer port must be between 1 and 65535.")
-        return self
-
-
-class IngestSettings(BaseModel):
-    """Configuration settings for the ingestion role portion of the configuration."""
+class FrontendConfig(BaseModel):
+    """Configuration settings for the frontend role portion of the configuration."""
 
     model_config = ConfigDict(extra="forbid", frozen=True)
     button_debounce_ms: PositiveInt
-    silence_threshold: PositiveFloat
+    webrtc_id: str
     reset: ButtonConfig
-    avatar_controllers: list[ButtonConfig]
-    actor_mics: list[ActorMicsConfig]
-    peer: PeerConfig
+    mics: list[_MicConfig]
+    controllers: list[ButtonConfig]
 
     @model_validator(mode="before")
-    @classmethod
     def set_button_actions(cls, values: dict[str, Any]) -> dict[str, Any]:
         """Set button actions based on their role in the configuration."""
         if not isinstance(values, dict):
             raise ValueError("set_button_actions function failed: values must be a dictionary.")
 
         pre_reset = _ResetButton(**values.get("reset", {}))
-        pre_avatar_buttons = [_AvatarButton(**btn) for btn in values.get("avatar_controllers", [])]
+        pre_controllers = [_ControllerConfig(**ctrl) for ctrl in values.get("controllers", [])]
+        if len(pre_controllers) == 0:
+            raise ValueError("At least one controller must be defined in the frontend configuration.")
+
         values["reset"] = ButtonConfig(
             path=pre_reset.path,
             keys={pre_reset.reset: "reset"},
             grab=pre_reset.grab,
             avatar_id=-1,
         )
-        values["avatar_controllers"] = []
-        for idx, btn in enumerate(pre_avatar_buttons):
-            btn_config = ButtonConfig(
-                path=btn.path, keys={btn.speak: "speak", btn.exit: "exit"}, grab=btn.grab, avatar_id=idx
+        values["controllers"] = []
+        for idx, ctrl in enumerate(pre_controllers):
+            ctrl_config = ButtonConfig(
+                path=ctrl.path, keys={ctrl.speak: "speak", ctrl.exit: "exit"}, grab=ctrl.grab, avatar_id=idx
             )
-            values["avatar_controllers"].append(btn_config)
+            values["controllers"].append(ctrl_config)
         return values
 
     @model_validator(mode="after")
     def validate_buttons(cls, values):
-        buttons_paths = [values.reset.path] + [button.path for button in values.avatar_controllers]
+        buttons_paths = [values.reset.path] + [button.path for button in values.controllers]
         button_set = set(buttons_paths)
         if len(button_set) != len(buttons_paths):
             raise ValueError("Duplicate button device paths found in reset and avatar buttons.")
@@ -206,23 +211,10 @@ class IngestSettings(BaseModel):
         return values
 
     @model_validator(mode="after")
-    def validate_actor_mics(cls, values):
-        mic_names = set([mic.name for mic in values.actor_mics])
-        if len(mic_names) != len(values.actor_mics):
-            raise ValueError("Duplicate microphone names found in actor microphones.")
-
-        for mic in values.actor_mics:
-            try:
-                sd.check_input_settings(device=mic.name)
-            except sd.PortAudioError as e:
-                raise ValueError(f"Microphone device '{mic.name}' is not accessible: {e}")
-        return values
-
-    @model_validator(mode="after")
     def mvp_limitations(cls, values):
         """Validate settings against MVP limitations."""
-        if not values.avatar_controllers or len(values.avatar_controllers) != 1:
+        if not values.controllers or len(values.controllers) != 1:
             raise ValueError("MVP limitation: Only one avatar button is supported.")
-        if not values.actor_mics or len(values.actor_mics) != 1:
+        if not values.mics or len(values.mics) != 1:
             raise ValueError("MVP limitation: Exactly 1 actor microphone is required.")
         return values

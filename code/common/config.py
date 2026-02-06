@@ -3,11 +3,8 @@ Validated General configuration model for the AI Improv Toolkit. Makes use of py
 """
 
 import logging
-from pathlib import Path
-import os
 import socket
 from annotated_types import Gt
-import re
 from typing import Annotated, Literal
 
 from pydantic import ConfigDict, BaseModel, model_validator
@@ -15,7 +12,7 @@ from pydantic import ConfigDict, BaseModel, model_validator
 # Types
 NonZeroPositiveInt = Annotated[int, Gt(0)]
 
-ComponentRole = Literal["ingest", "vision", "hearing", "brain", "output", "health_check"]
+ComponentRole = Literal["frontend", "backend"]
 
 debug_level_options = Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
 
@@ -75,39 +72,41 @@ class ModeConfig(BaseModel):
         return self
 
 
-class NetworkConfig(BaseModel):
+class WebrtcConfig(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
-    nats_server: str
-    connection_timeout_s: NonZeroPositiveInt
-    retry_attempts: NonZeroPositiveInt
-    retry_backoff_ms: NonZeroPositiveInt
-    ca_cert_path: str
-    client_cert_path: str
-    client_key_path: str
+    peer_server: str
+    port: NonZeroPositiveInt
+    pre_shared_key: str
+    ice_servers: list[str]
+
+    # Peer server is not validated here, frontend will wait for the server to be available and backend will start these server.
 
     @model_validator(mode="after")
-    def check_nats_server(cls, self):
-        # Validate format
-        server_pattern = re.compile(r"^tls://.+:\d+$")
-        if not server_pattern.match(self.nats_server):
-            raise ValueError("NATS server must be in the format 'tls://hostname:port'")
-        # Validate that the server is reachable
-        host, port_str = self.nats_server[len("tls://") :].rsplit(":", 1)
-        port = int(port_str)
-        if not check_server_tcp(host, port):
-            raise ValueError(f"NATS server {self.nats_server} is not reachable")
+    def validate_port(cls, self):
+        if not (1 <= self.port <= 65535):
+            raise ValueError("Port number must be between 1 and 65535.")
         return self
 
     @model_validator(mode="after")
-    def check_tls_path(cls, self):
-        if not self.ca_cert_path or not self.client_cert_path or not self.client_key_path:
-            raise ValueError("TLS path must be provided for TLS connections")
-        ca_cert_path = Path(self.ca_cert_path)
-        client_cert_path = Path(self.client_cert_path)
-        client_key_path = Path(self.client_key_path)
-        for path in [ca_cert_path, client_cert_path, client_key_path]:
-            if not path.is_file():
-                raise ValueError(f"TLS file does not exist at path: {path}")
-            if not os.access(path, os.R_OK):
-                raise ValueError(f"TLS file is not readable at path: {path}")
+    def validate_pre_shared_key(cls, self):
+        if len(self.pre_shared_key) < 8:
+            raise ValueError("Pre-shared key must be at least 8 characters long.")
+        return self
+
+    @model_validator(mode="after")
+    def validate_ice_servers(cls, self):
+        if  len(self.ice_servers) == 0:
+            raise ValueError("At least one ICE server must be provided.")
+        for server in self.ice_servers:
+          if not isinstance(server, str):
+            raise ValueError(f"ICE server entry must be a string: {server}")
+          _, port = server.split(":") if ":" in server else (server, None)
+          if port is None:
+              raise ValueError(f"ICE server entry must include port: {server}")
+          try:
+              port = int(port)
+          except ValueError:
+              raise ValueError(f"ICE server port must be must be convertible to an integer: {server}")
+          if not (1 <= int(port) <= 65535):
+              raise ValueError(f"ICE server port must be between 1 and 65535: {server}")
         return self

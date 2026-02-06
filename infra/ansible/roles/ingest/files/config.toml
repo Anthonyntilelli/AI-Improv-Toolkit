@@ -8,39 +8,35 @@ avatar_count = 1 # MVP supports only 1 avatar for now
 [Mode]
 ethics = false # When true, will have ethic mode limits applied
 debug_level = "INFO" #  In Ethics mode mode must be "Error" or "Critical"
-role = "ingest" # options: [ingest, vision, hearing, brain, output, health_check] role of the component
+role = "frontend" # options: [frontend, backend] role of the component
 
-# NOTE: Localhost does not work in a containerized environment. Use service names instead.
-[Network]
-nats_server = "tls://nats_server:4222"
-connection_timeout_s = 2
-retry_attempts = 5
-retry_backoff_ms = 500
 
-# TLS/SSL certificate paths
-ca_cert_path = "/etc/ai-show/pki/ca_cert.pem"
-client_cert_path = "/etc/ai-show/pki/client_cert.pem"
-client_key_path = "/etc/ai-show/pki/client_key.pem"
+[Webrtc]
+peer_server = "tony_pc"
+port = 8443
+pre_shared_key = "your_secure_signal_key"  # Secure key for signaling server authentication
+# List of ICE servers for NAT traversal
+ice_servers = ["stun.l.google.com:19302", "stun1.l.google.com:19302","stun2.l.google.com:19302", "stun3.l.google.com:19302", "stun4.l.google.com:19302"]
 
-[Ingest]
+# TODO: TURN server configuration for relay
+# TODO: SSL for Signal server
+
+
+[frontend]
 button_debounce_ms = 500
-# Can be found using the /opt/show/ingest/silence_threshold.sh. Be careful with this value.
-silence_threshold = 0.02 # RMS threshold that the mic will ignore Don't make too large.
+webrtc_id = "frontend" # Unique identifier for this frontend instance
 
-[Ingest.peer]
-server = "tony-pc"       # IP address of the peer server
-port = 5004               # Port number for peer streaming
-
-[Ingest.reset]
+[frontend.reset]
 path = "/dev/show/reset"
 reset = "KEY_SPACE"
 grab = true
 
-[[Ingest.actor_mics]]
+[[frontend.mics]]
 name = "USB Composite Device"  # Find Mic_name using the /opt/show/ingest/sound_list_name.sh
-use_noise_reducer = true # When true, will apply noise reduction to incoming audio.
+channel_handling = "mono" # options: [mono, split_all, downmix_to_mono]
 
-[[Ingest.avatar_controllers]]
+
+[[frontend.controllers]]
 path = "/dev/show/avatar"
 speak = "KEY_SPACE"
 exit = "KEY_ENTER"
