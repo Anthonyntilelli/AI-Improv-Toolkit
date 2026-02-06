@@ -1,59 +1,65 @@
 """Contains WebRTC-related message definitions."""
 
 from typing import Literal
-from pydantic import BaseModel, PositiveInt
+from pydantic import BaseModel, PositiveInt, model_validator
 
-message_types = Literal["error", "register", "registered"]
+from aiortc.rtcicetransport import RTCIceCandidate
+
+MessageType = Literal["error", "register", "registered", "offer", "pranswer", "answer", "rollback", "ice-candidate", "close-connection"]
 
 
 class WebRTCSignalMessage(BaseModel):
     """Base class for WebRTC signaling messages."""
 
-    type: message_types
+    type: MessageType
     version: PositiveInt
 
 
 class ErrorMessage(WebRTCSignalMessage):
     """Message for signaling errors."""
 
-    type: message_types = "error"
+    type  = "error"
     message: str
 
 
 class RegisterMessage(WebRTCSignalMessage):
     """Message for registering a new WebRTC connection."""
 
-    type: message_types = "register"
+    type = "register"
     server_id: str
     mic_stream_count: PositiveInt
     cam_stream_count: PositiveInt
-    Accept_output_streams: bool
+    accept_output_streams: bool
     roles: Literal["ingest", "observer", "output", "ingest-output"]
 
 
 class RegisteredMessage(WebRTCSignalMessage):
     """Message confirming successful registration."""
 
-    type: message_types = "registered"
+    type = "registered"
     server_id: str
 
 
-# class OfferMessage(WebRTCSignalMessage):
-#     """Message for WebRTC offer."""
-#     type: str = "offer"
-#     data: dict
+class RTCSessionDescriptionMessage(WebRTCSignalMessage):
+    """Message for WebRTC session descriptions (offer/answer)."""
 
-# class AnswerMessage(WebRTCSignalMessage):
-#     """Message for WebRTC answer."""
-#     type: str = "answer"
-#     data: dict
+    sdp: str
 
-# class IceCandidateMessage(WebRTCSignalMessage):
-#     """Message for ICE candidate."""
-#     type: str = "ice-candidate"
-#     data: dict
+    @model_validator(mode="after")
+    def check_sdp_type(cls, values):
+        sdp_type = values.get("type")
+        if sdp_type not in {"offer", "answer", "pranswer", "rollback"}:
+            raise ValueError(f"Invalid SDP type: {sdp_type}")
+        return cls
 
-# class CloseConnectionMessage(WebRTCSignalMessage):
-#     """Message to close WebRTC connection."""
-#     type: str = "close-connection"
-#     data: dict
+class ICECandidateMessage(WebRTCSignalMessage):
+    """Message for ICE candidates."""
+
+    type = "ice-candidate"
+    data: RTCIceCandidate
+
+class CloseConnectionMessage(WebRTCSignalMessage):
+    """Message to close a WebRTC connection."""
+
+    type = "close-connection"
+    reason: str

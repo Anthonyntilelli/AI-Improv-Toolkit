@@ -26,7 +26,7 @@ from messages import (
 SECRET_KEY = b"potato"  # This would be set from configuration in a real application
 MAX_AGE_MS = 30_000  # 30 seconds
 
-connections: dict = {}
+connections: dict[str, ServerConnection] = {}
 # Nonce tracking: {nonce: timestamp_ms} - auto-expires after MAX_AGE_MS
 used_nonces: dict[str, int] = {}
 
